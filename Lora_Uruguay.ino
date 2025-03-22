@@ -124,7 +124,7 @@
   //-4.1 Clases.
     Functions Correr(true);
     General General(false);
-    Node Nodo(true);
+    Node Nodo(1);
     Master Master(true);
 //5. Funciones ISR.
   //-5.1 Serial Function.
@@ -181,7 +181,7 @@
       flag_ISR_temporizador_3=true;
     }
 void setup(){
-  //2. Condiciones Iniciales.
+  //S1. Condiciones Iniciales.
     //-2.1 Estado de Salidas.
     //-2.3 Timer Answer.
       tokenTime       = 1000;
@@ -195,57 +195,61 @@ void setup(){
 
 }
 void loop(){
-  //1. Start Function
+  //L1. Start Function
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
     }
-  //2. Functions Decode
+  //L2. Functions Decode
     if(falg_ISR_stringComplete){
       flag_F_codified_funtion=Correr.Functions_Request(inputString);
       falg_ISR_stringComplete=false;
     }
-  //3. Function Run
+  //L3. Function Run
       if(flag_F_codified_funtion){
         flag_F_codified_funtion=Correr.Functions_Run();
         inputString="";
         flag_F_codified_funtion=false;
       }
-  //4. Atender Las fucniones activadas desde ISR FLAGS.
-    //-4.0 Bandera de Prueba.
+  //L4. Atender Las fucniones activadas desde ISR FLAGS.
+    //-L4.0 Bandera de Prueba.
       if(flag_ISR_prueba){
       // flag_ISR_prueba=false;
         // a1_Nodo_Destellos(1,3);
       }
-    //-4.1 EJ-  REVISO Y ACTUALIZO.
+    //-L4.1 EJ-  REVISO Y ACTUALIZO.
       reviso();
       actualizar();
 
-    //-4.2 F- Timer 1.
+    //-L4.2 F- Timer 1.
       if(flag_ISR_temporizador_1){
         analizar();
         //MASTER
         //NODOS.
       }
-    //-4.3 F- Timer 2.
+    //-L4.3 F- Timer 2.
       if(flag_ISR_temporizador_2){
       }
-    //-4.4 F- Timer 0.
+    //-L4.4 F- Timer 0.
       if(flag_ISR_temporizador_0){
       }
-    //-4.5 F- Timer 3.
+    //-L4.5 F- Timer 3.
       if(flag_ISR_temporizador_3){
       }
 
-    //-4.6 F- Server Update.
+    //-L4.6 F- Server Update.
       if(flag_F_updateServer){
       }
-    //-4.7 F- Recepcion de Paquete.
+    //-L4.7 F- Recepcion de Paquete.
       if(flag_F_PAQUETE){
         flag_F_PAQUETE=false;
         secuencia();
       }
     //L.1 Lora RX.
         Nodo.Lora_RX();
+    //-L.5 Master.
+      if(Master.Mode){
+        Master.Master_Nodo();
+      }
 }
 //4. Funciones UPDATE.
   //-4.1 Estados de Zonas.

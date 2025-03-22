@@ -37,23 +37,23 @@
 // transmissting without an antenna can damage your hardware.
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
-Node::Node(bool a)
+Node::Node(uint nodeNumber)
 {
     // Constructor de la clase Node
-    // Configuracion de Hardware
-    pinMode(Zona_A_in, INPUT);
-    pinMode(Zona_B_in, INPUT);
-    pinMode(PB_ZA_in, INPUT);
-    pinMode(PB_ZB_in, INPUT);
-    pinMode(PB_ZAB_in, INPUT);
+    //1. Configuracion de Hardware
+        pinMode(Zona_A_in, INPUT);
+        pinMode(Zona_B_in, INPUT);
+        pinMode(PB_ZA_in, INPUT);
+        pinMode(PB_ZB_in, INPUT);
+        pinMode(PB_ZAB_in, INPUT);
 
-    pinMode(Rele_1_out, OUTPUT);
-    pinMode(Rele_2_out, OUTPUT);
-    Zone_A = false;
-    Zone_B = false;
-    // 2 Condicion Inicial.
-    digitalWrite(Rele_1_out, LOW);
-    digitalWrite(Rele_2_out, LOW);
+        pinMode(Rele_1_out, OUTPUT);
+        pinMode(Rele_2_out, OUTPUT);
+        Zone_A = false;
+        Zone_B = false;
+    //2. Condicion Inicial.
+        digitalWrite(Rele_1_out, LOW);
+        digitalWrite(Rele_2_out, LOW);
 }
 void Node::Lora_Setup()
 {
@@ -77,13 +77,13 @@ void Node::Lora_Setup()
 void Node::Lora_TX()
 {
     heltec_loop();
-    // Transmit a packet every PAUSE seconds or when the button is pressed
+        // Transmit a packet every PAUSE seconds or when the button is pressed
     if (button.isSingleClick())
     {
-        both.printf("TX [%s] ", String(counter).c_str());
+        both.printf("TX [%s] ", String(mensaje).c_str());
         radio.clearDio1Action();
         heltec_led(50); // 50% brightness is plenty for this LED
-        RADIOLIB(radio.transmit(String(counter++).c_str()));
+        RADIOLIB(radio.transmit(String(mensaje++).c_str()));
         heltec_led(0);
         if (_radiolib_status == RADIOLIB_ERR_NONE)
         {

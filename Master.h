@@ -3,6 +3,10 @@
 
 class Master {
 public:
+    bool Mode;
+    uint nodeNumber;
+    uint nodeStatus;
+
     Master(bool mode_master);
     
     void Iniciar();
@@ -10,13 +14,14 @@ public:
     void Gestion();
     static void timer_master_ISR();
     void Nodo_REQUEST();
+    void Master_Nodo();
+    void Master_Mensaje();
 
 private:
     bool firstScan;
     bool LED_Azul;
-    bool masterMode;
-    int  Nodo_Primero;
-    int  Nodo_Ultimo;
+    int  Nodo_Primero=1;
+    int  Nodo_Ultimo=3;
     int  Nodo_Proximo;
     int  Nodo_Consultado;
     int  Nodo_Anterior;

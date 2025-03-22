@@ -6,7 +6,7 @@ Ticker timer_master;
 
 // Constructor de la clase Master
 Master::Master(bool mode_master) {
-    masterMode=mode_master;
+    Mode=mode_master;
     timer_master.attach(1, Master::timer_master_ISR);
 
 }
@@ -35,5 +35,16 @@ void Master::Nodo_REQUEST(){
 void Master::timer_master_ISR(){
     // Implementación del método timer_master_ISR
 
+
+}
+void Master::Master_Nodo(){
+    // Implementación del método Master_Nodo
+    Nodo_REQUEST();
+    Master_Mensaje();
+}
+
+void Master::Master_Mensaje(){
+    // Implementación del método Master_Mensaje
+    mensaje=Nodo_Consultado;
 
 }

@@ -3,7 +3,7 @@
 #include <Arduino.h>
 class Node {
 public:
-    Node(bool a);
+    Node(uint nodeNumber);
     void   Setup();
     void   Lora_Setup();
     void   Lora_TX();
@@ -26,7 +26,7 @@ private:
     bool    Zone_B;
     bool    Zone_C;
     String  rxdata;
-    long        counter = 0;
+    long        mensaje = 0;
     uint64_t    last_tx = 0;
     uint64_t    tx_time;
     uint64_t    minimum_pause;

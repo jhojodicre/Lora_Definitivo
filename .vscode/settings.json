@@ -1,0 +1,6 @@
+{
+    "arduino.additionalUrls": [
+        "https://resource.heltec.cn/download/package_heltec_esp32_index.json"
+    ],
+    "arduino.useArduinoCli": true
+}
