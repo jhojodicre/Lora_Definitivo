@@ -4,8 +4,9 @@
 class Master {
 public:
     bool Mode;
-    uint nodeNumber;
-    uint nodeStatus;
+    int nodeNumber;
+    int nodeStatus;
+    int mensaje;
 
     Master(bool mode_master);
     

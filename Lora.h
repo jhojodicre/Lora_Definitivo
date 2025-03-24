@@ -1,9 +1,9 @@
-#ifndef NODE_H
-#define NODE_H
+#ifndef LORA_H
+#define LORA_H
 #include <Arduino.h>
-class Node {
+class Lora {
 public:
-    Node(uint nodeNumber);
+    Lora(uint nodeNumber);
     void   Setup();
     void   Lora_Setup();
     void   Lora_TX();

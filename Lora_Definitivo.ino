@@ -4,7 +4,7 @@
     #include <Arduino.h>
     #include "General.h"
     #include "Functions.h"
-    #include "Node.h"
+    #include "Lora.h"
     #include "Master.h"
 
 //2. Definicion de Pinout.
@@ -124,7 +124,7 @@
   //-4.1 Clases.
     Functions Correr(true);
     General General(false);
-    Node Nodo(1);
+    Lora Node(1);
     Master Master(true);
 //5. Funciones ISR.
   //-5.1 Serial Function.
@@ -191,7 +191,7 @@ void setup(){
       wakeUpTime      = 30.0;
 
   //S.2 Nodo Setup.
-    Nodo.Lora_Setup();
+    Node.Lora_Setup();
 
 }
 void loop(){
@@ -245,7 +245,7 @@ void loop(){
         secuencia();
       }
     //L.1 Lora RX.
-        Nodo.Lora_RX();
+        Node.Lora_RX();
     //-L.5 Master.
       if(Master.Mode){
         Master.Master_Nodo();

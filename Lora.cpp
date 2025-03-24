@@ -7,7 +7,7 @@
  *
  * This works on the stick, but the output on the screen gets cut off.
  */
-#include "Node.h"
+#include "Lora.h"
 #include <Arduino.h>
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -37,7 +37,7 @@
 // transmissting without an antenna can damage your hardware.
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
-Node::Node(uint nodeNumber)
+Lora::Lora(uint nodeNumber)
 {
     // Constructor de la clase Node
     //1. Configuracion de Hardware
@@ -55,7 +55,7 @@ Node::Node(uint nodeNumber)
         digitalWrite(Rele_1_out, LOW);
         digitalWrite(Rele_2_out, LOW);
 }
-void Node::Lora_Setup()
+void Lora::Lora_Setup()
 {
     heltec_setup();
     both.println("Radio init");
@@ -74,7 +74,7 @@ void Node::Lora_Setup()
     // Start receiving
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
 }
-void Node::Lora_TX()
+void Lora::Lora_TX()
 {
     heltec_loop();
         // Transmit a packet every PAUSE seconds or when the button is pressed
@@ -98,7 +98,7 @@ void Node::Lora_TX()
         RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     }
 }
-void Node::Lora_RX()
+void Lora::Lora_RX()
 {
     // If a packet was received, display it and the RSSI and SNR
     if (rxFlag)
@@ -116,7 +116,7 @@ void Node::Lora_RX()
 }
 
 // Can't do Serial or display things here, takes too much time for the interrupt
-void Node::rx()
+void Lora::rx()
 {
     rxFlag = true;
 }
