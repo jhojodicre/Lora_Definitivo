@@ -9,6 +9,9 @@ public:
     void   Lora_TX();
     void   Lora_RX();
     static void rx();
+    bool    F_Responder=false;
+    bool    F_Recibido=false;
+    bool    F_Enviado=false;
 
 private:
     int     Zona_A_in=38;

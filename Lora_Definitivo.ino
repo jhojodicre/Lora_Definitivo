@@ -125,7 +125,7 @@
     Functions Correr(true);
     General General(false);
     Lora Node(1);
-    Master Master(true);
+    Master Master(false);
 //5. Funciones ISR.
   //-5.1 Serial Function.
     void serialEvent (){
@@ -198,6 +198,9 @@ void loop(){
   //L1. Start Function
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
+      if(Master.Mode){
+        Master.Iniciar();
+      }
     }
   //L2. Functions Decode
     if(falg_ISR_stringComplete){
@@ -247,8 +250,13 @@ void loop(){
     //L.1 Lora RX.
         Node.Lora_RX();
     //-L.5 Master.
-      if(Master.Mode){
+      if(Master.Mode && Master.Next){
         Master.Master_Nodo();
+      }
+      // Lora TX
+      if(Master.Next){
+        Node.Lora_TX();
+        Master.Next=false;
       }
 }
 //4. Funciones UPDATE.

@@ -7,6 +7,7 @@ public:
     int nodeNumber;
     int nodeStatus;
     int mensaje;
+    volatile bool Next;          // Flag para transmitir al siguiente nodo.
 
     Master(bool mode_master);
     
@@ -17,6 +18,7 @@ public:
     void Nodo_REQUEST();
     void Master_Nodo();
     void Master_Mensaje();
+    void Secuencia();
 
 private:
     bool firstScan;

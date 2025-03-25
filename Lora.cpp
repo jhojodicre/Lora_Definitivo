@@ -76,10 +76,6 @@ void Lora::Lora_Setup()
 }
 void Lora::Lora_TX()
 {
-    heltec_loop();
-        // Transmit a packet every PAUSE seconds or when the button is pressed
-    if (button.isSingleClick())
-    {
         both.printf("TX [%s] ", String(mensaje).c_str());
         radio.clearDio1Action();
         heltec_led(50); // 50% brightness is plenty for this LED
@@ -96,7 +92,8 @@ void Lora::Lora_TX()
         delay(100); // Debounce the button
         radio.setDio1Action(rx);
         RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
-    }
+    F_Responder = false;
+    F_Enviado = true;
 }
 void Lora::Lora_RX()
 {
