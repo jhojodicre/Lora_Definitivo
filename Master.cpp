@@ -8,10 +8,11 @@ Master* masterInstance = nullptr; // Puntero global al objeto Master
 Master::Master(bool mode_master) {
     Mode=mode_master;
     masterInstance = this; // Asignar la instancia actual al puntero global
-    timer_master.attach(5, timer_master_ISR);    
+       
 }
 void Master::Iniciar() {
     // Implementación del método Iniciar
+    timer_master.attach(5, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
 }
 void Master::Configuracion() {
     // Implementación del método Configuracion
