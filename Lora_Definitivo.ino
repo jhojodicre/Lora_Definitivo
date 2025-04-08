@@ -204,7 +204,6 @@ void loop(){
       if(Master.Mode){
         Master.Iniciar();
       }
-      // timer_0.attach(5, ISR_temporizador_0); // 1 segundo.
 
     }
   //L2. Functions Decode
@@ -257,7 +256,7 @@ void loop(){
       }
     //L.1 Lora RX.
         Node.Lora_RX();
-    //-L.5 Master.
+  //-L.5 Master.
       if(Master.Mode && Master.Next){
         // Master.Master_Nodo();
         
