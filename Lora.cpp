@@ -76,22 +76,21 @@ void Lora::Lora_Setup()
 }
 void Lora::Lora_TX()
 {
-        both.printf("TX [%s] ", String(mensaje).c_str());
-        radio.clearDio1Action();
-        heltec_led(50); // 50% brightness is plenty for this LED
-        RADIOLIB(radio.transmit(String(mensaje++).c_str()));
-        heltec_led(0);
-        if (_radiolib_status == RADIOLIB_ERR_NONE)
-        {
-            both.printf("OK (%i ms)\n", (int)tx_time);
-        }
-        else
-        {
-            both.printf("fail (%i)\n", _radiolib_status);
-        }
-        delay(100); // Debounce the button
-        radio.setDio1Action(rx);
-        RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
+    both.printf("TX [%s] ", String(mensaje).c_str());
+    radio.clearDio1Action();
+    heltec_led(50); // 50% brightness is plenty for this LED
+    RADIOLIB(radio.transmit(String(mensaje++).c_str()));
+    heltec_led(0);
+    if (_radiolib_status == RADIOLIB_ERR_NONE)
+    {
+        both.printf("OK (%i ms)\n");
+    }
+    else
+    {
+        both.printf("fail (%i)\n", _radiolib_status);
+    }
+    radio.setDio1Action(rx);
+    RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     F_Responder = false;
     F_Enviado = true;
 }

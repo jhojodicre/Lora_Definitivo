@@ -1,24 +1,25 @@
 #ifndef MASTER_H
 #define MASTER_H
-
+#include <Ticker.h>
 class Master {
 public:
     bool Mode;
     int nodeNumber;
     int nodeStatus;
     int mensaje;
-    volatile bool Next;          // Flag para transmitir al siguiente nodo.
+    bool Next;          // Flag para transmitir al siguiente nodo.
+    
 
     Master(bool mode_master);
     
     void Iniciar();
     void Configuracion();
     void Gestion();
-    static void timer_master_ISR();
     void Nodo_REQUEST();
     void Master_Nodo();
     void Master_Mensaje();
     void Secuencia();
+    static void timer_master_ISR(); // Declaración como estática
 
 private:
     bool firstScan;

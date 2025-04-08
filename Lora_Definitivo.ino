@@ -125,7 +125,13 @@
     Functions Correr(true);
     General General(false);
     Lora Node(1);
-    Master Master(false);
+    Master Master(true);
+  //-4.2 Timer.
+    Ticker timer_0;
+    Ticker timer_1;
+    Ticker timer_2;
+    Ticker timer_3;
+    Ticker timer_4;
 //5. Funciones ISR.
   //-5.1 Serial Function.
     void serialEvent (){
@@ -161,9 +167,6 @@
   //-5.3 Interrupciones por Timers.
     void ISR_temporizador_0(){
       flag_ISR_temporizador_0=true;
-      // if(flag_F_Nodos_Incompletos){
-      //   analisar();
-      // }
     }
     void ISR_temporizador_1(){
         beforeTime_1 = millis();
@@ -201,6 +204,8 @@ void loop(){
       if(Master.Mode){
         Master.Iniciar();
       }
+      timer_0.attach(5, ISR_temporizador_0); // 1 segundo.
+
     }
   //L2. Functions Decode
     if(falg_ISR_stringComplete){
@@ -234,6 +239,8 @@ void loop(){
       }
     //-L4.4 F- Timer 0.
       if(flag_ISR_temporizador_0){
+        Master.Next=true;
+        flag_ISR_temporizador_0=false;
       }
     //-L4.5 F- Timer 3.
       if(flag_ISR_temporizador_3){
@@ -241,6 +248,7 @@ void loop(){
 
     //-L4.6 F- Server Update.
       if(flag_F_updateServer){
+        
       }
     //-L4.7 F- Recepcion de Paquete.
       if(flag_F_PAQUETE){
@@ -251,12 +259,14 @@ void loop(){
         Node.Lora_RX();
     //-L.5 Master.
       if(Master.Mode && Master.Next){
-        Master.Master_Nodo();
+        // Master.Master_Nodo();
+        
       }
       // Lora TX
       if(Master.Next){
         Node.Lora_TX();
         Master.Next=false;
+        Correr.a1(3,1);// 3 veces, 300 milesegundos.
       }
 }
 //4. Funciones UPDATE.

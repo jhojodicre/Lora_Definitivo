@@ -3,11 +3,12 @@
 #include <Ticker.h>
 
 Ticker timer_master;
-Master* masterInstance = nullptr;
+Master* masterInstance = nullptr; // Puntero global al objeto Master
 // Constructor de la clase Master
 Master::Master(bool mode_master) {
     Mode=mode_master;
-    timer_master.attach(1, timer_master_ISR);
+    masterInstance = this; // Asignar la instancia actual al puntero global
+    timer_master.attach(5, timer_master_ISR);    
 }
 void Master::Iniciar() {
     // Implementación del método Iniciar
@@ -41,11 +42,13 @@ void Master::Master_Mensaje(){
 }
 void Master::Secuencia(){
     // Implementación del método Secuencia
-    timer_master.attach(3, timer_master_ISR);
 }
-void Master::timer_master_ISR(){
-    // Implementación del método timer_master_ISR
+void Master::timer_master_ISR() {
+    // Implementación del método estático timer_master_ISR
+    // Nota: No puedes acceder a variables no estáticas directamente
+    // Usa variables estáticas o globales si es necesario
     if (masterInstance) {
-        masterInstance->Next = true; // Acceder a la variable del objeto
+        masterInstance->Next = true; // Acceder a la variable de instancia a través del puntero global
     }
-}	
+
+}

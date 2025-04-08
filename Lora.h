@@ -12,7 +12,7 @@ public:
     bool    F_Responder=false;
     bool    F_Recibido=false;
     bool    F_Enviado=false;
-
+    String  rxdata;
 private:
     int     Zona_A_in=38;
     int     Zona_B_in=39;
@@ -28,7 +28,7 @@ private:
     bool    Zone_A;
     bool    Zone_B;
     bool    Zone_C;
-    String  rxdata;
+    
     long        mensaje = 0;
     uint64_t    last_tx = 0;
     uint64_t    tx_time;
