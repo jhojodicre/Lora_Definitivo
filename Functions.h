@@ -67,18 +67,18 @@ public:
     void s7();
     void s8();
     void s9();
+    int     x1;
+    int     x2;
+    int     x3;
+    int     x4;
+    char    function_Mode;
+    char    function_Number;
+    String  function_Parameter1;
+    String  function_Parameter2;
+    String  function_Parameter3;
+    String  function_Parameter4;
 private:
     bool    firstScan;
-    char    _function_Mode;
-    char    _function_Number;
-    String  _function_Parameter1;
-    String  _function_Parameter2;
-    String  _function_Parameter3;
-    String  _function_Parameter4;
-    int     _x1;
-    int     _x2;
-    int     _x3;
-    int     _x4;
     byte    _LED_Azul=35;  
 
 };

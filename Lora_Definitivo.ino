@@ -11,14 +11,9 @@
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
   //  Es decir, si queremos activar la salida 1, tenemos que buscar la referencia GPIO 1, Pero solomante Escribir 1 sin "GPIO"
   //  NO tomar como referencia las etiquetas D1, D2,D3, ....Dx.
-  
-  //-2.1 Definicion de etiquetas para las Entradas.
+
   //-2.2 Definicion de etiquetas para las Salidas.
     #define LED_azul      2
-
-  //-2.3 ZONAS
-  //-2.4 Constantes.
-  //-2.5 timer
 
 //3. Variables Globales.
   //-3.1 Variables Interrupciones
@@ -121,11 +116,11 @@
       String      info_1="";
       char        incomingFuntion;
 //4. Intancias.
-  //-4.1 Clases.
-    Functions Correr(true);
-    General General(false);
-    Lora Node(1);
-    Master Master(true);
+//-4.1 Clases.
+  Functions Correr(true);
+  General General(false);
+  Lora Node(1);
+  Master Master(true,2);
   //-4.2 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -198,7 +193,7 @@ void setup(){
 
 }
 void loop(){
-  //L1. Start Function
+  //L1. Function Start
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
       if(Master.Mode){
@@ -212,61 +207,68 @@ void loop(){
       falg_ISR_stringComplete=false;
     }
   //L3. Function Run
-      if(flag_F_codified_funtion){
-        flag_F_codified_funtion=Correr.Functions_Run();
-        inputString="";
-        flag_F_codified_funtion=false;
-      }
-  //L4. Atender Las fucniones activadas desde ISR FLAGS.
-    //-L4.0 Bandera de Prueba.
+      // if(flag_F_codified_funtion){
+      //   flag_F_codified_funtion=Correr.Functions_Run();
+      //   inputString="";
+      //   flag_F_codified_funtion=false;
+      // }
+  //L4. Funciones del Nodo.
+    //-L4.0 Function Test.
       if(flag_ISR_prueba){
       // flag_ISR_prueba=false;
         // a1_Nodo_Destellos(1,3);
       }
-    //-L4.1 EJ-  REVISO Y ACTUALIZO.
-      reviso();
-      actualizar();
+    //-L4.1 IO ENTRADAS DEL NODO sino es el maestro.
+      if(!Master.Mode){
+        Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+      }
+    //-L4.2 Nodo TX.
+      if(Node.F_Responder){
+        Node.Lora_TX();       // Se envia el mensaje.
+      }
+    //-L4.3 Nodo Ejecuta Funciones.
+      if(Node.F_Nodo_Excecute){
+        Correr.function_Mode   =   Node.rx_funct_mode; // Tipo de funcion a ejecutar.
+        Correr.function_Number =   Node.rx_funct_num; // Numero de funcion a ejecutar. 
+        Correr.x1             =   Node.rx_funct_parameter1; // Parametro 1 de la Funcion.
+        Correr.x2             =   Node.rx_funct_parameter2; // Parametro 2 de la Funcion.
+        // Correr.x3=Node.rxdata.substring(4, 5); // Parametro 3 de la Funcion.
+        // Correr.x4=Node.rxdata.substring(5, 6); // Parametro 4 de la Funcion.
+        Correr.Functions_Run(); // Se ejecuta la funcion.
+        Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
+      }
+    //-L4.4 Nodo RX.
+      if(Node.F_Recibido){
+        Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
+        Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+      }
 
-    //-L4.2 F- Timer 1.
-      if(flag_ISR_temporizador_1){
-        analizar();
-        //MASTER
-        //NODOS.
+  //L5. Funciones del Master.
+    //-L5.1 F- Master.
+        // if(Master.Mode && Master.Next){
+        //   // Master.Master_Nodo();
+          
+        // }
+    //-L5.2 Master TX
+      if(Master.Next){
+        Master.Master_Nodo();       //
+        Node.nodo_consultado=Master.Nodo_Proximo;
+        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+        Node.Lora_Master_Frame();
+        Node.Lora_TX();
+        Master.Next=false;
+        Correr.a1(1,1);// 31 veces, 100 milesegundos.
       }
-    //-L4.3 F- Timer 2.
-      if(flag_ISR_temporizador_2){
-      }
-    //-L4.4 F- Timer 0.
-      if(flag_ISR_temporizador_0){
-        Master.Next=true;
-        flag_ISR_temporizador_0=false;
-      }
-    //-L4.5 F- Timer 3.
-      if(flag_ISR_temporizador_3){
-      }
-
-    //-L4.6 F- Server Update.
+    //-L5.3 F- Server Update.
       if(flag_F_updateServer){
         
       }
-    //-L4.7 F- Recepcion de Paquete.
-      if(flag_F_PAQUETE){
-        flag_F_PAQUETE=false;
-        secuencia();
-      }
-    //L.1 Lora RX.
-        Node.Lora_RX();
-  //-L.5 Master.
-      if(Master.Mode && Master.Next){
-        // Master.Master_Nodo();
-        
-      }
-      // Lora TX
-      if(Master.Next){
-        Node.Lora_TX();
-        Master.Next=false;
-        Correr.a1(3,1);// 3 veces, 300 milesegundos.
-      }
+  //L6. Function Lora RX.
+    //-L6.1 lora RX.
+      Node.Lora_RX();
 }
 //4. Funciones UPDATE.
   //-4.1 Estados de Zonas.

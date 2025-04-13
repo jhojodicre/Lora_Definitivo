@@ -10,7 +10,7 @@ public:
     bool Next;          // Flag para transmitir al siguiente nodo.
     
 
-    Master(bool mode_master);
+    Master(bool mode_master, int nodo_number);
     
     void Iniciar();
     void Configuracion();
@@ -20,13 +20,14 @@ public:
     void Master_Mensaje();
     void Secuencia();
     static void timer_master_ISR(); // Declaración como estática
+    int  Nodo_Proximo;
+    void Master_Request();
 
 private:
     bool firstScan;
     bool LED_Azul;
     int  Nodo_Primero=1;
     int  Nodo_Ultimo=3;
-    int  Nodo_Proximo;
     int  Nodo_Consultado;
     int  Nodo_Anterior;
     int  Nodo_Actual;

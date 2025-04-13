@@ -1,5 +1,6 @@
 #include "Functions.h"
 #include <Arduino.h>
+#include "Master.h"
 
 Functions::Functions(bool ready)
 {
@@ -12,31 +13,31 @@ bool Functions::Functions_Request(String rxString)
     // Deshabilitamos Banderas
     // falg_ISR_stringComplete=false;
     // flag_F_codified_funtion=true;
-    _function_Mode = rxString.charAt(0);
-    _function_Number = rxString.charAt(1);
-    _function_Parameter1 = rxString.substring(2, 3);
-    _function_Parameter2 = rxString.substring(3, 4);
-    _function_Parameter3 = rxString.substring(4, 5);
-    _function_Parameter4 = rxString.substring(5, 6);
+    function_Mode = rxString.charAt(0);
+    function_Number = rxString.charAt(1);
+    function_Parameter1 = rxString.substring(2, 3);
+    function_Parameter2 = rxString.substring(3, 4);
+    function_Parameter3 = rxString.substring(4, 5);
+    function_Parameter4 = rxString.substring(5, 6);
     return true;
 }
 bool Functions::Functions_Run()
 {
-    _x1 = _function_Parameter1.toInt();
-    _x2 = _function_Parameter2.toInt();
-    _x3 = _function_Parameter3.toInt();
-    _x4 = _function_Parameter4.toInt();
+    x1 = function_Parameter1.toInt();
+    x2 = function_Parameter2.toInt();
+    x3 = function_Parameter3.toInt();
+    x4 = function_Parameter4.toInt();
 
-    switch (_function_Mode)
+    switch (function_Mode)
     {
     case 'A':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             a0();
             break;
         case '1':
-            a1(_x1, _x2);
+            a1(x1, x2);
             break;
         case '2':
             a2();
@@ -63,11 +64,11 @@ bool Functions::Functions_Run()
             a9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
     case 'B':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             b0();
@@ -100,11 +101,11 @@ bool Functions::Functions_Run()
             b9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
     case 'C':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             c0();
@@ -137,11 +138,11 @@ bool Functions::Functions_Run()
             c9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
     case 'N':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             n0();
@@ -174,11 +175,11 @@ bool Functions::Functions_Run()
             n9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
     case 'M':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             m0();
@@ -211,11 +212,11 @@ bool Functions::Functions_Run()
             m9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
     case 'S':
-        switch (_function_Number)
+        switch (function_Number)
         {
         case '0':
             s0();
@@ -248,7 +249,7 @@ bool Functions::Functions_Run()
             s9();
             break;
         default:
-            // Handle invalid _function_Number
+            // Handle invalid function_Number
             break;
         }
         break;
@@ -269,28 +270,24 @@ void Functions::a1(int repeticiones, int tiempo)
     int retardo = tiempo * 100;
     for (int repetir = 0; repetir < veces; ++repetir)
     {
-        delay(retardo);                // pausa 1 seg.
-        digitalWrite(_LED_Azul, HIGH);  // Led ON.
-        delay(retardo);                // pausa 1 seg.
-        digitalWrite(_LED_Azul, LOW); // Led OFF.
+        delay(retardo);                     // pausa 1 seg.
+        digitalWrite(_LED_Azul, HIGH);      // Led ON.
+        delay(retardo);                     // pausa 1 seg.
+        digitalWrite(_LED_Azul, LOW);       // Led OFF.
     }
 }
-
 void Functions::a2()
 {
     // Implementación del método a2
 }
-
 void Functions::a3()
 {
     // Implementación del método a3
 }
-
 void Functions::a4()
 {
     // Implementación del método a4
 }
-
 void Functions::a5()
 {
     // Implementación del método a5
@@ -300,17 +297,14 @@ void Functions::a6()
 {
     // Implementación del método a6
 }
-
 void Functions::a7()
 {
     // Implementación del método a7
 }
-
 void Functions::a8()
 {
     // Implementación del método a8
 }
-
 void Functions::a9()
 {
     // Implementación del método a9
@@ -319,27 +313,22 @@ void Functions::b0()
 {
     // Implementación del método b0
 }
-
 void Functions::b1()
 {
     // Implementación del método b1
 }
-
 void Functions::b2()
 {
     // Implementación del método b2
 }
-
 void Functions::b3()
 {
     // Implementación del método b3
 }
-
 void Functions::b4()
 {
     // Implementación del método b4
 }
-
 void Functions::b5()
 {
     // Implementación del método b5
@@ -349,52 +338,42 @@ void Functions::b6()
 {
     // Implementación del método b6
 }
-
 void Functions::b7()
 {
     // Implementación del método b7
 }
-
 void Functions::b8()
 {
     // Implementación del método b8
 }
-
 void Functions::b9()
 {
     // Implementación del método b9
 }
-
 void Functions::c0()
 {
     // Implementación del método c0
 }
-
 void Functions::c1()
 {
     // Implementación del método c1
 }
-
 void Functions::c2()
 {
     // Implementación del método c2
 }
-
 void Functions::c3()
 {
     // Implementación del método c3
 }
-
 void Functions::c4()
 {
     // Implementación del método c4
 }
-
 void Functions::c5()
 {
     // Implementación del método c5
 }
-
 void Functions::c6()
 {
     // Implementación del método c6
@@ -423,6 +402,7 @@ void Functions::n0()
 void Functions::n1()
 {
     // Implementación del método n1
+
 }
 
 void Functions::n2()

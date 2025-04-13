@@ -3,12 +3,18 @@
 #include <Ticker.h>
 
 Ticker timer_master;
+Ticker timer_No_Response;
 Master* masterInstance = nullptr; // Puntero global al objeto Master
 // Constructor de la clase Master
-Master::Master(bool mode_master) {
+Master::Master(bool mode_master, int nodo_number) {
+    // Inicialización de variables
     Mode=mode_master;
+    nodeNumber=nodo_number;
+    Nodo_Ultimo=nodeNumber;
+    Nodo_Primero=1;
+    Nodo_Proximo=0;
+    Nodo_Consultado=0;// se inicia en 0 para que el primer nodo a consultar sea el 1ero.
     masterInstance = this; // Asignar la instancia actual al puntero global
-       
 }
 void Master::Iniciar() {
     // Implementación del método Iniciar
@@ -31,14 +37,13 @@ void Master::Nodo_REQUEST(){
 }
 void Master::Master_Nodo(){
     // Implementación del método Master_Nodo
-    Nodo_REQUEST();
-    Master_Mensaje();
-    Secuencia();
-    Next=false;
+    Nodo_REQUEST();                 // Solicitar informacion al siguiente nodo
+    Master_Mensaje();               // Enviar mensaje al nodo consultado
+    // Secuencia();
 }
 void Master::Master_Mensaje(){
     // Implementación del método Master_Mensaje
-    mensaje=Nodo_Consultado;
+    mensaje = Nodo_Consultado;
 
 }
 void Master::Secuencia(){
@@ -53,3 +58,7 @@ void Master::timer_master_ISR() {
     }
 
 }
+void Master::Master_Request(){
+    // Implementación del método Master_Request
+    // Aquí puedes implementar la lógica para manejar la solicitud del maestro
+}  
