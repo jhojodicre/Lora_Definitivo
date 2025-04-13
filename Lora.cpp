@@ -112,7 +112,6 @@ void Lora::Lora_RX(){
       }
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     }
-    F_Recibido = true;  // Bandera activada en Lora_RX.
     rx_remitente        = rxdata.substring(0, 1).toInt(); // Nodo que envia el mensaje.
     rx_destinatario     = rxdata.substring(1, 2).toInt(); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
@@ -120,7 +119,8 @@ void Lora::Lora_RX(){
     rx_funct_num        = rxdata.charAt(5);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
-}
+    F_Recibido = true;  // Bandera activada en Lora_RX.
+  }
 void Lora::rx(){
   rxFlag = true;
 }

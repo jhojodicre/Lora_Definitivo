@@ -4,9 +4,10 @@
 
 class Functions {
 public:
+    int    LED_Azul; 
     Functions(bool ready);
-    bool Functions_Request(String rxString);
-    bool Functions_Run();
+    void Functions_Request(String rxString);
+    void Functions_Run();
     void a0();
     void a1(int repeticiones, int tiempo);
     void a2();
@@ -77,9 +78,9 @@ public:
     String  function_Parameter2;
     String  function_Parameter3;
     String  function_Parameter4;
+     
 private:
     bool    firstScan;
-    byte    _LED_Azul=35;  
 
 };
 

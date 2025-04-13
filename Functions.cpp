@@ -5,29 +5,28 @@
 Functions::Functions(bool ready)
 {
     firstScan = true;
-    pinMode(_LED_Azul, OUTPUT);
+    LED_Azul = 35; // Pin del LED azul
+    pinMode(LED_Azul, OUTPUT);
 }
-bool Functions::Functions_Request(String rxString)
+void Functions::Functions_Request(String rxString)
 {
     // Implementación del método Functions_Request
     // Deshabilitamos Banderas
     // falg_ISR_stringComplete=false;
     // flag_F_codified_funtion=true;
-    function_Mode = rxString.charAt(0);
-    function_Number = rxString.charAt(1);
+    function_Mode       = char(rxString.charAt(0));
+    function_Number     = char(rxString.charAt(1));
     function_Parameter1 = rxString.substring(2, 3);
     function_Parameter2 = rxString.substring(3, 4);
     function_Parameter3 = rxString.substring(4, 5);
     function_Parameter4 = rxString.substring(5, 6);
-    return true;
+    x1                  = function_Parameter1.toInt();
+    x2                  = function_Parameter2.toInt();
+    x3                  = function_Parameter3.toInt();
+    x4                  = function_Parameter4.toInt();
 }
-bool Functions::Functions_Run()
+void Functions::Functions_Run()
 {
-    x1 = function_Parameter1.toInt();
-    x2 = function_Parameter2.toInt();
-    x3 = function_Parameter3.toInt();
-    x4 = function_Parameter4.toInt();
-
     switch (function_Mode)
     {
     case 'A':
@@ -257,7 +256,6 @@ bool Functions::Functions_Run()
         // Handle invalid function_Mode
         break;
     }
-    return true;
 }
 void Functions::a0()
 {
@@ -265,15 +263,16 @@ void Functions::a0()
 }
 void Functions::a1(int repeticiones, int tiempo)
 {
-    // FUNCION PROBADA CORRECTAMENTE
+    
+    // FUNCION PROBADA CORRECTAMENTE    
     int veces = repeticiones;
     int retardo = tiempo * 100;
     for (int repetir = 0; repetir < veces; ++repetir)
     {
         delay(retardo);                     // pausa 1 seg.
-        digitalWrite(_LED_Azul, HIGH);      // Led ON.
+        digitalWrite(LED_Azul, HIGH);      // Led ON.
         delay(retardo);                     // pausa 1 seg.
-        digitalWrite(_LED_Azul, LOW);       // Led OFF.
+        digitalWrite(LED_Azul, LOW);       // Led OFF.
     }
 }
 void Functions::a2()

@@ -2,8 +2,8 @@
   //- 1.1 Librerias****
     // #include "images.h"
     #include <Arduino.h>
-    #include "General.h"
     #include "Functions.h"
+    #include "General.h"
     #include "Lora.h"
     #include "Master.h"
 
@@ -24,7 +24,6 @@
     volatile bool flag_ISR_temporizador_3=false;        // pra actualizar los dato al servidor.
     volatile bool flag_ISR_temporizador_0=false;
     volatile bool flag_ISR_LORA=false;
-
     String        inputString;           // Buffer recepcion Serial.
     String        funtion_Mode;          // Tipo de funcion para ejecutar.
     String        funtion_Number;        // Numero de funcion a EJECUTAR.
@@ -203,15 +202,18 @@ void loop(){
     }
   //L2. Functions Decode
     if(falg_ISR_stringComplete){
-      flag_F_codified_funtion=Correr.Functions_Request(inputString);
+      Correr.Functions_Request(inputString);
+      flag_F_codified_funtion=true;
+      // Serial.println(inputString);
+      Serial.println("Recibido: "+inputString);
       falg_ISR_stringComplete=false;
     }
   //L3. Function Run
-      // if(flag_F_codified_funtion){
-      //   flag_F_codified_funtion=Correr.Functions_Run();
-      //   inputString="";
-      //   flag_F_codified_funtion=false;
-      // }
+    if(flag_F_codified_funtion){
+      Correr.Functions_Run();
+      inputString="";
+      flag_F_codified_funtion=false;
+    }
   //L4. Funciones del Nodo.
     //-L4.0 Function Test.
       if(flag_ISR_prueba){
@@ -227,7 +229,8 @@ void loop(){
         Node.Lora_TX();       // Se envia el mensaje.
       }
     //-L4.3 Nodo Ejecuta Funciones.
-      if(Node.F_Nodo_Excecute){
+      if(Node.F_Nodo_Excecute 
+      && Master.Mode==false){
         Correr.function_Mode   =   Node.rx_funct_mode; // Tipo de funcion a ejecutar.
         Correr.function_Number =   Node.rx_funct_num; // Numero de funcion a ejecutar. 
         Correr.x1             =   Node.rx_funct_parameter1; // Parametro 1 de la Funcion.
@@ -242,7 +245,6 @@ void loop(){
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
       }
-
   //L5. Funciones del Master.
     //-L5.1 F- Master.
         // if(Master.Mode && Master.Next){
