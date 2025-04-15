@@ -4,7 +4,7 @@
 #include <Ticker.h>
 class Lora {
 public:
-    Lora(uint nodeNumber);
+    Lora(char nodeNumber);
     void   Setup();
     void   Lora_Setup();
     void   Lora_TX();
@@ -30,12 +30,12 @@ public:
     String  mensaje;
     byte    nodo_local;
     String  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    byte    local_Address=0; // Direccion del nodo local.
+    char    local_Address=0; // Direccion del nodo local.
     int     nodo_consultado=0; // Direccion del nodo consultado.
 
     //Variables para la recepcion de mensaje.
         int  rx_remitente;           // Nodo que envia el mensaje.
-        int  rx_destinatario;        // Nodo que recibe el mensaje.
+        char  rx_destinatario;        // Nodo que recibe el mensaje.
         String  rx_mensaje;             // Mensaje recibido.
         char  rx_funct_mode;      // Tipo de funcion a ejecutar.
         char  rx_funct_num;       // Numero de funcion a ejecutar.

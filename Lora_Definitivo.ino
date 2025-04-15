@@ -118,8 +118,8 @@
 //-4.1 Clases.
   Functions Correr(true);
   General General(false);
-  Lora Node(1);
-  Master Master(true,2);
+  Lora Node('1');
+  Master Master(false,2);
   //-4.2 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -210,7 +210,7 @@ void loop(){
     }
   //L3. Function Run
     if(flag_F_codified_funtion){
-      Correr.Functions_Run();
+      // Correr.Functions_Run();
       inputString="";
       flag_F_codified_funtion=false;
     }
@@ -225,12 +225,11 @@ void loop(){
         Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
       }
     //-L4.2 Nodo TX.
-      if(Node.F_Responder){
+      if(Node.F_Responder && !Master.Mode){
         Node.Lora_TX();       // Se envia el mensaje.
       }
     //-L4.3 Nodo Ejecuta Funciones.
-      if(Node.F_Nodo_Excecute 
-      && Master.Mode==false){
+      if(Node.F_Nodo_Excecute && !Master.Mode && !Node.F_Recibido){
         Correr.function_Mode   =   Node.rx_funct_mode; // Tipo de funcion a ejecutar.
         Correr.function_Number =   Node.rx_funct_num; // Numero de funcion a ejecutar. 
         Correr.x1             =   Node.rx_funct_parameter1; // Parametro 1 de la Funcion.
@@ -238,6 +237,7 @@ void loop(){
         // Correr.x3=Node.rxdata.substring(4, 5); // Parametro 3 de la Funcion.
         // Correr.x4=Node.rxdata.substring(5, 6); // Parametro 4 de la Funcion.
         Correr.Functions_Run(); // Se ejecuta la funcion.
+        Correr.a1(2,3); // Se ejecuta la funcion.
         Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
       }
     //-L4.4 Nodo RX.
@@ -262,7 +262,7 @@ void loop(){
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;
-        Correr.a1(1,1);// 31 veces, 100 milesegundos.
+        Correr.a1(1,1);// 1 veces, 100 milesegundos.
       }
     //-L5.3 F- Server Update.
       if(flag_F_updateServer){

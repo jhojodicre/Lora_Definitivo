@@ -4,7 +4,7 @@
 
 class Functions {
 public:
-    int    LED_Azul; 
+    int    LED_Azul=35; // Pin del LED azul
     Functions(bool ready);
     void Functions_Request(String rxString);
     void Functions_Run();

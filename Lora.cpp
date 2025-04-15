@@ -39,7 +39,8 @@
 // transmissting without an antenna can damage your hardware.
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
-Lora::Lora(uint nodeNumber){
+
+Lora::Lora(char nodeNumber){
     // Constructor de la clase Node
     //1. Configuracion de Hardware
         pinMode(Zona_A_in, INPUT);
@@ -56,6 +57,7 @@ Lora::Lora(uint nodeNumber){
         Zone_A = false;
         Zone_B = false;
         local_Address = nodeNumber; // Direccion del nodo local.
+        F_Nodo_Excecute=false;
 }
 void Lora::Lora_Setup()
 {
@@ -112,11 +114,11 @@ void Lora::Lora_RX(){
       }
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     }
-    rx_remitente        = rxdata.substring(0, 1).toInt(); // Nodo que envia el mensaje.
+    rx_remitente        = rxdata.charAt(1); // Nodo que envia el mensaje.
     rx_destinatario     = rxdata.substring(1, 2).toInt(); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
     rx_funct_mode       = rxdata.charAt(3);         // Tipo de funcion a ejecutar.
-    rx_funct_num        = rxdata.charAt(5);         // Numero de funcion a ejecutar.
+    rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
     F_Recibido = true;  // Bandera activada en Lora_RX.
@@ -210,7 +212,7 @@ void Lora::Lora_Nodo_Decodificar(){
     if(rx_destinatario==local_Address){
       tx_remitente    =String(local_Address);
       tx_destinatario =String(Master_Address);    // Direccion del maestro.
-      tx_mensaje      =String(nodo_status);       // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+      tx_mensaje      ="X";//String(nodo_status);       // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
       tx_funct_mode=String(0);
       tx_funct_num =String(0);
       Lora_Nodo_Frame();
@@ -218,7 +220,7 @@ void Lora::Lora_Nodo_Decodificar(){
       F_Responder=true;   // Bandera desactivada en Lora_TX.
     }
   // 2. Ejecutamos Funcion.
-    if(rx_funct_mode!='0'){
+    if(rx_funct_mode='A'){
       F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
     }
 }
@@ -227,11 +229,11 @@ void Lora::Lora_Master_Frame(){
   //1. Preparamos paquete para enviar
     tx_remitente=String(Master_Address); // Direccion del maestro.
     tx_destinatario=String(nodo_consultado); // Direccion del nodo local.
-    tx_mensaje=String(0); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    tx_funct_mode=String(rx_funct_mode); // Tipo de funcion a ejecutar.
-    tx_funct_num=String(rx_funct_num); // Numero de funcion a ejecutar.
-    tx_funct_parameter1=String(rx_funct_parameter1); // Parametro 1 de la Funcion.
-    tx_funct_parameter2=String(rx_funct_parameter2); // Parametro 2 de la Funcion.
+    tx_mensaje=String(8); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+    tx_funct_mode="A";//String(rx_funct_mode); // Tipo de funcion a ejecutar.
+    tx_funct_num="1";//String(rx_funct_num); // Numero de funcion a ejecutar.
+    tx_funct_parameter1="9";//String(rx_funct_parameter1); // Parametro 1 de la Funcion.
+    tx_funct_parameter2="8";String(rx_funct_parameter2); // Parametro 2 de la Funcion.
 
 
   //2. Armamos el mensaje para enviar.
@@ -243,10 +245,10 @@ void Lora::Lora_Master_Decodificar(){
       tx_remitente=String(local_Address);
       tx_destinatario=String(Master_Address); // Direccion del maestro.
       tx_mensaje=String(nodo_status); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-      Lora_Master_Frame();
       // tx_funct_mode=String(rx_tipo_function);
       // tx_funct_num=String(rx_num_function);
-
+      Lora_Master_Frame();
+      
     // 2. Ejecutamos Funcion.
 
 
