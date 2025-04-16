@@ -23,7 +23,8 @@ public:
     bool    F_Nodo_Excecute=false;
     bool    F_Master_Update=false;
 
-    byte    Master_Address=0xFF; // Direccion del maestro.
+    // byte    Master_Address=0xFF; // Direccion del maestro.
+    String  Master_Address="X"; // Direccion del maestro.
 
     String  rxdata;
     String  txdata;

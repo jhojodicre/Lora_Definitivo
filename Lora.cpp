@@ -113,15 +113,15 @@ void Lora::Lora_RX(){
         // both.printf("  SNR: %.2f dB\n", radio.getSNR());
       }
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
+      F_Recibido = true;  // Bandera activada en Lora_RX.
     }
-    rx_remitente        = rxdata.charAt(1); // Nodo que envia el mensaje.
-    rx_destinatario     = rxdata.substring(1, 2).toInt(); // Nodo que recibe el mensaje.
+    rx_remitente        = rxdata.charAt(0); // Nodo que envia el mensaje.
+    rx_destinatario     = rxdata.charAt(1); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
     rx_funct_mode       = rxdata.charAt(3);         // Tipo de funcion a ejecutar.
     rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
-    F_Recibido = true;  // Bandera activada en Lora_RX.
   }
 void Lora::rx(){
   rxFlag = true;
@@ -209,6 +209,8 @@ void Lora::Lora_Nodo_Frame(){
 void Lora::Lora_Nodo_Decodificar(){
   // 0. Functon Llamada desde Lora_Master_Decodificar.
   // 1. Preparamos mensaje para enviar.
+    F_Recibido=false; // Bandera activada en Lora_RX.
+    // Serial.println(String(local_Address));
     if(rx_destinatario==local_Address){
       tx_remitente    =String(local_Address);
       tx_destinatario =String(Master_Address);    // Direccion del maestro.
@@ -217,9 +219,10 @@ void Lora::Lora_Nodo_Decodificar(){
       tx_funct_num =String(0);
       Lora_Nodo_Frame();
 
-      F_Responder=true;   // Bandera desactivada en Lora_TX.
+      // F_Responder=true;   // Bandera desactivada en Lora_TX.
     }
   // 2. Ejecutamos Funcion.
+
     if(rx_funct_mode='A'){
       F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
     }
@@ -227,7 +230,7 @@ void Lora::Lora_Nodo_Decodificar(){
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
-    tx_remitente=String(Master_Address); // Direccion del maestro.
+    tx_remitente=Master_Address; // Direccion del maestro.
     tx_destinatario=String(nodo_consultado); // Direccion del nodo local.
     tx_mensaje=String(8); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
     tx_funct_mode="A";//String(rx_funct_mode); // Tipo de funcion a ejecutar.

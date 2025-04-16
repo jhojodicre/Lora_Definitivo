@@ -119,7 +119,7 @@
   Functions Correr(true);
   General General(false);
   Lora Node('1');
-  Master Master(false,2);
+  Master Master(true,2);
   //-4.2 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -229,21 +229,28 @@ void loop(){
         Node.Lora_TX();       // Se envia el mensaje.
       }
     //-L4.3 Nodo Ejecuta Funciones.
-      if(Node.F_Nodo_Excecute && !Master.Mode && !Node.F_Recibido){
-        Correr.function_Mode   =   Node.rx_funct_mode; // Tipo de funcion a ejecutar.
-        Correr.function_Number =   Node.rx_funct_num; // Numero de funcion a ejecutar. 
-        Correr.x1             =   Node.rx_funct_parameter1; // Parametro 1 de la Funcion.
-        Correr.x2             =   Node.rx_funct_parameter2; // Parametro 2 de la Funcion.
-        // Correr.x3=Node.rxdata.substring(4, 5); // Parametro 3 de la Funcion.
-        // Correr.x4=Node.rxdata.substring(5, 6); // Parametro 4 de la Funcion.
-        Correr.Functions_Run(); // Se ejecuta la funcion.
+      if(Node.F_Nodo_Excecute && !Master.Mode){
         Correr.a1(2,3); // Se ejecuta la funcion.
         Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
       }
     //-L4.4 Nodo RX.
       if(Node.F_Recibido){
-        Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+        Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
+        Serial.print("RX: ");
+        Serial.println(String(Node.rx_destinatario));
+        Serial.print("LA: ");
+        Serial.println(String(Node.local_Address));
+        Serial.print("ms: ");
+        Serial.println(String(Node.rx_mensaje));
+        Serial.print("md: ");
+        Serial.println(String(Node.rx_funct_mode));
+        Serial.print("nf: ");
+        Serial.println(String(Node.rx_funct_num));
+        Serial.print("p1: ");
+        Serial.println(String(Node.rx_funct_parameter1));
+        Serial.print("p2: ");
+        Serial.println(String(Node.rx_funct_parameter2));
       }
   //L5. Funciones del Master.
     //-L5.1 F- Master.
