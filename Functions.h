@@ -10,6 +10,7 @@ public:
     void Functions_Run();
     void a0();
     void a1(int repeticiones, int tiempo);
+    void A1();
     void a2();
     void a3();
     void a4();

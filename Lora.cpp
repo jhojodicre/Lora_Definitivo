@@ -10,6 +10,7 @@
 #include "Lora.h"
 #include <Arduino.h>
 #include <Ticker.h>
+#include <Functions.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -39,6 +40,7 @@
 // transmissting without an antenna can damage your hardware.
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
+Functions Update (false);
 
 Lora::Lora(char nodeNumber){
     // Constructor de la clase Node
@@ -122,6 +124,10 @@ void Lora::Lora_RX(){
     rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
+    Update.function_Mode       = rx_funct_mode;         // Tipo de funcion a ejecutar.
+    Update.function_Number     = rx_funct_num;         // Numero de funcion a ejecutar.
+    Update.function_Parameter1 = rx_funct_parameter1; // Parametro 1 de la Funcion.
+    Update.function_Parameter2 = rx_funct_parameter2; // Parametro 2 de la Funcion.
   }
 void Lora::rx(){
   rxFlag = true;
@@ -207,7 +213,7 @@ void Lora::Lora_Nodo_Frame(){
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
 }
 void Lora::Lora_Nodo_Decodificar(){
-  // 0. Functon Llamada desde Lora_Master_Decodificar.
+  // 0. Functon Llamada desde L4.4 Nodo.F_Recibido.
   // 1. Preparamos mensaje para enviar.
     F_Recibido=false; // Bandera activada en Lora_RX.
     // Serial.println(String(local_Address));
@@ -215,9 +221,12 @@ void Lora::Lora_Nodo_Decodificar(){
       tx_remitente    =String(local_Address);
       tx_destinatario =String(Master_Address);    // Direccion del maestro.
       tx_mensaje      ="X";//String(nodo_status);       // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-      tx_funct_mode=String(0);
-      tx_funct_num =String(0);
+      // tx_funct_mode   =String(0);
+      // tx_funct_num    =String(0);
       Lora_Nodo_Frame();
+      if(rx_funct_mode=='A' && rx_funct_num=='1'){
+        F_function_Special=true; // Bandera Desactivada en L4.3
+      }
 
       // F_Responder=true;   // Bandera desactivada en Lora_TX.
     }
@@ -230,13 +239,13 @@ void Lora::Lora_Nodo_Decodificar(){
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
-    tx_remitente=Master_Address; // Direccion del maestro.
-    tx_destinatario=String(nodo_consultado); // Direccion del nodo local.
-    tx_mensaje=String(8); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    tx_funct_mode="A";//String(rx_funct_mode); // Tipo de funcion a ejecutar.
-    tx_funct_num="1";//String(rx_funct_num); // Numero de funcion a ejecutar.
-    tx_funct_parameter1="9";//String(rx_funct_parameter1); // Parametro 1 de la Funcion.
-    tx_funct_parameter2="8";String(rx_funct_parameter2); // Parametro 2 de la Funcion.
+    tx_remitente        = Master_Address;                      // Direccion del maestro.
+    tx_destinatario     = String(nodo_consultado);          // Direccion del nodo local.
+    tx_mensaje          = String(8);                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+    tx_funct_mode       = Update.function_Mode;               // String(rx_funct_mode); // Tipo de funcion a ejecutar.
+    tx_funct_num        = Update.function_Number;              // String(rx_funct_num); // Numero de funcion a ejecutar.
+    tx_funct_parameter1 = Update.function_Parameter1;   // String(rx_funct_parameter1); // Parametro 1 de la Funcion.
+    tx_funct_parameter2 = Update.function_Parameter2;   // Parametro 2 de la Funcion.
 
 
   //2. Armamos el mensaje para enviar.

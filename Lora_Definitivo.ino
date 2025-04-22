@@ -187,7 +187,7 @@ void setup(){
       masterTime      = cycleTime*2;
       wakeUpTime      = 30.0;
 
-  //S.2 Nodo Setup.
+  //S2. Nodo Setup.
     Node.Lora_Setup();
 
 }
@@ -204,7 +204,7 @@ void loop(){
     if(falg_ISR_stringComplete){
       Correr.Functions_Request(inputString);
       flag_F_codified_funtion=true;
-      // Serial.println(inputString);
+      Serial.println(inputString);
       Serial.println("Recibido: "+inputString);
       falg_ISR_stringComplete=false;
     }
@@ -230,7 +230,10 @@ void loop(){
       }
     //-L4.3 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
-        Correr.a1(2,3); // Se ejecuta la funcion.
+        if(Node.F_function_Special){
+          Correr.A1(); // Se ejecuta la funcion.
+          Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
+        }
         Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
       }
     //-L4.4 Nodo RX.
@@ -261,11 +264,11 @@ void loop(){
     //-L5.2 Master TX
       if(Master.Next){
         Master.Master_Nodo();       //
-        Node.nodo_consultado=Master.Nodo_Proximo;
-        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+        // Node.nodo_consultado=Master.Nodo_Proximo;
+        // Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+        // Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+        // Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+        // Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;

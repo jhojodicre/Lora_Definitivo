@@ -22,7 +22,7 @@ public:
     bool    F_Recibido=false;
     bool    F_Nodo_Excecute=false;
     bool    F_Master_Update=false;
-
+    bool    F_function_Special=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
     String  Master_Address="X"; // Direccion del maestro.
 
@@ -31,7 +31,7 @@ public:
     String  mensaje;
     byte    nodo_local;
     String  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    char    local_Address=0; // Direccion del nodo local.
+    char    local_Address='1'; // Direccion del nodo local.
     int     nodo_consultado=0; // Direccion del nodo consultado.
 
     //Variables para la recepcion de mensaje.

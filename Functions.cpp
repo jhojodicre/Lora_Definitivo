@@ -261,6 +261,19 @@ void Functions::a0()
 {
     // Implementación del método a0
 }
+void Functions::A1()
+{
+    // FUNCION PROBADA CORRECTAMENTE    
+    int veces = x1;
+    int retardo = 100 * x2;
+    for (int repetir = 0; repetir < veces; ++repetir)
+    {
+        delay(retardo);                     // pausa 1 seg.
+        digitalWrite(LED_Azul, HIGH);      // Led ON.
+        delay(retardo);                     // pausa 1 seg.
+        digitalWrite(LED_Azul, LOW);       // Led OFF.
+    }
+}
 void Functions::a1(int repeticiones, int tiempo)
 {
     
