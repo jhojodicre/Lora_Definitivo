@@ -15,6 +15,8 @@ public:
     void   Lora_Nodo_Decodificar();
     void   Lora_Master_Frame();
     void   Lora_Master_Decodificar();
+    void   Lora_Dummy_Simulate();
+    static  void   Lora_timerNodo_Answer();
 
 
 
@@ -24,26 +26,26 @@ public:
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
-    String  Master_Address="X"; // Direccion del maestro.
+        String  Master_Address="X"; // Direccion del maestro.
 
-    String  rxdata;
-    String  txdata;
-    String  mensaje;
-    byte    nodo_local;
-    String  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    char    local_Address='1'; // Direccion del nodo local.
-    int     nodo_consultado=0; // Direccion del nodo consultado.
+        String  rxdata;
+        String  txdata;
+        String  mensaje;
+        byte    nodo_local;
+        String  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char    local_Address='1'; // Direccion del nodo local.
+        int     nodo_consultado=0; // Direccion del nodo consultado.
 
     //Variables para la recepcion de mensaje.
-        int  rx_remitente;           // Nodo que envia el mensaje.
-        char  rx_destinatario;        // Nodo que recibe el mensaje.
+        int     rx_remitente;           // Nodo que envia el mensaje.
+        char    rx_destinatario;        // Nodo que recibe el mensaje.
         String  rx_mensaje;             // Mensaje recibido.
-        char  rx_funct_mode;      // Tipo de funcion a ejecutar.
-        char  rx_funct_num;       // Numero de funcion a ejecutar.
-        int  rx_funct_parameter1; // Parametro 1 de la Funcion.
-        int  rx_funct_parameter2; // Parametro 2 de la Funcion.
-        int  rx_funct_parameter3; // Parametro 3 de la Funcion.
-        int  rx_funct_parameter4; // Parametro 4 de la Funcion.
+        char    rx_funct_mode;      // Tipo de funcion a ejecutar.
+        char    rx_funct_num;       // Numero de funcion a ejecutar.
+        int     rx_funct_parameter1; // Parametro 1 de la Funcion.
+        int     rx_funct_parameter2; // Parametro 2 de la Funcion.
+        int     rx_funct_parameter3; // Parametro 3 de la Funcion.
+        int     rx_funct_parameter4; // Parametro 4 de la Funcion.
 
         String  tx_remitente;           // Nodo que envia el mensaje.
         String  tx_destinatario;        // Nodo que recibe el mensaje.

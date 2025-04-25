@@ -4,7 +4,7 @@
 
 class Functions {
 public:
-    int    LED_Azul=35; // Pin del LED azul
+    int LED_Azul; // Pin del LED azul, definido como estático para ser común a todas las instancias
     Functions(bool ready);
     void Functions_Request(String rxString);
     void Functions_Run();

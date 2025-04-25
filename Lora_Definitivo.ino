@@ -119,7 +119,7 @@
   Functions Correr(true);
   General General(false);
   Lora Node('1');
-  Master Master(true,2);
+  Master Master(false,2);
   //-4.2 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -189,6 +189,10 @@ void setup(){
 
   //S2. Nodo Setup.
     Node.Lora_Setup();
+    //S2.1 Nodo Dummy Se;ales Simuladas
+    if(!Master.Mode){
+      Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+    }
 
 }
 void loop(){
@@ -205,7 +209,7 @@ void loop(){
       Correr.Functions_Request(inputString);
       flag_F_codified_funtion=true;
       Serial.println(inputString);
-      Serial.println("Recibido: "+inputString);
+      Serial.println("RX_SERIAL: "+inputString);
       falg_ISR_stringComplete=false;
     }
   //L3. Function Run
@@ -227,12 +231,13 @@ void loop(){
     //-L4.2 Nodo TX.
       if(Node.F_Responder && !Master.Mode){
         Node.Lora_TX();       // Se envia el mensaje.
+        Serial.println("Node TX");
       }
     //-L4.3 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
         if(Node.F_function_Special){
-          Correr.A1(); // Se ejecuta la funcion.
           Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
+          General.Led_Monitor(Node.rx_funct_parameter1); // Se ejecuta la funcion.
         }
         Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
       }
@@ -264,11 +269,11 @@ void loop(){
     //-L5.2 Master TX
       if(Master.Next){
         Master.Master_Nodo();       //
-        // Node.nodo_consultado=Master.Nodo_Proximo;
-        // Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-        // Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-        // Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-        // Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+        Node.nodo_consultado=Master.Nodo_Proximo;
+        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;

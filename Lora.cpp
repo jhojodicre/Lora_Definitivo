@@ -16,6 +16,7 @@
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
 #include <heltec_unofficial.h>
 
+
 // Pause between transmited packets in seconds.
 // Set to zero to only transmit a packet when pressing the user button
 // Will not exceed 1% duty cycle, even if you set a lower value.
@@ -41,7 +42,8 @@
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
 Functions Update (false);
-
+Ticker      Timer_Nodo_Answer;
+Lora* nodeInstance = nullptr; // Puntero global al objeto Master
 Lora::Lora(char nodeNumber){
     // Constructor de la clase Node
     //1. Configuracion de Hardware
@@ -60,6 +62,7 @@ Lora::Lora(char nodeNumber){
         Zone_B = false;
         local_Address = nodeNumber; // Direccion del nodo local.
         F_Nodo_Excecute=false;
+        nodeInstance = this; // Asignar la instancia actual al puntero global
 }
 void Lora::Lora_Setup()
 {
@@ -211,11 +214,11 @@ void Lora::Lora_Nodo_Frame(){
 
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
-}
+    Timer_Nodo_Answer.once(2, Lora_timerNodo_Answer); // 500 ms para enviar el mensaje.
+  }
 void Lora::Lora_Nodo_Decodificar(){
   // 0. Functon Llamada desde L4.4 Nodo.F_Recibido.
   // 1. Preparamos mensaje para enviar.
-    F_Recibido=false; // Bandera activada en Lora_RX.
     // Serial.println(String(local_Address));
     if(rx_destinatario==local_Address){
       tx_remitente    =String(local_Address);
@@ -224,33 +227,33 @@ void Lora::Lora_Nodo_Decodificar(){
       // tx_funct_mode   =String(0);
       // tx_funct_num    =String(0);
       Lora_Nodo_Frame();
+      F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       if(rx_funct_mode=='A' && rx_funct_num=='1'){
         F_function_Special=true; // Bandera Desactivada en L4.3
       }
-
+      
       // F_Responder=true;   // Bandera desactivada en Lora_TX.
     }
-  // 2. Ejecutamos Funcion.
-
-    if(rx_funct_mode='A'){
-      F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
-    }
+    // 2. Ejecutamos Funcion.
 }
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
     tx_remitente        = Master_Address;                      // Direccion del maestro.
     tx_destinatario     = String(nodo_consultado);          // Direccion del nodo local.
-    tx_mensaje          = String(8);                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    tx_funct_mode       = Update.function_Mode;               // String(rx_funct_mode); // Tipo de funcion a ejecutar.
-    tx_funct_num        = Update.function_Number;              // String(rx_funct_num); // Numero de funcion a ejecutar.
-    tx_funct_parameter1 = Update.function_Parameter1;   // String(rx_funct_parameter1); // Parametro 1 de la Funcion.
-    tx_funct_parameter2 = Update.function_Parameter2;   // Parametro 2 de la Funcion.
+    tx_mensaje          = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
 
 
   //2. Armamos el mensaje para enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
-}
+    tx_remitente=' ';
+    tx_destinatario=' ';
+    tx_mensaje=' ';
+    tx_funct_mode=' ';
+    tx_funct_num=' ';
+    tx_funct_parameter1=' ';
+    tx_funct_parameter2=' ';
+  }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
     // 1. Preparamos mensaje para enviar.
@@ -266,4 +269,15 @@ void Lora::Lora_Master_Decodificar(){
 
   }
   F_Responder=true;
+}
+void Lora::Lora_Dummy_Simulate(){
+  // 1. Simulacion de Paquete.
+    Zone_A=true;
+    Zone_B=true;
+}
+void Lora::Lora_timerNodo_Answer(){
+  // 1. Timer para enviar el mensaje al maestro.
+    if (nodeInstance) {
+      nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
+  }
 }
