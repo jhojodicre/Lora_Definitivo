@@ -202,18 +202,24 @@ void Lora::Lora_Nodo_Frame(){
   // 1. Preparamos paquete para enviar
     //Estados de Entradas.
     // bitWrite(nodo_local,0, );
-    bitWrite(nodo_local,1, Zone_A_ST);
-    bitWrite(nodo_local,2, Zone_B_ERR);
-    bitWrite(nodo_local,3, Zone_B_ST);
-    bitWrite(nodo_local,4, Zone_A_ERR);
-    bitWrite(nodo_local,5, Fuente_in_ST);
-    // bitWrite(nodo_local,6, timer_nodo_ST);
-    bitWrite(nodo_local,7, true);
-    nodo_status=String(nodo_local,HEX);
+    bitWrite(nodo_local,0, Zone_A_ST);
+    bitWrite(nodo_local,1, Zone_B_ERR);
+    bitWrite(nodo_local,2, Zone_B_ST);
+    bitWrite(nodo_local,3, Zone_A_ERR);
+    bitWrite(nodo_local,4, false);
+    bitWrite(nodo_local,5, false);
+    bitWrite(nodo_local,6, true);
+    bitWrite(nodo_local,7, false);
+    nodo_status=char(nodo_local);
 
-
+    tx_mensaje=nodo_status;// Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+    tx_funct_mode="A"; // Tipo de funcion a ejecutar.
+    tx_funct_num="1"; // Numero de funcion a ejecutar.
+    tx_funct_parameter1="2"; // Parametro 1 de la Funcion.
+    
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+    // txdata = "123";
     Timer_Nodo_Answer.once(2, Lora_timerNodo_Answer); // 500 ms para enviar el mensaje.
   }
 void Lora::Lora_Nodo_Decodificar(){
@@ -272,8 +278,9 @@ void Lora::Lora_Master_Decodificar(){
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
-    Zone_A=true;
-    Zone_B=true;
+    Zone_A_ST=true;
+    Zone_B_ST=false;
+    Zone_A_ERR=false;
 }
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.

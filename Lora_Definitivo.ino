@@ -226,7 +226,8 @@ void loop(){
       }
     //-L4.1 IO ENTRADAS DEL NODO sino es el maestro.
       if(!Master.Mode){
-        Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+        // Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
       }
     //-L4.2 Nodo TX.
       if(Node.F_Responder && !Master.Mode){

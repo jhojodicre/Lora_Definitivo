@@ -27,12 +27,12 @@ public:
     bool    F_function_Special=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
-
+        char ascii_representation[9];
         String  rxdata;
         String  txdata;
         String  mensaje;
         byte    nodo_local;
-        String  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
         char    local_Address='1'; // Direccion del nodo local.
         int     nodo_consultado=0; // Direccion del nodo consultado.
 
