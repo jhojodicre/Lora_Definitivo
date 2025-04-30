@@ -6,6 +6,8 @@
     #include "General.h"
     #include "Lora.h"
     #include "Master.h"
+    #include <PubSubClient.h>
+    #include <WiFi.h>
 
 //2. Definicion de Pinout.
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
@@ -19,24 +21,14 @@
   //-3.1 Variables Interrupciones
     volatile bool flag_ISR_prueba=false;             // Flag: prueba para interrupcion serial.
     volatile bool falg_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.
-    volatile bool flag_ISR_temporizador_1=false;
-    volatile bool flag_ISR_temporizador_2=false;
-    volatile bool flag_ISR_temporizador_3=false;        // pra actualizar los dato al servidor.
-    volatile bool flag_ISR_temporizador_0=false;
-    volatile bool flag_ISR_LORA=false;
     String        inputString;           // Buffer recepcion Serial.
-    String        funtion_Mode;          // Tipo de funcion para ejecutar.
-    String        funtion_Number;        // Numero de funcion a EJECUTAR.
-    String        funtion_Parmeter1;     // Parametro 1 de la Funcion.
-    String        funtion_Parmeter2;     // Parametro 2 de la Funcion.
-    String        funtion_Parmeter3;     // Parametro 3 de la Funcion.
-    String        funtion_Parmeter4;      // Parametro para las Funciones remotas.
+
     String        function_Remote;
     String        function_Enable;
-    volatile int  x1=0;
-    volatile int  x2=0;
-    volatile int  x3=0;
-    volatile int  x4=0;
+    bool          flag_ISR_temporizador_0=false;
+    bool          flag_ISR_temporizador_1=false;
+    bool          flag_ISR_temporizador_2=false;
+    bool          flag_ISR_temporizador_3=false;
   //-3.2 Variables Banderas.
     bool          flag_F_codified_funtion=false;   // Notifica que la funcion ha sido codificada.
     bool          flag_F_Un_segundo=false;         // Se activa cuando Pasa un Segundo por Interrupcion.
@@ -45,7 +37,6 @@
     bool          flag_F_modo_Continuo=false;
     bool          flag_F_depurar=false;
     bool          flag_F_once=true;
-    bool          flag_F_updateServer=false;
     bool          flag_F_respondido=false;
     bool          flag_F_masteRequest=false;
     bool          flag_F_masterIniciado=false;
@@ -68,14 +59,7 @@
     bool          flag_F_contar_tiempo=false;
 
   
-  //-3.3 Variables NODOS y ZONAS.
-      
-      // TIEMPO DE ZONA EN FALLA.
-      String      Fuente_in_str;
-
-
-
-      int         te_toca=1;           // Prueba para comunicacion continua con el servidor.      
+ 
   //-3.4 Variables TIME.
       long        initialTime= 0;
 
@@ -106,21 +90,35 @@
       uint32_t    remainT1;
       uint32_t    remainT2;
       int         fastTime    =   1;
-    // Alarmas
-    // Eventos
-      
 
+  //-3.5 Variables Para Conection WiFi and MQTT.
+    // Replace the next variables with your SSID/Password combination
+    const char* ssid = "ANTEL_0322";
+    const char* password = "xBKJ474S";
+    // Add your MQTT Broker IP address, example:
+    //const char* mqtt_server = "192.168.1.144";
+    const char* mqtt_server = "192.168.1.27";
+
+    long lastMsg = 0;
+    char msg[50];
+    int value = 0;
+
+    String MQTT_Frame_TX="";
+    String Lora_RX=""; // Mensaje recibido por Lora.
     // Otras.  
       String      codigo="";
       String      info_1="";
       char        incomingFuntion;
 //4. Intancias.
-//-4.1 Clases.
-  Functions Correr(true);
-  General General(false);
-  Lora Node('1');
-  Master Master(false,2);
-  //-4.2 Timer.
+  //-4.1 Clases propias.
+    Functions Correr(true);         // Funciones a Ejecutar
+    General General(false);         // Configuraciones Generales del Nodo.
+    Lora Node('1');
+    Master Master(true,2);
+  //-4.2 Clases de Dispositivos Externos.
+    WiFiClient espClient;
+    PubSubClient client(espClient);
+  //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
     Ticker timer_2;
@@ -145,19 +143,17 @@
   //-5.2 Extern Function
     // ICACHE_RAM_ATTR void ISR_0(){
     //   flag_ISR_prueba=true;
-//   Zonas=0;
-
-    // }
-// ICACHE_RAM_ATTR void ISR_1(){
-    // }
-    // ICACHE_RAM_ATTR void ISR_2(){
-    // }
-    // ICACHE_RAM_ATTR void ISR_3(){
-    //   bitClear(Zonas, Zona_A);
-    // }
-    // ICACHE_RAM_ATTR void ISR_4(){
-    //   bitClear(Zonas, Zona_B);
-    // }
+ 
+    // ICACHE_RAM_ATTR void ISR_1(){
+      // }
+      // ICACHE_RAM_ATTR void ISR_2(){
+      // }
+      // ICACHE_RAM_ATTR void ISR_3(){
+      //   bitClear(Zonas, Zona_A);
+      // }
+      // ICACHE_RAM_ATTR void ISR_4(){
+      //   bitClear(Zonas, Zona_B);
+      // }
   //-5.3 Interrupciones por Timers.
     void ISR_temporizador_0(){
       flag_ISR_temporizador_0=true;
@@ -193,7 +189,11 @@ void setup(){
     if(!Master.Mode){
       Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
     }
-
+  //S.3 WiFi
+    setup_wifi();
+  //S4. MQTT
+    client.setServer(mqtt_server, 1883);
+    client.setCallback(callback);
 }
 void loop(){
   //L1. Function Start
@@ -204,20 +204,27 @@ void loop(){
       }
 
     }
-  //L2. Functions Decode
-    if(falg_ISR_stringComplete){
-      Correr.Functions_Request(inputString);
-      flag_F_codified_funtion=true;
-      Serial.println(inputString);
-      Serial.println("RX_SERIAL: "+inputString);
-      falg_ISR_stringComplete=false;
-    }
-  //L3. Function Run
-    if(flag_F_codified_funtion){
-      // Correr.Functions_Run();
-      inputString="";
-      flag_F_codified_funtion=false;
-    }
+  //L2. Functions Serial RX
+    //-L2.1 Decode
+      if(falg_ISR_stringComplete){
+        Correr.Functions_Request(inputString);
+        flag_F_codified_funtion=true;
+        Serial.println(inputString);
+        Serial.println("RX_SERIAL: "+inputString);
+        falg_ISR_stringComplete=false;
+      }
+    //L-2.2 Function Run
+      if(flag_F_codified_funtion){
+        // Correr.Functions_Run();
+        inputString="";
+        flag_F_codified_funtion=false;
+      }
+  //L3. Funciones de Dispositivos Externos.
+    //-L3.1 MQTT Reconnect.
+      if (!client.connected()) {
+        // reconnect();
+      }
+      client.loop();
   //L4. Funciones del Nodo.
     //-L4.0 Function Test.
       if(flag_ISR_prueba){
@@ -243,7 +250,7 @@ void loop(){
         Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
       }
     //-L4.4 Nodo RX.
-      if(Node.F_Recibido){
+      if(Node.F_Recibido && !Master.Mode){
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
         Serial.print("RX: ");
@@ -263,30 +270,34 @@ void loop(){
       }
   //L5. Funciones del Master.
     //-L5.1 F- Master.
-        // if(Master.Mode && Master.Next){
-        //   // Master.Master_Nodo();
-          
-        // }
+        //
     //-L5.2 Master TX
       if(Master.Next){
         Master.Master_Nodo();       //
-        Node.nodo_consultado=Master.Nodo_Proximo;
-        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+        Master_RX_Request(); // Se recibe el mensaje que llega via serial.
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;
         Correr.a1(1,1);// 1 veces, 100 milesegundos.
       }
-    //-L5.3 F- Server Update.
-      if(flag_F_updateServer){
-        
+    //-L5.3 F- Master RX.
+      if(Node.F_Recibido && Master.Mode){
+        Node.Lora_Master_Decodificar();       // Se recibe el mensaje.
+        Serial.print("Lora RX: ");
+        Serial.println(String(Node.rxdata));
+        Node.F_Recibido=false;                // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+      }
+    //-L5.4 F- Server Update.
+      if(Node.F_Master_Update){
+        //-L3.2 MQTT Publish.
+        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
+        Node.F_Master_Update=false;
+
       }
   //L6. Function Lora RX.
     //-L6.1 lora RX.
       Node.Lora_RX();
+
 }
 //4. Funciones UPDATE.
   //-4.1 Estados de Zonas.
@@ -301,8 +312,93 @@ void loop(){
   //-4.5 Analizar.
     void analizar(){
     }
-  
+  //-4.6 Master RX Request.
+    void Master_RX_Request(){
+      Node.nodo_consultado=Master.Nodo_Proximo;
+      Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+      Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+      Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+      Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+    }
 //5. Funciones de Dispositivos Externos.
-  //-5.1 
+  //-5.1 WiFi
+    void setup_wifi() {
+    delay(10);
+    // We start by connecting to a WiFi network
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
 
-//https://resource.heltec.cn/download/package_heltec_esp32_index.json
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    }
+  //-5.2 MQTT Callback
+    void callback(char* topic, byte* payload, unsigned int length) {
+      Serial.print("Message arrived [");
+      Serial.print(topic);
+      Serial.print("] ");
+      String messageTemp;
+      for (int i = 0; i < length; i++) {
+        Serial.print((char)payload[i]);
+        messageTemp += (char)payload[i];
+      }
+      Serial.println();
+      // Feel free to add more if statements to control more GPIOs with MQTT
+
+      // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+      // Changes the output state according to the message
+      if (String(topic) == "test/topic") {
+        Serial.print("Changing output to ");
+        if(messageTemp == "on"){
+          Serial.println("on");
+          General.Led_Status(1); // Led ON.
+        }
+        else if(messageTemp == "off"){
+          Serial.println("off");
+          General.Led_Status(0); // Led OFF.
+        }
+      }
+    }
+  //-5.3 MQTT Reconnect.
+    void reconnect() {
+      // Loop until we're reconnected
+      while (!client.connected()) {
+        Serial.print("Attempting MQTT connection...");
+        // Attempt to connect
+        if (client.connect("ESP32Client")) {
+          Serial.println("connected");
+          // ... and subscribe to topic
+          client.subscribe("test/topic");
+        } else {
+          Serial.print("failed, rc=");
+          Serial.print(client.state());
+          Serial.println(" try again in 5 seconds");
+          // Wait 5 seconds before retrying
+          delay(5000);
+        }
+      }
+    }
+  //-5.4 MQTT PUBLISH
+    void Master_MQTT_Publish(){
+      //-5.4.1 Consulta Datos del Nodo.
+      MQTT_Frame_TX=String(Master.Node_DB);
+      //-5.4.2 MQTT Publish.
+        // client.publish("test/topic", MQTT_Frame_TX);
+        client.publish("test/topic", Master.Node_DB.c_str());
+    }
+
+
+
+
+
+//10. Miscelanius
+  //https://resource.heltec.cn/download/package_heltec_esp32_index.json

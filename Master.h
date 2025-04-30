@@ -1,6 +1,7 @@
 #ifndef MASTER_H
 #define MASTER_H
 #include <Ticker.h>
+#include <Arduino.h>
 class Master {
 public:
     bool Mode;
@@ -9,9 +10,9 @@ public:
     int mensaje;
     bool Next;          // Flag para transmitir al siguiente nodo.
     
-
-    Master(bool mode_master, int nodo_number);
     
+    Master(bool mode_master, int nodo_number);
+    Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_status);
     void Iniciar();
     void Configuracion();
     void Gestion();
@@ -22,7 +23,16 @@ public:
     static void timer_master_ISR(); // Declaración como estática
     int  Nodo_Proximo;
     void Master_Request();
+    void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);
+    void Master_DB();
 
+    // Vaiables para la base de datos del nodo
+    String nodo_Number="";
+    String Zone_A="";
+    String Zone_B="";
+    String Zone_C="";
+    String Node_DB="";
+    String Fuente="";
 private:
     bool firstScan;
     bool LED_Azul;

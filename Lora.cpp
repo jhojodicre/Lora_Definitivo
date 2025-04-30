@@ -11,6 +11,7 @@
 #include <Arduino.h>
 #include <Ticker.h>
 #include <Functions.h>
+#include "Master.h"
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -44,6 +45,11 @@ volatile    bool rxFlag = false;
 Functions Update (false);
 Ticker      Timer_Nodo_Answer;
 Lora* nodeInstance = nullptr; // Puntero global al objeto Master
+
+Master  Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Master  Node_2("2", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Master  Node_3("3", "0", "0","0"); // Instancia de Nodo en el Perimetro
+
 Lora::Lora(char nodeNumber){
     // Constructor de la clase Node
     //1. Configuracion de Hardware
@@ -64,6 +70,7 @@ Lora::Lora(char nodeNumber){
         F_Nodo_Excecute=false;
         nodeInstance = this; // Asignar la instancia actual al puntero global
 }
+
 void Lora::Lora_Setup()
 {
     heltec_setup();
@@ -127,10 +134,6 @@ void Lora::Lora_RX(){
     rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
-    Update.function_Mode       = rx_funct_mode;         // Tipo de funcion a ejecutar.
-    Update.function_Number     = rx_funct_num;         // Numero de funcion a ejecutar.
-    Update.function_Parameter1 = rx_funct_parameter1; // Parametro 1 de la Funcion.
-    Update.function_Parameter2 = rx_funct_parameter2; // Parametro 2 de la Funcion.
   }
 void Lora::rx(){
   rxFlag = true;
@@ -210,12 +213,13 @@ void Lora::Lora_Nodo_Frame(){
     bitWrite(nodo_local,5, false);
     bitWrite(nodo_local,6, true);
     bitWrite(nodo_local,7, false);
+    
     nodo_status=char(nodo_local);
-
     tx_mensaje=nodo_status;// Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    tx_funct_mode="A"; // Tipo de funcion a ejecutar.
-    tx_funct_num="1"; // Numero de funcion a ejecutar.
-    tx_funct_parameter1="2"; // Parametro 1 de la Funcion.
+    tx_funct_mode="0"; // Tipo de funcion a ejecutar.
+    tx_funct_num=local_Address;     // Numero de Nodo en el Perimetro.
+    tx_funct_parameter1=Zone_A_str; // Estado de la zona A
+    tx_funct_parameter2=Zone_B_str; // Estado de la Zona B
     
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
@@ -233,6 +237,7 @@ void Lora::Lora_Nodo_Decodificar(){
       // tx_funct_mode   =String(0);
       // tx_funct_num    =String(0);
       Lora_Nodo_Frame();
+      Lora_Nodo_DB();
       F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       if(rx_funct_mode=='A' && rx_funct_num=='1'){
         F_function_Special=true; // Bandera Desactivada en L4.3
@@ -252,6 +257,7 @@ void Lora::Lora_Master_Frame(){
 
   //2. Armamos el mensaje para enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+  //3. Borramos Variables de envio.
     tx_remitente=' ';
     tx_destinatario=' ';
     tx_mensaje=' ';
@@ -262,19 +268,9 @@ void Lora::Lora_Master_Frame(){
   }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
-    // 1. Preparamos mensaje para enviar.
-      tx_remitente=String(local_Address);
-      tx_destinatario=String(Master_Address); // Direccion del maestro.
-      tx_mensaje=String(nodo_status); // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-      // tx_funct_mode=String(rx_tipo_function);
-      // tx_funct_num=String(rx_num_function);
-      Lora_Master_Frame();
-      
-    // 2. Ejecutamos Funcion.
-
-
+    Lora_Nodo_DB();
+    F_Master_Update=true;
   }
-  F_Responder=true;
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
@@ -286,5 +282,18 @@ void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
       nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
+  }
+}
+
+void Lora::Lora_Nodo_DB(){
+  switch (rx_remitente){
+    case '1':
+      Node_1.Nodo_Status("oo", String(Zone_A_str), String(Zone_B_str), String(Fuente_in_str));
+      break;
+    case '2':
+      Node_2.Nodo_Status(String(rx_remitente), Zone_A_str, Zone_B_str, Fuente_in_str);
+      break;
+    default:
+      break;
   }
 }

@@ -57,3 +57,15 @@ void General::Led_Monitor(int repeticiones)
     delay(500);                    // pausa 1 seg.
   }
 }
+void General::Led_Status(int status)
+{
+  // Deshabilitamos Banderas
+  if (status == 1)
+  {
+    digitalWrite(_LED_Azul, HIGH); // Led ON.
+  }
+  else
+  {
+    digitalWrite(_LED_Azul, LOW); // Led OFF.
+  }
+}

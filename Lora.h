@@ -17,43 +17,43 @@ public:
     void   Lora_Master_Decodificar();
     void   Lora_Dummy_Simulate();
     static  void   Lora_timerNodo_Answer();
-
-
+    void   Lora_Nodo_DB();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
     bool    F_Nodo_Excecute=false;
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
+
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
-        char ascii_representation[9];
+        char    ascii_representation[9];
         String  rxdata;
         String  txdata;
         String  mensaje;
         byte    nodo_local;
-        char  nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char    nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
         char    local_Address='1'; // Direccion del nodo local.
         int     nodo_consultado=0; // Direccion del nodo consultado.
-
+        char    nodo_Number;
     //Variables para la recepcion de mensaje.
-        int     rx_remitente;           // Nodo que envia el mensaje.
+        char    rx_remitente;           // Nodo que envia el mensaje.
         char    rx_destinatario;        // Nodo que recibe el mensaje.
         String  rx_mensaje;             // Mensaje recibido.
-        char    rx_funct_mode;      // Tipo de funcion a ejecutar.
-        char    rx_funct_num;       // Numero de funcion a ejecutar.
-        int     rx_funct_parameter1; // Parametro 1 de la Funcion.
-        int     rx_funct_parameter2; // Parametro 2 de la Funcion.
-        int     rx_funct_parameter3; // Parametro 3 de la Funcion.
-        int     rx_funct_parameter4; // Parametro 4 de la Funcion.
+        char    rx_funct_mode;          // Tipo de funcion a ejecutar.
+        char    rx_funct_num;           // Numero de funcion a ejecutar.
+        int     rx_funct_parameter1;    // Parametro 1 de la Funcion.
+        int     rx_funct_parameter2;    // Parametro 2 de la Funcion.
+        int     rx_funct_parameter3;    // Parametro 3 de la Funcion.
+        int     rx_funct_parameter4;    // Parametro 4 de la Funcion.
 
         String  tx_remitente;           // Nodo que envia el mensaje.
         String  tx_destinatario;        // Nodo que recibe el mensaje.
         String  tx_mensaje;             // Mensaje recibido.
-        String  tx_funct_mode;      // Tipo de funcion a ejecutar.
-        String  tx_funct_num;       // Numero de funcion a ejecutar.
-        String  tx_funct_parameter1; // Parametro 1 de la Funcion.
-        String  tx_funct_parameter2; // Parametro 2 de la Funcion.
+        String  tx_funct_mode;          // Tipo de funcion a ejecutar.
+        String  tx_funct_num;           // Numero de funcion a ejecutar.
+        String  tx_funct_parameter1;    // Parametro 1 de la Funcion.
+        String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
 private:
     // Entradas Fisicas
         int     Zona_A_in=38;
@@ -73,21 +73,25 @@ private:
         bool    Zone_A;
         bool    Zone_B;
         bool    Zone_C;
-
+        // Zonas Reonocidas
         bool    Zone_A_ACK;
         bool    Zone_B_ACK;
         bool    Zone_AB_ACK;
 
         bool    Fuente_in_ST;
 
+        // Estados de Zonas
         bool    Zone_A_ST;
         bool    Zone_B_ST;
+
+        // Zonas en Error
+        bool    Zone_A_ERR;
+        bool    Zone_B_ERR;
+
     //otras
         int     Zonas;
         int     Zonas_Fallan;
 
-        bool    Zone_A_ERR;
-        bool    Zone_B_ERR;
 
         String  Zone_A_str;
         String  Zone_B_str;
@@ -100,9 +104,9 @@ private:
 
         String  Fuente_in_str;
     // long        mensaje = 0;
-    uint64_t    last_tx = 0;
-    uint64_t    tx_time;
-    uint64_t    minimum_pause;
+        uint64_t    last_tx = 0;
+        uint64_t    tx_time;
+        uint64_t    minimum_pause;
 
 };
 

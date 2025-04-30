@@ -9,6 +9,7 @@ public:
     void Gestion();
     void Led_Monitor(int repeticiones);
     void Welcome();
+    void Led_Status(int status);
 private:
     bool firstScan;
     int _LED_Azul=35;
