@@ -17,7 +17,7 @@ public:
     void   Lora_Master_Decodificar();
     void   Lora_Dummy_Simulate();
     static  void   Lora_timerNodo_Answer();
-    void   Lora_Nodo_DB();
+    void   Lora_Master_DB();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -32,10 +32,12 @@ public:
         String  txdata;
         String  mensaje;
         byte    nodo_local;
-        char    nodo_status;  // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-        char    local_Address='1'; // Direccion del nodo local.
-        int     nodo_consultado=0; // Direccion del nodo consultado.
+        char    nodo_status;        // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char    local_Address='1';  // Direccion del nodo local.
+        char    nodo_consultado;  // Direccion del nodo consultado.
         char    nodo_Number;
+        String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
+        String  nodo_DB=" ";
     //Variables para la recepcion de mensaje.
         char    rx_remitente;           // Nodo que envia el mensaje.
         char    rx_destinatario;        // Nodo que recibe el mensaje.
@@ -46,6 +48,11 @@ public:
         int     rx_funct_parameter2;    // Parametro 2 de la Funcion.
         int     rx_funct_parameter3;    // Parametro 3 de la Funcion.
         int     rx_funct_parameter4;    // Parametro 4 de la Funcion.
+
+        String  rx_mensaje_DB;          // Mensaje recibido.
+        String  rx_ST_ZA_DB;            // Estado de la Zona A.
+        String  rx_ST_ZB_DB;            // Estado de la Zona B.
+        String  rx_ST_FT_DB;            // Estado de la Fuente.
 
         String  tx_remitente;           // Nodo que envia el mensaje.
         String  tx_destinatario;        // Nodo que recibe el mensaje.

@@ -220,9 +220,9 @@ void loop(){
         flag_F_codified_funtion=false;
       }
   //L3. Funciones de Dispositivos Externos.
-    //-L3.1 MQTT Reconnect.
+    // -L3.1 MQTT Reconnect.
       if (!client.connected()) {
-        // reconnect();
+        reconnect();
       }
       client.loop();
   //L4. Funciones del Nodo.
@@ -274,7 +274,7 @@ void loop(){
     //-L5.2 Master TX
       if(Master.Next){
         Master.Master_Nodo();       //
-        Master_RX_Request(); // Se recibe el mensaje que llega via serial.
+        Master_RX_Request();          // Se cargan los datos recibidos desde via serial.
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;
@@ -289,11 +289,14 @@ void loop(){
       }
     //-L5.4 F- Server Update.
       if(Node.F_Master_Update){
-        //-L3.2 MQTT Publish.
-        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
+        //-L5.4.1 MQTT Publish.
+        // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
         Node.F_Master_Update=false;
-
+        Node.Lora_Master_DB(); // Se actualizan los datos del nodo.
+        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
+        //-L5.4.0 Debug.
       }
+      
   //L6. Function Lora RX.
     //-L6.1 lora RX.
       Node.Lora_RX();
@@ -314,7 +317,7 @@ void loop(){
     }
   //-4.6 Master RX Request.
     void Master_RX_Request(){
-      Node.nodo_consultado=Master.Nodo_Proximo;
+      Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
       Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
       Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
@@ -389,11 +392,12 @@ void loop(){
     }
   //-5.4 MQTT PUBLISH
     void Master_MQTT_Publish(){
-      //-5.4.1 Consulta Datos del Nodo.
-      MQTT_Frame_TX=String(Master.Node_DB);
-      //-5.4.2 MQTT Publish.
-        // client.publish("test/topic", MQTT_Frame_TX);
-        client.publish("test/topic", Master.Node_DB.c_str());
+      //-5.4.0 Debud.
+        MQTT_Frame_TX=String(Node.nodo_DB);
+        Serial.print("MQTT TX: ");
+        Serial.println(MQTT_Frame_TX);
+      //-5.4. MQTT Publish.
+      client.publish("test/topic", Node.nodo_DB.c_str());
     }
 
 

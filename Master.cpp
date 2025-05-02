@@ -74,5 +74,5 @@ void Master::Nodo_Status(String nodeNumber_st, String zonaA_st, String zonaB_st,
     Zone_A      = zonaA_st;
     Zone_B      = zonaB_st;
     Fuente      = fuente_st;
-    Node_DB = nodo_Number + Zone_A + Zone_B + Fuente;
+    Node_DB     = nodo_Number + Zone_A + Zone_B + Fuente;
   }

@@ -12,6 +12,7 @@
 #include <Ticker.h>
 #include <Functions.h>
 #include "Master.h"
+#include <PubSubClient.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -44,6 +45,8 @@
 volatile    bool rxFlag = false;
 Functions Update (false);
 Ticker      Timer_Nodo_Answer;
+
+
 Lora* nodeInstance = nullptr; // Puntero global al objeto Master
 
 Master  Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
@@ -134,6 +137,12 @@ void Lora::Lora_RX(){
     rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
     rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
     rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
+
+
+    rx_mensaje_DB       = rxdata.substring(2, 3);         // Mensaje recibido.
+    rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
+    rx_ST_ZB_DB         = rxdata.substring(4, 5);         // Estado de la Zona B.
+    rx_ST_FT_DB         = rxdata.substring(5, 6);         // Estado de la Fuente.
   }
 void Lora::rx(){
   rxFlag = true;
@@ -237,7 +246,7 @@ void Lora::Lora_Nodo_Decodificar(){
       // tx_funct_mode   =String(0);
       // tx_funct_num    =String(0);
       Lora_Nodo_Frame();
-      Lora_Nodo_DB();
+      Lora_Master_DB();
       F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       if(rx_funct_mode=='A' && rx_funct_num=='1'){
         F_function_Special=true; // Bandera Desactivada en L4.3
@@ -251,13 +260,14 @@ void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
     tx_remitente        = Master_Address;                      // Direccion del maestro.
-    tx_destinatario     = String(nodo_consultado);          // Direccion del nodo local.
+    tx_destinatario     = nodo_a_Consultar;          // Direccion del nodo local.
     tx_mensaje          = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
 
 
   //2. Armamos el mensaje para enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
   //3. Borramos Variables de envio.
+    nodo_consultado = tx_destinatario.charAt(0);
     tx_remitente=' ';
     tx_destinatario=' ';
     tx_mensaje=' ';
@@ -268,7 +278,7 @@ void Lora::Lora_Master_Frame(){
   }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
-    Lora_Nodo_DB();
+    Lora_Master_DB();
     F_Master_Update=true;
   }
 }
@@ -277,6 +287,9 @@ void Lora::Lora_Dummy_Simulate(){
     Zone_A_ST=true;
     Zone_B_ST=false;
     Zone_A_ERR=false;
+    Zone_A_str="a";
+    Zone_B_str="b";
+    Fuente_in_str="c";
 }
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
@@ -285,13 +298,15 @@ void Lora::Lora_timerNodo_Answer(){
   }
 }
 
-void Lora::Lora_Nodo_DB(){
+void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
-      Node_1.Nodo_Status("oo", String(Zone_A_str), String(Zone_B_str), String(Fuente_in_str));
+      // Node_1.Nodo_Status(rx_remitente, rx_ST_ZA_DB, rx_ST_ZB_DB, rx_ST_FT_DB);
+      nodo_DB=rx_remitente + "," + rx_ST_ZA_DB + "," + rx_ST_ZB_DB + "," +rx_ST_FT_DB;
       break;
     case '2':
-      Node_2.Nodo_Status(String(rx_remitente), Zone_A_str, Zone_B_str, Fuente_in_str);
+      // Node_2.Nodo_Status(rx_remitente, rx_ST_ZA_DB, rx_ST_ZB_DB, rx_ST_FT_DB);
+      nodo_DB=rx_remitente + "," + rx_ST_ZA_DB + "," + rx_ST_ZB_DB + "," +rx_ST_FT_DB;
       break;
     default:
       break;
