@@ -190,10 +190,15 @@ void setup(){
       Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
     }
   //S.3 WiFi
-    setup_wifi();
+    if(Master.Mode){
+      setup_wifi();
+
+    }
   //S4. MQTT
-    client.setServer(mqtt_server, 1883);
-    client.setCallback(callback);
+    if(Master.Mode){
+      client.setServer(mqtt_server, 1883);
+      client.setCallback(callback);
+    }
 }
 void loop(){
   //L1. Function Start
@@ -221,10 +226,12 @@ void loop(){
       }
   //L3. Funciones de Dispositivos Externos.
     // -L3.1 MQTT Reconnect.
+    if(Master.Mode){
       if (!client.connected()) {
         reconnect();
       }
       client.loop();
+    }
   //L4. Funciones del Nodo.
     //-L4.0 Function Test.
       if(flag_ISR_prueba){
@@ -270,6 +277,20 @@ void loop(){
         Serial.print("p2: ");
         Serial.println(String(Node.rx_funct_parameter2));
       }
+    //-L4.3 Nodo TX.
+      if(Node.F_Responder && !Master.Mode){
+        Node.Lora_TX();       // Se envia el mensaje.
+        Serial.println("Node TX");
+      }
+    //-L4.4 Nodo Ejecuta Funciones.
+      if(Node.F_Nodo_Excecute && !Master.Mode){
+        if(Node.F_function_Special){
+          Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
+          General.Led_Monitor(Node.rx_funct_parameter1); // Se ejecuta la funcion.
+        }
+        Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
+      }
+
   //L5. Funciones del Master.
     //-L5.1 F- Master.
         //
@@ -357,11 +378,11 @@ void loop(){
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
     }
-  //-5.2 MQTT Callback
+  //-5.2 MQTT RX Callback.
     void callback(char* topic, byte* payload, unsigned int length) {
-      Serial.print("Message arrived [");
+      Serial.print("MQTT RX: :[");
       Serial.print(topic);
-      Serial.print("] ");
+      Serial.println("] ");
       String messageTemp;
       for (int i = 0; i < length; i++) {
         Serial.print((char)payload[i]);
@@ -406,14 +427,14 @@ void loop(){
         }
       }
     }
-  //-5.4 MQTT PUBLISH
+  //-5.4 MQTT TX PUBLISH
     void Master_MQTT_Publish(){
       //-5.4.0 Debud.
         MQTT_Frame_TX=String(Node.nodo_DB);
         Serial.print("MQTT TX: ");
         Serial.println(MQTT_Frame_TX);
       //-5.4. MQTT Publish.
-      client.publish("test/topic", Node.nodo_DB.c_str());
+        client.publish("test/topic", Node.nodo_DB.c_str());
     }
 
 

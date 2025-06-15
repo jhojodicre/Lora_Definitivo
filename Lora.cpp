@@ -94,7 +94,7 @@ void Lora::Lora_Setup()
     both.printf("Bandwidth: %.1f kHz\n", BANDWIDTH);
     both.printf("Spreading Factor: %i\n", SPREADING_FACTOR);
     both.printf("TX power: %i dBm\n", TRANSMIT_POWER);
-}
+ }
 void Lora::Lora_TX(){
     // both.printf("TX [%s] ", String(mensaje).c_str());
     both.printf("TX [%s] ", txdata.c_str());
@@ -114,7 +114,7 @@ void Lora::Lora_TX(){
     radio.setDio1Action(rx);
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     F_Responder = false;      // Bandera activada en Lora_Nodo_Decodificar.
-}
+ }
 void Lora::Lora_RX(){
     // If a packet was received, display it and the RSSI and SNR
     if (rxFlag)
@@ -135,18 +135,18 @@ void Lora::Lora_RX(){
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
     rx_funct_mode       = rxdata.charAt(3);         // Tipo de funcion a ejecutar.
     rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
-    rx_funct_parameter1 = rxdata.substring(5, 6).toInt(); // Parametro 1 de la Funcion.
-    rx_funct_parameter2 = rxdata.substring(6, 7).toInt(); // Parametro 2 de la Funcion.
+    rx_funct_parameter1 = rxdata.substring(4, 5).toInt(); // Parametro 1 de la Funcion.
+    rx_funct_parameter2 = rxdata.substring(5, 6).toInt(); // Parametro 2 de la Funcion.
 
 
     rx_mensaje_DB       = rxdata.substring(2, 3);         // Mensaje recibido.
-    rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
-    rx_ST_ZB_DB         = rxdata.substring(4, 5);         // Estado de la Zona B.
-    rx_ST_FT_DB         = rxdata.substring(5, 6);         // Estado de la Fuente.
+    // rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
+    rx_ST_ZA_DB         = rxdata.substring(5, 6);         // Estado de la Zona B.
+    rx_ST_ZB_DB         = rxdata.substring(6, 7);         // Estado de la Fuente.
   }
 void Lora::rx(){
   rxFlag = true;
-}
+ }
 void Lora::Lora_IO_Zones(){
   // 1. Pulsadores A y B Lectura.
     Zone_A_ACK=digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
@@ -208,7 +208,7 @@ void Lora::Lora_IO_Zones(){
     Zone_B_ACK_str=String(!Zone_B_ACK, BIN);
 
     Fuente_in_str=String(Fuente_in_ST, BIN);
-}
+ }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
@@ -222,37 +222,31 @@ void Lora::Lora_Nodo_Frame(){
     bitWrite(nodo_local,5, false);
     bitWrite(nodo_local,6, true);
     bitWrite(nodo_local,7, false);
-    
     nodo_status=char(nodo_local);
-    tx_mensaje=nodo_status;// Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-    tx_funct_mode="0"; // Tipo de funcion a ejecutar.
-    tx_funct_num=local_Address;     // Numero de Nodo en el Perimetro.
-    tx_funct_parameter1=Zone_A_str; // Estado de la zona A
-    tx_funct_parameter2=Zone_B_str; // Estado de la Zona B
+
+    tx_remitente          =String(local_Address);
+    tx_destinatario       =String(Master_Address);    // Direccion del maestro.
+    tx_mensaje            ="M";
+    tx_funct_mode         ="A"; // Tipo de funcion a ejecutar.
+    tx_funct_num          ="1";     // Numero de Nodo en el Perimetro.
+    tx_funct_parameter1   ="a";//Zone_A_str; // Estado de la zona A
+    tx_funct_parameter2   ="b";//Zone_B_str; // Estado de la Zona B
     
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
     // txdata = "123";
     Timer_Nodo_Answer.once(2, Lora_timerNodo_Answer); // 500 ms para enviar el mensaje.
-  }
+ }
 void Lora::Lora_Nodo_Decodificar(){
   // 0. Functon Llamada desde L4.4 Nodo.F_Recibido.
   // 1. Preparamos mensaje para enviar.
     // Serial.println(String(local_Address));
     if(rx_destinatario==local_Address){
-      tx_remitente    =String(local_Address);
-      tx_destinatario =String(Master_Address);    // Direccion del maestro.
-      tx_mensaje      ="X";//String(nodo_status);       // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-      // tx_funct_mode   =String(0);
-      // tx_funct_num    =String(0);
       Lora_Nodo_Frame();
-      Lora_Master_DB();
       F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       if(rx_funct_mode=='A' && rx_funct_num=='1'){
         F_function_Special=true; // Bandera Desactivada en L4.3
       }
-      
-      // F_Responder=true;   // Bandera desactivada en Lora_TX.
     }
     // 2. Ejecutamos Funcion.
 }
@@ -284,12 +278,9 @@ void Lora::Lora_Master_Decodificar(){
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
-    Zone_A_ST=true;
-    Zone_B_ST=false;
-    Zone_A_ERR=false;
-    Zone_A_str="a";
-    Zone_B_str="b";
-    Fuente_in_str="c";
+    Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
+    Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
+    Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
 }
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
@@ -300,12 +291,10 @@ void Lora::Lora_timerNodo_Answer(){
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
-      // Node_1.Nodo_Status(rx_remitente, rx_ST_ZA_DB, rx_ST_ZB_DB, rx_ST_FT_DB);
-      nodo_DB=rx_remitente + "," + rx_ST_ZA_DB + "," + rx_ST_ZB_DB + "," +rx_ST_FT_DB;
+      nodo_DB = "{\"Placa\":\"" + String(rx_remitente) + "\",\"Zona_A\":\"" + String(rx_ST_ZA_DB) + "\",\"Zona_B\":\"" + String(rx_ST_ZB_DB) + "\",\"Fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
       break;
     case '2':
-      // Node_2.Nodo_Status(rx_remitente, rx_ST_ZA_DB, rx_ST_ZB_DB, rx_ST_FT_DB);
-      nodo_DB=rx_remitente + "," + rx_ST_ZA_DB + "," + rx_ST_ZB_DB + "," +rx_ST_FT_DB;
+      nodo_DB = "{\"Placa\":\"" + String(rx_remitente) + "\",\"Zona_A\":\"" + String(rx_ST_ZA_DB) + "\",\"Zona_B\":\"" + String(rx_ST_ZB_DB) + "\",\"Fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
       break;
     default:
       break;
