@@ -5,7 +5,16 @@ General::General(bool ready)
 {
   // Constructor de la clase General
   firstScan = ready;
+  // 1. Configuracion de Hardware:
   pinMode(_LED_Azul, OUTPUT);
+  pinMode(LED_1, OUTPUT);
+  pinMode(LED_2, OUTPUT);
+  pinMode(LED_3, OUTPUT);
+  // 2. Condicion Inicial.
+  // digitalWrite(_LED_Azul, LOW); // Led Azul OFF.
+  digitalWrite(LED_1, HIGH);     // Led 1 OFF.
+  digitalWrite(LED_2, HIGH);     // Led 2 OFF.
+  digitalWrite(LED_3, HIGH);     // Led 3 OFF.
   // 3. Configuracion de Perifericos:
   //-3.1 Comunicacion Serial:
   Serial.begin(115200);
@@ -29,7 +38,10 @@ bool General::Iniciar()
   Welcome();
   return true;
 }
-
+void General::Dale(int repeticiones)
+{
+  Led_Monitor(repeticiones);
+}
 void General::Configuracion()
 {
   // Implementación del método Configuracion
@@ -43,7 +55,7 @@ void General::Gestion()
 // 1. Funciones de Logic interna del Micro.
 void General::Welcome()
 {
-  Serial.println("LORA SECURE URUGUAY");
+  Serial.println("LORA SECURE");
 }
 void General::Led_Monitor(int repeticiones)
 {
@@ -67,5 +79,41 @@ void General::Led_Status(int status)
   else
   {
     digitalWrite(_LED_Azul, LOW); // Led OFF.
+  }
+}
+void General::Led_1(int status)
+{
+  // Deshabilitamos Banderas
+  if (status == 1)
+  {
+    digitalWrite(LED_1, LOW); // Led ON.
+  }
+  else
+  {
+    digitalWrite(LED_1, HIGH); // Led OFF.
+  }
+}
+void General::Led_2(int status)
+{
+  // Deshabilitamos Banderas
+  if (status == 1)
+  {
+    digitalWrite(LED_2, LOW); // Led ON.
+  }
+  else
+  {
+    digitalWrite(LED_2, HIGH); // Led OFF.
+  }
+}
+void General::Led_3(int status)
+{
+  // Deshabilitamos Banderas
+  if (status == 1)
+  {
+    digitalWrite(LED_3, LOW); // Led ON.
+  }
+  else
+  {
+    digitalWrite(LED_3, HIGH); // Led OFF.
   }
 }

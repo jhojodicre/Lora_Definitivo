@@ -5,7 +5,7 @@
 Functions::Functions(bool ready)
 {
     firstScan = true;
-    // LED_Azul = 35; // Pin del LED azul
+    LED_Azul = 35; // Pin del LED azul
     pinMode(LED_Azul, OUTPUT);
 }
 void Functions::Functions_Request(String rxString)

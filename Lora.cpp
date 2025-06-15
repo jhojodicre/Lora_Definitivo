@@ -297,7 +297,6 @@ void Lora::Lora_timerNodo_Answer(){
       nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
   }
 }
-
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':

@@ -22,6 +22,7 @@ public:
     bool    F_Responder=false;
     bool    F_Recibido=false;
     bool    F_Nodo_Excecute=false;
+    bool    F_Master_Excecute=false;
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
 

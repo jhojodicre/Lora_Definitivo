@@ -112,9 +112,9 @@
 //4. Intancias.
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
-    General General(false);         // Configuraciones Generales del Nodo.
-    Lora Node('1');
-    Master Master(true,2);
+    General   General(false);         // Configuraciones Generales del Nodo.
+    Lora      Node('1');
+    Master    Master(true,2);
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -247,7 +247,9 @@ void loop(){
           Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
           General.Led_Monitor(Node.rx_funct_parameter1); // Se ejecuta la funcion.
         }
-        Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
+        //-L4.3.1 Ejecuta la funcion.
+      // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
+        Node.F_Nodo_Excecute=false;  
       }
     //-L4.4 Nodo RX.
       if(Node.F_Recibido && !Master.Mode){
@@ -278,7 +280,8 @@ void loop(){
         Node.Lora_Master_Frame();
         Node.Lora_TX();
         Master.Next=false;
-        Correr.a1(1,1);// 1 veces, 100 milesegundos.
+        Serial.println("Master TXed");
+        Correr.a1(3,5);// 1 veces, 100 milesegundos.
       }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
@@ -296,7 +299,17 @@ void loop(){
         Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
         //-L5.4.0 Debug.
       }
-      
+    //-L5.5 F- Master Execute order from Server
+      if(Node.F_Master_Excecute && Master.Mode){
+        //-L5.5.1 Ejecuta la funcion.
+          // General.Led_Monitor(1);
+          // Correr.a1(2,1);// 1 veces, 100 milesegundos. 
+          // General.Led_Monitor(5); // Led ON.
+          // Correr.a1(Node.tx_funct_parameter1,Node.tx_funct_parameter2); // Se ejecuta la funcion.
+
+          Node.F_Master_Excecute=false; // Bandera activada en Lora_Nodo_Decodificar.
+          Serial.println("Master Executed: testing");
+      }
   //L6. Function Lora RX.
     //-L6.1 lora RX.
       Node.Lora_RX();
@@ -323,7 +336,7 @@ void loop(){
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
     }
-//5. Funciones de Dispositivos Externos.
+//5. Funciones de Dispositivos Externos. 
   //-5.1 WiFi
     void setup_wifi() {
     delay(10);
@@ -363,11 +376,14 @@ void loop(){
         Serial.print("Changing output to ");
         if(messageTemp == "on"){
           Serial.println("on");
-          General.Led_Status(1); // Led ON.
+          // General.Led_Status(1); // Led ON.
+          // General.Led_Monitor(2); // Se ejecuta la funcion.
+          // Node.F_Master_Excecute=true; // Bandera activada para ejecutar la funcion.
+          General.Led_1(1); // Led ON.
         }
         else if(messageTemp == "off"){
           Serial.println("off");
-          General.Led_Status(0); // Led OFF.
+          General.Led_1(0); // Led OFF.
         }
       }
     }
