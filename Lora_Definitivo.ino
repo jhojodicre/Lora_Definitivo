@@ -8,6 +8,8 @@
     #include "Master.h"
     #include <PubSubClient.h>
     #include <WiFi.h>
+    #include <ArduinoJson.h>
+    #include <HTTPClient.h>
 
 //2. Definicion de Pinout.
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
@@ -105,6 +107,16 @@
 
     String MQTT_Frame_TX="";
     String Lora_RX=""; // Mensaje recibido por Lora.
+    // JSON Variables.
+      String jsonString; // Cadena JSON para enviar a MongoDB
+      int nombre;
+      int    valueJson;
+      String nodoJson="";
+
+      const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
+
+
+      int httpResponseCode ;
     // Otras.  
       String      codigo="";
       String      info_1="";
@@ -118,6 +130,8 @@
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
+    HTTPClient http; // Instancia para HTTPClient
+    StaticJsonDocument<200> doc;
   //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -192,12 +206,22 @@ void setup(){
   //S.3 WiFi
     if(Master.Mode){
       setup_wifi();
-
     }
   //S4. MQTT
     if(Master.Mode){
       client.setServer(mqtt_server, 1883);
       client.setCallback(callback);
+    }
+  //S5. HTTTP Client
+    if(Master.Mode){
+      // http.begin("https://tu_mongodb_api_endpoint"); // URL de tu API de MongoDB
+      // http.addHeader("Content-Type", "application/json");
+
+      // para conectarse a la API de MongoDB
+      // Reemplaza con la URL de tu API de MongoDB
+      http.begin(serverName);
+      http.addHeader("Content-Type", "application/json");
+
     }
 }
 void loop(){
@@ -302,7 +326,15 @@ void loop(){
         Node.Lora_TX();
         Master.Next=false;
         Serial.println("Master TXed");
-        Correr.a1(3,5);// 1 veces, 100 milesegundos.
+        if(Master.Nodo_Proximo==1){
+          //-L5.2.1 Serializacion a Json.
+            SerializeObjectToJson();
+            sendJsonToMongoDB(); // Envio de Json a MongoDB.
+        }
+        if(Master.Nodo_Proximo==2){
+          //-L5.2.3 Deserializacion de Json.
+            // DeserializeJson();
+        }
       }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
@@ -436,10 +468,56 @@ void loop(){
       //-5.4. MQTT Publish.
         client.publish("test/topic", Node.nodo_DB.c_str());
     }
+//6. Json Send
+  void sendJsonToMongoDB() {
+    if (WiFi.status() == WL_CONNECTED) {
+      httpResponseCode = http.POST(jsonString);
+
+      if (httpResponseCode > 0) {
+        String response = http.getString();
+        Serial.println(httpResponseCode);
+        Serial.println(response);
+      } else {
+        Serial.println("Error en la solicitud HTTP");
+      }
+      // http.end();
+    }
+  }
+  void SerializeObjectToJson() {
+    doc["humidity"] = random(0, 101); // Valor aleatorio entre 0 y 100
+    doc["temperature"] = random(0, 101);
+    serializeJson(doc, jsonString);
+    Serial.println(jsonString);
+  }
+
+  void DeserializeJson(){
+    jsonString = "{\"temperature\":3,\"humidity\":100}";
+
+    DeserializationError error = deserializeJson(doc, jsonString);
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+      return;
+    }
+    // nombre = doc["nombre"].as<String>();
+    nombre = doc["temperature"];
+    valueJson = doc["humidity"];   //.as<int>();
+    Serial.print("MCU: ");
+    Serial.println(nombre);
+    Serial.print("Valor: ");
+    Serial.println(valueJson);
+  }
 
 
 
+//10. Miscelanius#include <HTTPClient.h>
 
 
-//10. Miscelanius
   //https://resource.heltec.cn/download/package_heltec_esp32_index.json
+
+
+  // mongodb+srv://jhojodicre:l7emAppTNpcVUTsc@cluster0.wa5aztt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  // The password for jhojodicre is included in the connection string for your first time setup. This password will not be available again after exiting this connect flow.
+  // jhojodicre
+  // password: l7emAppTNpcVUTsc
+  // ip ip (186.52.249.162)
