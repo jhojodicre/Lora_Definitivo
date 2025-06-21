@@ -126,7 +126,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);         // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(true,2);
+    Master    Master(false,2);
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -286,27 +286,11 @@ void loop(){
       if(Node.F_Recibido && !Master.Mode){
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
-        Serial.print("RX: ");
-        Serial.println(String(Node.rx_destinatario));
-        Serial.print("LA: ");
-        Serial.println(String(Node.local_Address));
-        Serial.print("ms: ");
-        Serial.println(String(Node.rx_mensaje));
-        Serial.print("md: ");
-        Serial.println(String(Node.rx_funct_mode));
-        Serial.print("nf: ");
-        Serial.println(String(Node.rx_funct_num));
-        Serial.print("p1: ");
-        Serial.println(String(Node.rx_funct_parameter1));
-        Serial.print("p2: ");
-        Serial.println(String(Node.rx_funct_parameter2));
+        // Node_Print_LORA_RX(); // Imprime los datos recibidos por Lora.
+
       }
-    //-L4.3 Nodo TX.
-      if(Node.F_Responder && !Master.Mode){
-        Node.Lora_TX();       // Se envia el mensaje.
-        Serial.println("Node TX");
-      }
-    //-L4.4 Nodo Ejecuta Funciones.
+
+    //-L4.5 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
         if(Node.F_function_Special){
           Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
@@ -328,7 +312,9 @@ void loop(){
         Serial.println("Master TXed");
         if(Master.Nodo_Proximo==1){
           //-L5.2.1 Serializacion a Json.
-            SerializeObjectToJson();
+            // SerializeObjectToJson();
+            Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+            Node.SerializeObjectToJson(); // Serializa el objeto a JSON
             sendJsonToMongoDB(); // Envio de Json a MongoDB.
         }
         if(Master.Nodo_Proximo==2){
@@ -348,7 +334,9 @@ void loop(){
         //-L5.4.1 MQTT Publish.
         // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
         Node.F_Master_Update=false;
-        Node.Lora_Master_DB(); // Se actualizan los datos del nodo.
+        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
+        // Node.Lora_Master_DB(); // Se actualizan los datos del nodo.
+        jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
         Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
         //-L5.4.0 Debug.
       }
@@ -388,6 +376,24 @@ void loop(){
       Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+    }
+  //-4.7 Node Functions Complementary.
+    void Node_Print_LORA_RX(){
+        Serial.print("RX: ");
+        Serial.println(String(Node.rx_destinatario));
+        Serial.print("LA: ");
+        Serial.println(String(Node.local_Address));
+        Serial.print("ms: ");
+        Serial.println(String(Node.rx_mensaje));
+        Serial.print("md: ");
+        Serial.println(String(Node.rx_funct_mode));
+        Serial.print("nf: ");
+        Serial.println(String(Node.rx_funct_num));
+        Serial.print("p1: ");
+        Serial.println(String(Node.rx_funct_parameter1));
+        Serial.print("p2: ");
+        Serial.println(String(Node.rx_funct_parameter2));
+      
     }
 //5. Funciones de Dispositivos Externos. 
   //-5.1 WiFi
@@ -466,11 +472,13 @@ void loop(){
         Serial.print("MQTT TX: ");
         Serial.println(MQTT_Frame_TX);
       //-5.4. MQTT Publish.
-        client.publish("test/topic", Node.nodo_DB.c_str());
+        // client.publish("test/topic", Node.nodo_DB.c_str());
+        client.publish("test/topic", jsonString.c_str());
     }
 //6. Json Send
   void sendJsonToMongoDB() {
     if (WiFi.status() == WL_CONNECTED) {
+      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
       httpResponseCode = http.POST(jsonString);
 
       if (httpResponseCode > 0) {
@@ -481,17 +489,13 @@ void loop(){
         Serial.println("Error en la solicitud HTTP");
       }
       // http.end();
+      Serial.println(jsonString);
     }
   }
-  void SerializeObjectToJson() {
-    doc["humidity"] = random(0, 101); // Valor aleatorio entre 0 y 100
-    doc["temperature"] = random(0, 101);
-    serializeJson(doc, jsonString);
-    Serial.println(jsonString);
-  }
+
 
   void DeserializeJson(){
-    jsonString = "{\"temperature\":3,\"humidity\":100}";
+    // jsonString = "{\"comm\":1,\"node\":3,\"zoneA\":100,\"zoneB\":100,\"output1\":0,\"output2\":1}"; // Ejemplo de cadena JSON
 
     DeserializationError error = deserializeJson(doc, jsonString);
     if (error) {

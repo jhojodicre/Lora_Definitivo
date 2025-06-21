@@ -13,6 +13,7 @@
 #include <Functions.h>
 #include "Master.h"
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -272,15 +273,27 @@ void Lora::Lora_Master_Frame(){
   }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
-    Lora_Master_DB();
-    F_Master_Update=true;
+    Node_Status = true; // Comunicacion Ok
+    Node_Status_str = "1"; // Comunicacion ok
   }
+  else{
+    Node_Status = false; // No comunica
+    Node_Status_str = "0"; // Comunicacion  No ok
+    // Si no es el nodo consultado, no se actualiza la base de datos.
+    // nodo_DB = "{\"comm\":\"" + String(commJS) + "\",\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
+  }
+  SerializeObjectToJson(); // Serializa el objeto a JSON
+  Lora_Master_DB();
+  F_Master_Update=true;
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
+    commJS   = String(random(0, 2));    // Random between "0" and "1"
     Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
     Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
     Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
+    Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
+    Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
 }
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
@@ -291,12 +304,26 @@ void Lora::Lora_timerNodo_Answer(){
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
-      nodo_DB = "{\"Placa\":\"" + String(rx_remitente) + "\",\"Zona_A\":\"" + String(rx_ST_ZA_DB) + "\",\"Zona_B\":\"" + String(rx_ST_ZB_DB) + "\",\"Fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
+      nodo_DB = jsonString; // Serializa el objeto a JSON
+      // nodo_DB = "{\"comm\":\"" + String(rx_remitente) +\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
       break;
     case '2':
-      nodo_DB = "{\"Placa\":\"" + String(rx_remitente) + "\",\"Zona_A\":\"" + String(rx_ST_ZA_DB) + "\",\"Zona_B\":\"" + String(rx_ST_ZB_DB) + "\",\"Fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
+      nodo_DB = jsonString; // Serializa el objeto a JSON
+
       break;
     default:
       break;
   }
 }
+void Lora::SerializeObjectToJson() {
+  doc[nodeJS]     = rx_remitente;
+  doc[commJS]     = Node_Status_str;
+  doc[zoneAJS]    = Zone_A_str;
+  doc[zoneBJS]    = Zone_B_str;
+  doc[output1JS]  = Rele_1_out_str;
+  doc[output2JS]  = Rele_2_out_str;
+  doc[fuenteJS]    = Fuente_in_str;
+  serializeJson(doc, jsonString);
+    // Serial.print("LORA_JSON String:");
+    // Serial.println(jsonString);
+  }

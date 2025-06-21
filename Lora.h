@@ -2,6 +2,7 @@
 #define LORA_H
 #include <Arduino.h>
 #include <Ticker.h>
+#include <ArduinoJson.h>
 class Lora {
 public:
     Lora(char nodeNumber);
@@ -18,6 +19,7 @@ public:
     void   Lora_Dummy_Simulate();
     static  void   Lora_timerNodo_Answer();
     void   Lora_Master_DB();
+    void   SerializeObjectToJson();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -62,6 +64,8 @@ public:
         String  tx_funct_num;           // Numero de funcion a ejecutar.
         String  tx_funct_parameter1;    // Parametro 1 de la Funcion.
         String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
+
+        String    jsonString;
 private:
     // Entradas Fisicas
         int     Zona_A_in=38;
@@ -77,6 +81,9 @@ private:
 
         int     Fuente_in=43; // 3.3V
 
+        // Estadon del Nodo
+        bool    Node_Status;
+        String  Node_Status_str;
     // Entradas Auxiliares
         bool    Zone_A;
         bool    Zone_B;
@@ -111,10 +118,23 @@ private:
         String  Zone_B_ACK_str;
 
         String  Fuente_in_str;
+
+        String  Rele_1_out_str;
+        String  Rele_2_out_str;
+
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time;
         uint64_t    minimum_pause;
+    // Json Vaibles
+        String    nodeJS    = "node";
+        String    commJS    = "comm";
+        String    zoneAJS   = "zoneA";
+        String    zoneBJS   = "zoneB";
+        String    output1JS = "output1";
+        String    output2JS = "output2";
+        String    fuenteJS  = "fuente";
+        StaticJsonDocument<200> doc;
 
 };
 
