@@ -66,6 +66,22 @@ public:
         String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
 
         String    jsonString;
+
+        String    tx_nodo_lora_1;
+        String    tx_nodo_lora_2;
+        String    tx_nodo_lora_3;
+        String    tx_nodo_lora_4;
+        String    tx_nodo_lora_5;
+        String    tx_nodo_lora_6;
+        String    tx_nodo_lora_7;
+
+        String    rx_master_lora_1;
+        String    rx_master_lora_2;
+        String    rx_master_lora_3;
+        String    rx_master_lora_4;
+        String    rx_master_lora_5;
+        String    rx_master_lora_6;
+        String    rx_master_lora_7;
 private:
     // Entradas Fisicas
         int     Zona_A_in=38;
@@ -107,7 +123,7 @@ private:
         int     Zonas;
         int     Zonas_Fallan;
 
-
+        String  Node_Num_str;
         String  Zone_A_str;
         String  Zone_B_str;
 
@@ -127,14 +143,14 @@ private:
         uint64_t    tx_time;
         uint64_t    minimum_pause;
     // Json Vaibles
-        String    nodeJS    = "node";
-        String    commJS    = "comm";
+        String    nodeJS    = "nodoId";
+        String    commJS    = "comu";
         String    zoneAJS   = "zoneA";
         String    zoneBJS   = "zoneB";
         String    output1JS = "output1";
         String    output2JS = "output2";
         String    fuenteJS  = "fuente";
-        StaticJsonDocument<200> doc;
+        StaticJsonDocument<300> doc;
 
 };
 

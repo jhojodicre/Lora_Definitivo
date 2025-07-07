@@ -107,6 +107,12 @@
 
     String MQTT_Frame_TX="";
     String Lora_RX=""; // Mensaje recibido por Lora.
+
+    char Nodo_a_Pedir     = ' '; // Nodo a consultar por el Maestro.
+    char function_Mode    = ' '; // Modo de Funcion a ejecutar.
+    char function_Number  = ' ';
+    char parameter_1      = ' ';
+    char parameter_2      = ' ';
     // JSON Variables.
       String jsonString; // Cadena JSON para enviar a MongoDB
       int nombre;
@@ -124,9 +130,9 @@
 //4. Intancias.
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
-    General   General(false);         // Configuraciones Generales del Nodo.
+    General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(false,2);
+    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -279,13 +285,14 @@ void loop(){
           General.Led_Monitor(Node.rx_funct_parameter1); // Se ejecuta la funcion.
         }
         //-L4.3.1 Ejecuta la funcion.
+        Nodo_Ejecutar_Funciones(Node.rx_funct_mode, Node.rx_funct_num, Node.rx_funct_parameter1, Node.rx_funct_parameter2);
       // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
         Node.F_Nodo_Excecute=false;  
       }
     //-L4.4 Nodo RX.
       if(Node.F_Recibido && !Master.Mode){
-        Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
+        Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         // Node_Print_LORA_RX(); // Imprime los datos recibidos por Lora.
 
       }
@@ -304,24 +311,15 @@ void loop(){
         //
     //-L5.2 Master TX
       if(Master.Next){
-        Master.Master_Nodo();       //
+        Master.Master_Nodo();         // Se prepara el nodo maestro.
         Master_RX_Request();          // Se cargan los datos recibidos desde via serial.
-        Node.Lora_Master_Frame();
-        Node.Lora_TX();
+        Node.Lora_Master_Frame();     // Se prepara el mensaje a enviar.
+        Node.Lora_TX();               // Se envia el mensaje.
         Master.Next=false;
         Serial.println("Master TXed");
-        if(Master.Nodo_Proximo==1){
-          //-L5.2.1 Serializacion a Json.
-            // SerializeObjectToJson();
-            Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-            Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-            sendJsonToMongoDB(); // Envio de Json a MongoDB.
+        //-L5.2.7 Simular
+          // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
         }
-        if(Master.Nodo_Proximo==2){
-          //-L5.2.3 Deserializacion de Json.
-            // DeserializeJson();
-        }
-      }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
         Node.Lora_Master_Decodificar();       // Se recibe el mensaje.
@@ -332,29 +330,21 @@ void loop(){
     //-L5.4 F- Server Update.
       if(Node.F_Master_Update){
         //-L5.4.1 MQTT Publish.
-        // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
-        Node.F_Master_Update=false;
-        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-        // Node.Lora_Master_DB(); // Se actualizan los datos del nodo.
-        jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.
-        //-L5.4.0 Debug.
+          Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
+          Node.F_Master_Update=false;
       }
     //-L5.5 F- Master Execute order from Server
       if(Node.F_Master_Excecute && Master.Mode){
         //-L5.5.1 Ejecuta la funcion.
-          // General.Led_Monitor(1);
-          // Correr.a1(2,1);// 1 veces, 100 milesegundos. 
-          // General.Led_Monitor(5); // Led ON.
-          // Correr.a1(Node.tx_funct_parameter1,Node.tx_funct_parameter2); // Se ejecuta la funcion.
-
-          Node.F_Master_Excecute=false; // Bandera activada en Lora_Nodo_Decodificar.
+          Master_RX_Request_2();                // Carga los datos recibidos desde el servidor.
+          Node.Lora_Master_Frame();             // Se prepara el mensaje a enviar.
+          Node.Lora_TX();                       // Se envia el mensaje.
+          Node.F_Master_Excecute=false;         // Bandera activada en MQTT RX Callback.
           Serial.println("Master Executed: testing");
       }
   //L6. Function Lora RX.
     //-L6.1 lora RX.
       Node.Lora_RX();
-
 }
 //4. Funciones UPDATE.
   //-4.1 Estados de Zonas.
@@ -377,7 +367,15 @@ void loop(){
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
     }
-  //-4.7 Node Functions Complementary.
+    //-4.7 Master RX Request.
+    void Master_RX_Request_2(){
+      Node.nodo_a_Consultar=Nodo_a_Pedir;
+      Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
+      Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
+      Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
+      Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
+    }
+  //-4.8 Node Functions Complementary.
     void Node_Print_LORA_RX(){
         Serial.print("RX: ");
         Serial.println(String(Node.rx_destinatario));
@@ -395,6 +393,14 @@ void loop(){
         Serial.println(String(Node.rx_funct_parameter2));
       
     }
+//-4.9 Nodo Ejecuta Funciones.
+  void Nodo_Ejecutar_Funciones(char mode, char number, char parameter_1, char parameter_2) {
+    // Aquí se implementa la lógica para ejecutar las funciones del nodo
+    // dependiendo de los parámetros recibidos.
+    Correr.Functions_Request(String(mode) + String(number) + String(parameter_1) + String(parameter_2));
+    Correr.Functions_Run(); // Ejecuta la función correspondiente.
+  }
+
 //5. Funciones de Dispositivos Externos. 
   //-5.1 WiFi
     void setup_wifi() {
@@ -416,37 +422,7 @@ void loop(){
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
     }
-  //-5.2 MQTT RX Callback.
-    void callback(char* topic, byte* payload, unsigned int length) {
-      Serial.print("MQTT RX: :[");
-      Serial.print(topic);
-      Serial.println("] ");
-      String messageTemp;
-      for (int i = 0; i < length; i++) {
-        Serial.print((char)payload[i]);
-        messageTemp += (char)payload[i];
-      }
-      Serial.println();
-      // Feel free to add more if statements to control more GPIOs with MQTT
-
-      // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
-      // Changes the output state according to the message
-      if (String(topic) == "test/topic") {
-        Serial.print("Changing output to ");
-        if(messageTemp == "on"){
-          Serial.println("on");
-          // General.Led_Status(1); // Led ON.
-          // General.Led_Monitor(2); // Se ejecuta la funcion.
-          // Node.F_Master_Excecute=true; // Bandera activada para ejecutar la funcion.
-          General.Led_1(1); // Led ON.
-        }
-        else if(messageTemp == "off"){
-          Serial.println("off");
-          General.Led_1(0); // Led OFF.
-        }
-      }
-    }
-  //-5.3 MQTT Reconnect.
+  //-5.2 MQTT Reconnect.
     void reconnect() {
       // Loop until we're reconnected
       while (!client.connected()) {
@@ -465,15 +441,76 @@ void loop(){
         }
       }
     }
+  //-5.3 MQTT RX Callback.
+    void callback(char* topic, byte* payload, unsigned int length) {
+      Serial.print("MQTT RX: :[");
+      Serial.print(topic);
+      Serial.println("] ");
+      String messageTemp;
+      for (int i = 0; i < length; i++) {
+        Serial.print((char)payload[i]);
+        messageTemp += (char)payload[i];
+      }
+      Serial.println();
+      // Feel free to add more if statements to control more GPIOs with MQTT
+          // General.Led_1(1); // Led ON.
+
+      // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+      // Changes the output state according to the message
+      if (String(topic) == "test/topic") {
+        Serial.print("MQTT processing message: ");
+        char firstChar = messageTemp.charAt(0);
+        switch (firstChar) {
+          case 'N':
+            Serial.println("Case N: Master command received");
+            Nodo_a_Pedir = messageTemp.charAt(1);
+            function_Mode = messageTemp.charAt(2);
+            function_Number = messageTemp.charAt(3);
+            parameter_1 = messageTemp.charAt(4);
+            parameter_2 = messageTemp.charAt(5);
+            Node.F_Master_Excecute = true; // Activar bandera para ejecutar la función en el nodo.
+        // Acción para 'N'
+            break;
+          case 'M':
+            Serial.println("Case M: Master command received");
+            // Acción para 'M'
+            break;
+          case 'C':
+            Serial.println("Case C: Config command received");
+            // Acción para 'C'
+            break;
+          case 'F':
+            Serial.println("Case F: Function command received");
+            // Acción para 'F'
+            break;
+          case 'G':
+            Serial.println("Case G: General command received");
+            // Acción para 'G'
+            break;
+          default:
+            Serial.println("Unknown command");
+            break;
+        }
+      }
+
+    }
   //-5.4 MQTT TX PUBLISH
     void Master_MQTT_Publish(){
-      //-5.4.0 Debud.
-        MQTT_Frame_TX=String(Node.nodo_DB);
-        Serial.print("MQTT TX: ");
-        Serial.println(MQTT_Frame_TX);
-      //-5.4. MQTT Publish.
-        // client.publish("test/topic", Node.nodo_DB.c_str());
+      //-5.4.1 MQTT Publish.
+        jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
         client.publish("test/topic", jsonString.c_str());
+      //-5.4.10 Debug.
+        Serial.print("MQTT TX: ");
+        Serial.println(jsonString);
+    }
+  //-5.5 Dummy Simulate.
+    void Master_Dummy_Simulate(){
+      // 1 o se envia a MQTT.
+        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
+        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
+      // 2 o se envia a MongoDB.
+            // sendJsonToMongoDB(); // Envio de Json a MongoDB.
     }
 //6. Json Send
   void sendJsonToMongoDB() {
