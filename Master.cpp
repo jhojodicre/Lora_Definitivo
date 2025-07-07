@@ -67,7 +67,7 @@ void Master::timer_master_ISR() {
 }
 void Master::Master_Request(){
     // Implementación del método Master_Request
-    // Aquí puedes implementar la lógica para manejar la solicitud del maestro
+    // Aquí puedes implementar la lógica para manejar la solicitud del maestro al Nodo
 }
 void Master::Nodo_Status(String nodeNumber_st, String zonaA_st, String zonaB_st, String fuente_st) {
     nodo_Number = nodeNumber_st;

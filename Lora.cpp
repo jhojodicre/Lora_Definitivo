@@ -8,12 +8,12 @@
  * This works on the stick, but the output on the screen gets cut off.
  */
 #include "Lora.h"
+#include "Master.h"
 #include <Arduino.h>
 #include <Ticker.h>
 #include <Functions.h>
-#include "Master.h"
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <PubSubClient.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -134,11 +134,20 @@ void Lora::Lora_RX(){
     rx_remitente        = rxdata.charAt(0); // Nodo que envia el mensaje.
     rx_destinatario     = rxdata.charAt(1); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
-    rx_funct_mode       = rxdata.charAt(3);         // Tipo de funcion a ejecutar.
-    rx_funct_num        = rxdata.charAt(4);         // Numero de funcion a ejecutar.
-    rx_funct_parameter1 = rxdata.substring(4, 5).toInt(); // Parametro 1 de la Funcion.
-    rx_funct_parameter2 = rxdata.substring(5, 6).toInt(); // Parametro 2 de la Funcion.
+    rx_funct_mode       = rxdata.substring(3,4);         // Tipo de funcion a ejecutar.
+    rx_funct_num        = rxdata.substring(4,5);         // Numero de funcion a ejecutar.
+    rx_funct_parameter1 = rxdata.substring(5, 6); // Parametro 1 de la Funcion.
+    rx_funct_parameter2 = rxdata.substring(6, 7); // Parametro 2 de la Funcion.
+    rx_funct_parameter3 = rxdata.substring(7, 8); // Parametro 3 de la Funcion.
+    rx_funct_parameter4 = rxdata.substring(8, 9); // Parametro 4 de la Funcion.
 
+    rx_master_lora_1 = rxdata.substring(0, 1); // Direccion del nodo que responde.
+    rx_master_lora_2 = rxdata.substring(1, 2); // Direccion del maestro.
+    rx_master_lora_3 = rxdata.substring(2, 3); // Estado de la zona A.
+    rx_master_lora_4 = rxdata.substring(3, 4); // Estado de la zona B.
+    rx_master_lora_5 = rxdata.substring(4, 5); // Estado de la salida 1.
+    rx_master_lora_6 = rxdata.substring(5, 6); // Estado de la salida 2.
+    rx_master_lora_7 = rxdata.substring(6, 7); // Estado de la fuente.
 
     rx_mensaje_DB       = rxdata.substring(2, 3);         // Mensaje recibido.
     // rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
@@ -202,12 +211,14 @@ void Lora::Lora_IO_Zones(){
         Zone_B_ST=true;
       }
   // 10 ZONAS para mostrar en Pantalla  OLED
+    //ZONES INPUTS
     Zone_A_str=String(Zone_A_ST, BIN);
     Zone_B_str=String(Zone_B_ST, BIN);
 
+    //PUSHBUTTON INPUTS
     Zone_A_ACK_str=String(!Zone_A_ACK, BIN);
     Zone_B_ACK_str=String(!Zone_B_ACK, BIN);
-
+    //SORUCE INPUT
     Fuente_in_str=String(Fuente_in_ST, BIN);
  }
 void Lora::Lora_Nodo_Frame(){
@@ -225,16 +236,16 @@ void Lora::Lora_Nodo_Frame(){
     bitWrite(nodo_local,7, false);
     nodo_status=char(nodo_local);
 
-    tx_remitente          =String(local_Address);
-    tx_destinatario       =String(Master_Address);    // Direccion del maestro.
-    tx_mensaje            ="M";
-    tx_funct_mode         ="A"; // Tipo de funcion a ejecutar.
-    tx_funct_num          ="1";     // Numero de Nodo en el Perimetro.
-    tx_funct_parameter1   ="a";//Zone_A_str; // Estado de la zona A
-    tx_funct_parameter2   ="b";//Zone_B_str; // Estado de la Zona B
-    
+    tx_nodo_lora_1          =String(local_Address);   // Direccion del nodo local.
+    tx_nodo_lora_2          =String(Master_Address);  // Direccion del maestro.
+    tx_nodo_lora_3          =Zone_A_str;              // Estado de la zona A      
+    tx_nodo_lora_4          =Zone_B_str;              // Estado de la zona B
+    tx_nodo_lora_5          =Rele_1_out_str;          // Estado de la Salida 1
+    tx_nodo_lora_6          =Rele_2_out_str;          // Estado de la Salida 2
+    tx_nodo_lora_7          =Fuente_in_str;           // Estado de la Fuente
+
   // 2. Armamos el paquete a enviar.
-    txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+    txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 );
     // txdata = "123";
     Timer_Nodo_Answer.once(2, Lora_timerNodo_Answer); // 500 ms para enviar el mensaje.
  }
@@ -243,10 +254,13 @@ void Lora::Lora_Nodo_Decodificar(){
   // 1. Preparamos mensaje para enviar.
     // Serial.println(String(local_Address));
     if(rx_destinatario==local_Address){
+      Serial.println("Nodo_Atiende");
       Lora_Nodo_Frame();
-      F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
-      if(rx_funct_mode=='A' && rx_funct_num=='1'){
-        F_function_Special=true; // Bandera Desactivada en L4.3
+      if(rx_funct_mode!="0"){
+        // 1. Ejecutamos Funcion.
+        Serial.println("Peticion escuchada");
+        F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
+        // F_function_Special=true; // Bandera Desactivada en L4.3
       }
     }
     // 2. Ejecutamos Funcion.
@@ -273,7 +287,7 @@ void Lora::Lora_Master_Frame(){
   }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
-    Node_Status = true; // Comunicacion Ok
+    Node_Status = true; // UPDATE FLAG Comunicacion Ok
     Node_Status_str = "1"; // Comunicacion ok
   }
   else{
@@ -282,13 +296,15 @@ void Lora::Lora_Master_Decodificar(){
     // Si no es el nodo consultado, no se actualiza la base de datos.
     // nodo_DB = "{\"comm\":\"" + String(commJS) + "\",\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
   }
+  Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
   SerializeObjectToJson(); // Serializa el objeto a JSON
-  Lora_Master_DB();
+  // Lora_Master_DB();
   F_Master_Update=true;
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
-    commJS   = String(random(0, 2));    // Random between "0" and "1"
+    Node_Num_str = String(random(1, 6)); // Random between "1" and "3"
+    Node_Status_str = String(random(0, 2)); // Random between "0" and "1"
     Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
     Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
     Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
@@ -316,14 +332,14 @@ void Lora::Lora_Master_DB(){
   }
 }
 void Lora::SerializeObjectToJson() {
-  doc[nodeJS]     = rx_remitente;
-  doc[commJS]     = Node_Status_str;
-  doc[zoneAJS]    = Zone_A_str;
-  doc[zoneBJS]    = Zone_B_str;
-  doc[output1JS]  = Rele_1_out_str;
-  doc[output2JS]  = Rele_2_out_str;
-  doc[fuenteJS]    = Fuente_in_str;
+  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
+  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
+  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
+  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
+  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
+  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
+  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
   serializeJson(doc, jsonString);
     // Serial.print("LORA_JSON String:");
     // Serial.println(jsonString);
-  }
+}

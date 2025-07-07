@@ -88,7 +88,7 @@ void General::Led_1(int status)
   {
     digitalWrite(LED_1, LOW); // Led ON.
   }
-  else
+  if(status == 0)
   {
     digitalWrite(LED_1, HIGH); // Led OFF.
   }
@@ -100,7 +100,7 @@ void General::Led_2(int status)
   {
     digitalWrite(LED_2, LOW); // Led ON.
   }
-  else
+  if(status == 0)
   {
     digitalWrite(LED_2, HIGH); // Led OFF.
   }
@@ -112,7 +112,7 @@ void General::Led_3(int status)
   {
     digitalWrite(LED_3, LOW); // Led ON.
   }
-  else
+  if(status == 0)
   {
     digitalWrite(LED_3, HIGH); // Led OFF.
   }

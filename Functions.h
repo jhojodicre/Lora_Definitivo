@@ -5,6 +5,8 @@
 class Functions {
 public:
     int LED_Azul; // Pin del LED azul, definido como estático para ser común a todas las instancias
+    int LED_Rojo; // Pin del LED rojo, definido como estático para ser común a todas las instancias
+    int LED_Verde; // Pin del LED verde, definido como estático para ser común a todas las instancias
     Functions(bool ready);
     void Functions_Request(String rxString);
     void Functions_Run();
@@ -50,13 +52,13 @@ public:
     void n8();
     void n9();
     void c0();
-    void c1();
-    void c2();
-    void c3();
-    void c4();
-    void c5();
-    void c6();
-    void c7();
+    void c1(String output_1);
+    void c2(String output_1);
+    void c3(String output_1);
+    void c4(String output_1);
+    void c5(String output_1);
+    void c6(String output_1);
+    void c7(String output_1);
     void c8();
     void c9();
     void s0();

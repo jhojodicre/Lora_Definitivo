@@ -5,8 +5,19 @@
 Functions::Functions(bool ready)
 {
     firstScan = true;
-    LED_Azul = 35; // Pin del LED azul
+    LED_Azul = 46; // Pin del LED azul
+    LED_Verde = 45; // Pin del LED verde
+    LED_Rojo = 37; // Pin del LED rojo
+
+    // Configuración de pines
     pinMode(LED_Azul, OUTPUT);
+    pinMode(LED_Verde, OUTPUT);
+    pinMode(LED_Rojo, OUTPUT);
+
+    // Condición Inicial
+    digitalWrite(LED_Azul, HIGH);
+    digitalWrite(LED_Verde, HIGH);
+    digitalWrite(LED_Rojo, HIGH);
 }
 void Functions::Functions_Request(String rxString)
 {
@@ -36,7 +47,7 @@ void Functions::Functions_Run()
             a0();
             break;
         case '1':
-            // a1(x1, x2);
+            a1(x1, x2);
             break;
         case '2':
             a2();
@@ -110,25 +121,25 @@ void Functions::Functions_Run()
             c0();
             break;
         case '1':
-            c1();
+            c1(function_Parameter1); // Pass the parameter to c1
             break;
         case '2':
-            c2();
+            c2(function_Parameter1);
             break;
         case '3':
-            c3();
+            c3(function_Parameter1);
             break;
         case '4':
-            c4();
+            c4(function_Parameter1);
             break;
         case '5':
-            c5();
+            c5(function_Parameter1);
             break;
         case '6':
-            c6();
+            c6(function_Parameter1);
             break;
         case '7':
-            c7();
+            c7(function_Parameter1);
             break;
         case '8':
             c8();
@@ -276,7 +287,9 @@ void Functions::A1()
 }
 void Functions::a1(int repeticiones, int tiempo)
 {
-    
+    Serial.println("a1: ejecutada");
+    Serial.println(repeticiones);
+    Serial.println(tiempo);
     // FUNCION PROBADA CORRECTAMENTE    
     int veces = repeticiones;
     int retardo = tiempo * 100;
@@ -366,32 +379,47 @@ void Functions::c0()
 {
     // Implementación del método c0
 }
-void Functions::c1()
-{
+void Functions::c1(String argumento1){
     // Implementación del método c1
+    if (function_Parameter1 == "1") {
+        digitalWrite(LED_Rojo, LOW);
+        Serial.println("LR ON");
+    } else if (function_Parameter1 == "0") {
+        digitalWrite(LED_Rojo, HIGH);
+        Serial.println("LR OFF");
+    }
 }
-void Functions::c2()
+void Functions::c2(String argumento1)
 {
     // Implementación del método c2
+    if (function_Parameter1 == "1") {
+        digitalWrite(LED_Azul, LOW);
+    } else if (function_Parameter1 == "0") {
+        digitalWrite(LED_Azul, HIGH);
+    }
 }
-void Functions::c3()
+void Functions::c3(String argumento1)
 {
     // Implementación del método c3
+    if (function_Parameter1 == "1") {
+        digitalWrite(LED_Verde, LOW);
+    } else if (function_Parameter1 == "0") {
+        digitalWrite(LED_Verde, HIGH);
+    }
 }
-void Functions::c4()
+void Functions::c4(String argumento1)
 {
     // Implementación del método c4
 }
-void Functions::c5()
+void Functions::c5(String argumento1)
 {
     // Implementación del método c5
 }
-void Functions::c6()
+void Functions::c6(String argumento1)
 {
     // Implementación del método c6
 }
-
-void Functions::c7()
+void Functions::c7(String argumento1)
 {
     // Implementación del método c7
 }
