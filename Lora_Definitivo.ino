@@ -291,8 +291,8 @@ void loop(){
     //-L4.4 Nodo RX.
       if(Node.F_Recibido && !Master.Mode){
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
-        Node.F_Recibido=false;              // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
-        Node_Print_LORA_RX();            // Imprime los datos recibidos por Lora.
+        Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+        // Node_Print_LORA_RX(); // Imprime los datos recibidos por Lora.
 
       }
 
