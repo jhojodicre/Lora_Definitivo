@@ -53,12 +53,12 @@ public:
     void n9();
     void c0();
     void c1(String output_1);
-    void c2(String output_1);
-    void c3(String output_1);
-    void c4(String output_1);
-    void c5(String output_1);
-    void c6(String output_1);
-    void c7(String output_1);
+    void c2();
+    void c3();
+    void c4();
+    void c5();
+    void c6();
+    void c7();
     void c8();
     void c9();
     void s0();
