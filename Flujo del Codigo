@@ -1,0 +1,67 @@
+📡 Mensaje LoRa llega
+    ↓
+🔔 Interrupción rx() → rxFlag = true
+    ↓
+🔄 Loop principal → Lora_RX()
+    ↓
+📖 Lee datos del radio → rxdata
+    ↓
+🔍 F_Recibido = true
+    ↓
+📝 Decodifica mensaje (parsea campos)
+    ↓
+❓ ¿Es para este nodo?
+    ↓ (Sí)
+⚡ F_Nodo_Excecute = true
+    ↓
+🎯 Ejecuta función solicitada
+    ↓
+📤 Responde al Master (si es necesario)
+
+Posición: 0 1 2 3 4 5 6 7
+Ejemplo:  M 1 . A 1 5 2 0
+         │ │ │ │ │ │ │ │
+         │ │ │ │ │ │ │ └─ Parámetro 4
+         │ │ │ │ │ │ └─── Parámetro 3
+         │ │ │ │ │ └───── Parámetro 2
+         │ │ │ │ └─────── Parámetro 1
+         │ │ │ └───────── Número función
+         │ │ └─────────── Modo función
+         │ └───────────── Mensaje/Estado
+         └─────────────── Destinatario
+
+         🚀 INICIO
+            ↓
+        ⚙️ Setup (LoRa, WiFi, MQTT)
+            ↓
+        🔄 LOOP PRINCIPAL
+            ├── 📥 Recibir LoRa
+            ├── 🔍 Procesar mensajes
+            ├── ⚡ Ejecutar funciones
+            ├── 📤 Enviar respuestas
+            ├── 🌐 Gestionar WiFi/MQTT
+            └── ⏰ Control de tiempos
+            ↓
+        🔄 Repetir indefinidamente
+
+                📊 SENSORES → 📡 NODO → 🔄 LoRa → 👑 MASTER
+            ↓                                    ↓
+        🔧 GPIO      📤 TX              🔄 WiFi   📡 MQTT
+        🔧 ADC       📥 RX              🔄 HTTP   📊 MongoDB
+        🔧 I2C       ⚡ ISR             🔄 JSON   📈 Dashboard
+
+                🏰 MASTER                    📡 NODO
+            │                           │
+            │── "M1.A150" ────────────→ │ (Solicita datos)
+            │                           │
+            │                           │── Procesa solicitud
+            │                           │── Lee sensores
+            │                           │── Prepara respuesta
+            │                           │
+            │← ────────────── "1M.R123" ──│ (Envía respuesta)
+            │                           │
+            │── Procesa respuesta       │
+            │── Envía a MQTT/HTTP       │
+            │                           │
+            │── Espera token time       │
+            │── Siguiente nodo          │
