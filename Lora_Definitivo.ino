@@ -132,7 +132,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -401,6 +401,15 @@ void loop(){
         Correr.Functions_Request(mode + number + parameter_1 + parameter_2);
         Correr.Functions_Run(); // Ejecuta la función correspondiente.
       }
+    //-4.9 Master Dummy Simulate.
+      void Master_Dummy_Simulate(){
+        // 1 o se envia a MQTT.
+          Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+          Node.SerializeObjectToJson(); // Serializa el objeto a JSON
+          Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
+        // 2 o se envia a MongoDB.
+              // sendJsonToMongoDB(); // Envio de Json a MongoDB.
+      }
 //5. Funciones de Dispositivos Externos. 
   //-5.1 WiFi
     void setup_wifi() {
@@ -431,7 +440,7 @@ void loop(){
         if (client.connect("ESP32Client")) {
           Serial.println("connected");
           // ... and subscribe to topic
-          client.subscribe("test/topic");
+          client.subscribe("lora/master/cmd");
         } else {
           Serial.print("failed, rc=");
           Serial.print(client.state());
@@ -457,7 +466,7 @@ void loop(){
 
       // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
       // Changes the output state according to the message
-      if (String(topic) == "test/topic") {
+      if (String(topic) == "lora/master/cmd") {
         Serial.print("MQTT processing message: ");
         char firstChar = messageTemp.charAt(0);
         switch (firstChar) {
@@ -498,20 +507,12 @@ void loop(){
     void Master_MQTT_Publish(){
       //-5.4.1 MQTT Publish.
         jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-        client.publish("test/topic", jsonString.c_str());
+        client.publish("lora/master/status", jsonString.c_str());
       //-5.4.10 Debug.
         Serial.print("MQTT TX: ");
         Serial.println(jsonString);
     }
-  //-5.5 Dummy Simulate.
-    void Master_Dummy_Simulate(){
-      // 1 o se envia a MQTT.
-        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-        Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
-      // 2 o se envia a MongoDB.
-            // sendJsonToMongoDB(); // Envio de Json a MongoDB.
-    }
+  
 //6. Json Send
   void sendJsonToMongoDB() {
     if (WiFi.status() == WL_CONNECTED) {

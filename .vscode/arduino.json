@@ -13,5 +13,6 @@
         "stopBits": "one"
     },
     "configurationRequired": true,
-    "useProgrammer": true
+    "useProgrammer": true,
+    "sketch": "Lora_Definitivo.ino"
 }
