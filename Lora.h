@@ -14,6 +14,7 @@ public:
     void   Lora_IO_Zones();
     void   Lora_Nodo_Frame();
     void   Lora_Nodo_Decodificar();
+    void   Lora_Node_Print(String z_executed);
     void   Lora_Master_Frame();
     void   Lora_Master_Decodificar();
     void   Lora_Dummy_Simulate();

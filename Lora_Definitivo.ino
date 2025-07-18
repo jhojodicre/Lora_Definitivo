@@ -10,7 +10,6 @@
     #include <WiFi.h>
     #include <ArduinoJson.h>
     #include <HTTPClient.h>
-
 //2. Definicion de Pinout.
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
   //  Es decir, si queremos activar la salida 1, tenemos que buscar la referencia GPIO 1, Pero solomante Escribir 1 sin "GPIO"
@@ -131,8 +130,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('1');
-    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Lora      Node('2');
+    Master    Master(false,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Dispositivos Externos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -209,7 +208,7 @@ void setup(){
     if(!Master.Mode){
       Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
     }
-  //S.3 WiFi
+  //S3. WiFi
     if(Master.Mode){
       setup_wifi();
     }
@@ -227,7 +226,6 @@ void setup(){
       // Reemplaza con la URL de tu API de MongoDB
       http.begin(serverName);
       http.addHeader("Content-Type", "application/json");
-
     }
 }
 void loop(){
@@ -237,7 +235,6 @@ void loop(){
       if(Master.Mode){
         Master.Iniciar();
       }
-
     }
   //L2. Functions Serial RX
     //-L2.1 Decode
@@ -255,20 +252,20 @@ void loop(){
         flag_F_codified_funtion=false;
       }
   //L3. Funciones de Dispositivos Externos.
-    // -L3.1 MQTT Reconnect.
-    if(Master.Mode){
-      if (!client.connected()) {
-        reconnect();
+    //-L3.1 MQTT Reconnect.
+      if(Master.Mode){
+        if (!client.connected()) {
+          reconnect();
+        }
+        client.loop();
       }
-      client.loop();
-    }
   //L4. Funciones del Nodo.
-    //-L4.0 Function Test.
+    //-L4.0 Node Function Test.
       if(flag_ISR_prueba){
       // flag_ISR_prueba=false;
         // a1_Nodo_Destellos(1,3);
       }
-    //-L4.1 IO ENTRADAS DEL NODO sino es el maestro.
+    //-L4.1 Node IO ENTRADAS DEL NODO.
       if(!Master.Mode){
         // Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
         Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
@@ -286,7 +283,11 @@ void loop(){
         //-L4.3.1 Ejecuta la funcion.
         Nodo_Ejecutar_Funciones(Node.rx_funct_mode, Node.rx_funct_num, Node.rx_funct_parameter1, Node.rx_funct_parameter2);
       // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
-        Node.F_Nodo_Excecute=false;  
+        Node.F_Nodo_Excecute=false;
+        if(Correr.F_Correr_Dale) {
+          Node.Lora_Node_Print(Correr.function_Exct); // Imprime la funcion ejecutada.
+          Correr.F_Correr_Dale=false;
+        }
       }
     //-L4.4 Nodo RX.
       if(Node.F_Recibido && !Master.Mode){
@@ -359,22 +360,32 @@ void loop(){
   //-4.5 Analizar.
     void analizar(){
     }
-  //-4.6 Master RX Request.
-    void Master_RX_Request(){
-      Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
-      Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-      Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-      Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-      Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
-    }
-    //-4.7 Master RX Request.
-    void Master_RX_Request_2(){
-      Node.nodo_a_Consultar=Nodo_a_Pedir;
-      Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
-      Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
-      Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
-      Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
-    }
+  //-4.7 Master RX Request.
+    //-4.7.1 Master RX Request.
+      void Master_RX_Request(){
+        Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
+        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+      }
+    //-4.7.2 Master RX Request.
+      void Master_RX_Request_2(){
+        Node.nodo_a_Consultar=Nodo_a_Pedir;
+        Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
+        Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
+        Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
+        Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
+      }
+    //-4.7.3 Master Dummy Simulate.
+      void Master_Dummy_Simulate(){
+        // 1 o se envia a MQTT.
+          Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+          Node.SerializeObjectToJson(); // Serializa el objeto a JSON
+          Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
+        // 2 o se envia a MongoDB.
+              // sendJsonToMongoDB(); // Envio de Json a MongoDB.
+      }
   //-4.8 Node Functions Complementary.
     //-4.8.1 Nodo Muestra msg Lora_RX
       void Node_Print_LORA_RX(){
@@ -400,15 +411,6 @@ void loop(){
         // dependiendo de los parámetros recibidos.
         Correr.Functions_Request(mode + number + parameter_1 + parameter_2);
         Correr.Functions_Run(); // Ejecuta la función correspondiente.
-      }
-    //-4.9 Master Dummy Simulate.
-      void Master_Dummy_Simulate(){
-        // 1 o se envia a MQTT.
-          Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-          Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-          Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
-        // 2 o se envia a MongoDB.
-              // sendJsonToMongoDB(); // Envio de Json a MongoDB.
       }
 //5. Funciones de Dispositivos Externos. 
   //-5.1 WiFi
@@ -469,14 +471,14 @@ void loop(){
       if (String(topic) == "lora/master/cmd") {
         Serial.print("MQTT processing message: ");
         char firstChar = messageTemp.charAt(0);
-        switch (firstChar) {
-          case 'N':
-            Serial.println("Case N: Master command received");
             Nodo_a_Pedir = messageTemp.charAt(1);
             function_Mode = messageTemp.charAt(2);
             function_Number = messageTemp.charAt(3);
             parameter_1 = messageTemp.charAt(4);
             parameter_2 = messageTemp.charAt(5);
+        switch (firstChar) {
+          case 'N':
+            Serial.println("Case N: Master command received");
             Node.F_Master_Excecute = true; // Activar bandera para ejecutar la función en el nodo.
         // Acción para 'N'
             break;
@@ -496,6 +498,10 @@ void loop(){
             Serial.println("Case G: General command received");
             // Acción para 'G'
             break;
+            case 'Z':
+              Serial.println("Case Z: Special command received");
+              // Acción para 'Z'
+              break;
           default:
             Serial.println("Unknown command");
             break;

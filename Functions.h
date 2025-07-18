@@ -2,6 +2,8 @@
 #define FUNCTIONS_H
 #include <Arduino.h>
 
+
+
 class Functions {
 public:
     int LED_Azul; // Pin del LED azul, definido como estático para ser común a todas las instancias
@@ -71,6 +73,9 @@ public:
     void s7();
     void s8();
     void s9();
+    void z0();
+    void z1();
+    void z2();
     int     x1;
     int     x2;
     int     x3;
@@ -81,10 +86,10 @@ public:
     String  function_Parameter2;
     String  function_Parameter3;
     String  function_Parameter4;
-     
+    String  function_Exct; // Variable para almacenar la función ejecutada
+    bool F_Correr_Dale=false;
 private:
     bool    firstScan;
 
 };
-
 #endif // FUNCTIONS_H

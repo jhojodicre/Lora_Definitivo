@@ -1,14 +1,17 @@
 #include "Functions.h"
 #include <Arduino.h>
 #include "Master.h"
-
 Functions::Functions(bool ready)
 {
+    // Constructor de la clase Functions
+    // Inicializar variables
     firstScan = true;
     LED_Azul = 46; // Pin del LED azul
     LED_Verde = 45; // Pin del LED verde
     LED_Rojo = 37; // Pin del LED rojo
 
+    // Configuración de la instancia
+    
     // Configuración de pines
     pinMode(LED_Azul, OUTPUT);
     pinMode(LED_Verde, OUTPUT);
@@ -262,7 +265,22 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
-        break;
+    case 'Z':
+        switch (function_Number)
+        {
+        case '0':
+            z0();
+            break;
+        case 'A':
+            z1();
+            break;
+        case 'B':
+            z2();
+            break;
+        default:
+            // Handle invalid function_Number
+            break;
+        }
     default:
         // Handle invalid function_Mode
         break;
@@ -582,4 +600,29 @@ void Functions::s8()
 void Functions::s9()
 {
     // Implementación del método s9
+}
+void Functions::z0()
+{
+    // Implementación del método z0
+    Serial.println("Función z0 ejecutada");
+    function_Exct = "z0";
+    F_Correr_Dale=true;
+    // Ejemplo: Apaga todos los LEDs
+}
+
+void Functions::z1()
+{
+    // Implementación del método z1
+    Serial.println("Función z1 ejecutada");
+    function_Exct = "z1";
+    F_Correr_Dale=true;
+}
+
+void Functions::z2()
+{
+    // Implementación del método z2
+    Serial.println("Función z2 ejecutada");
+    function_Exct = "z2";
+    F_Correr_Dale=true;
+    // Ejemplo: Parpadea todos los LEDs una vez
 }

@@ -46,12 +46,10 @@ void General::Configuracion()
 {
   // Implementación del método Configuracion
 }
-
 void General::Gestion()
 {
   // Implementación del método Gestion
 }
-
 // 1. Funciones de Logic interna del Micro.
 void General::Welcome()
 {

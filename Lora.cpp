@@ -44,15 +44,15 @@
 // transmissting without an antenna can damage your hardware.
 #define TRANSMIT_POWER 0
 volatile    bool rxFlag = false;
-Functions Update (false);
+
+//Instancias
+Functions   Update (false);
 Ticker      Timer_Nodo_Answer;
+Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
-
-Lora* nodeInstance = nullptr; // Puntero global al objeto Master
-
-Master  Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
-Master  Node_2("2", "0", "0","0"); // Instancia de Nodo en el Perimetro
-Master  Node_3("3", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Master      Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Master      Node_2("2", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Master      Node_3("3", "0", "0","0"); // Instancia de Nodo en el Perimetro
 
 Lora::Lora(char nodeNumber){
     // Constructor de la clase Node
@@ -264,6 +264,9 @@ void Lora::Lora_Nodo_Decodificar(){
       }
     }
     // 2. Ejecutamos Funcion.
+}
+void Lora::Lora_Node_Print(String z_executed){
+  both.printf(z_executed.c_str());
 }
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
