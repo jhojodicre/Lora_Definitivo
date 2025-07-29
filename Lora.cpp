@@ -30,19 +30,19 @@
 #define FREQUENCY 866.3 // for Europe
 // #define FREQUENCY           905.2       // for US
 
-// LoRa bandwidth. Keep the decimal point to designate float.
+
 // Allowed values are 7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125.0, 250.0 and 500.0 kHz.
-#define BANDWIDTH 250.0
+#define BANDWIDTH 250.0 // Bandwidth in kHz. Higher means more data throughput, but also more noise.
 
-// Number from 5 to 12. Higher means slower but higher "processor gain",
+
 // meaning (in nutshell) longer range and more robust against interference.
-#define SPREADING_FACTOR 9
+#define SPREADING_FACTOR 9 // Number from 5 to 12. Higher means slower but higher "processor gain",
 
-// Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be
+
 // set anywhere between -9 dBm (0.125 mW) to 22 dBm (158 mW). Note that the maximum ERP
 // (which is what your antenna maximally radiates) on the EU ISM band is 25 mW, and that
 // transmissting without an antenna can damage your hardware.
-#define TRANSMIT_POWER 0
+#define TRANSMIT_POWER 0 // Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be increased for longer range. 
 volatile    bool rxFlag = false;
 
 //Instancias
@@ -335,14 +335,23 @@ void Lora::Lora_Master_DB(){
   }
 }
 void Lora::SerializeObjectToJson() {
-  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
-  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
-  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
-  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
-  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
-  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
-  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
-  serializeJson(doc, jsonString);
+  //datos para MQTT
+    // doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
+    // doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
+    // doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
+    // doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
+    // doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
+    // doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
+    // doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
+
+
+  //prueba de servidor web
+    doc["nodeId"] = "ESP32_REAL_001";
+    doc["location"] = "Prueba Real";
+    doc["type"] = "motion_sensor";
+    serializeJson(doc, jsonString);
+
+
     // Serial.print("LORA_JSON String:");
     // Serial.println(jsonString);
 }

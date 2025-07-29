@@ -10,6 +10,8 @@
     #include <WiFi.h>
     #include <ArduinoJson.h>
     #include <HTTPClient.h>
+    // #include "WebServer.h"
+
 //2. Definicion de Pinout.
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
   //  Es decir, si queremos activar la salida 1, tenemos que buscar la referencia GPIO 1, Pero solomante Escribir 1 sin "GPIO"
@@ -99,6 +101,17 @@
     // Add your MQTT Broker IP address, example:
     //const char* mqtt_server = "192.168.1.144";
     const char* mqtt_server = "192.168.1.27";
+    // JSON Variables.
+      String jsonString; // Cadena JSON para enviar a MongoDB
+      int nombre;
+      int    valueJson;
+      String nodoJson="";
+
+      // const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
+      const char* serverName = "http://192.168.1.24:5000/api/nodes/register"; // URL de tu API de Interfaz WEB
+
+
+      int httpResponseCode ;
 
     long lastMsg = 0;
     char msg[50];
@@ -112,16 +125,6 @@
     char function_Number  = ' ';
     char parameter_1      = ' ';
     char parameter_2      = ' ';
-    // JSON Variables.
-      String jsonString; // Cadena JSON para enviar a MongoDB
-      int nombre;
-      int    valueJson;
-      String nodoJson="";
-
-      const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
-
-
-      int httpResponseCode ;
     // Otras.  
       String      codigo="";
       String      info_1="";
@@ -130,13 +133,14 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('2');
-    Master    Master(false,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
-  //-4.2 Clases de Dispositivos Externos.
+    Lora      Node('1');
+    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+  //-4.2 Clases de Protocolos.
     WiFiClient espClient;
     PubSubClient client(espClient);
     HTTPClient http; // Instancia para HTTPClient
     StaticJsonDocument<200> doc;
+    // LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
   //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -214,18 +218,25 @@ void setup(){
     }
   //S4. MQTT
     if(Master.Mode){
-      client.setServer(mqtt_server, 1883);
-      client.setCallback(callback);
+      // client.setServer(mqtt_server, 1883);
+      // client.setCallback(callback);
     }
   //S5. HTTTP Client
     if(Master.Mode){
-      // http.begin("https://tu_mongodb_api_endpoint"); // URL de tu API de MongoDB
-      // http.addHeader("Content-Type", "application/json");
-
-      // para conectarse a la API de MongoDB
-      // Reemplaza con la URL de tu API de MongoDB
       http.begin(serverName);
       http.addHeader("Content-Type", "application/json");
+    }
+    //S6. WiFi (solo Master)
+    if(Master.Mode){
+        setup_wifi();
+        
+        //S7. MQTT
+        // client.setServer(mqtt_server, 1883);
+        // client.setCallback(callback);
+        
+        //S8. Web Server
+        // webServer.begin(&Node, &Master, &Correr);
+        // Serial.println("🌐 Servidor web iniciado en puerto 80");
     }
 }
 void loop(){
@@ -234,8 +245,15 @@ void loop(){
       F_iniciado=General.Iniciar();
       if(Master.Mode){
         Master.Iniciar();
+        registerNode(); // Registrar el nodo en la base de datos
       }
     }
+  
+    // ✅ AGREGAR: Manejo del Web Server
+    if(Master.Mode){
+      // webServer.handle();
+    }
+  
   //L2. Functions Serial RX
     //-L2.1 Decode
       if(falg_ISR_stringComplete){
@@ -253,12 +271,12 @@ void loop(){
       }
   //L3. Funciones de Dispositivos Externos.
     //-L3.1 MQTT Reconnect.
-      if(Master.Mode){
-        if (!client.connected()) {
-          reconnect();
-        }
-        client.loop();
-      }
+      // if(Master.Mode){
+      //   if (!client.connected()) {
+      //     reconnect();
+      //   }
+      //   client.loop();
+      // }
   //L4. Funciones del Nodo.
     //-L4.0 Node Function Test.
       if(flag_ISR_prueba){
@@ -320,6 +338,9 @@ void loop(){
         Serial.println("Master TXed");
         //-L5.2.7 Simular
           // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
+        //-L.5.2.8 Probamos el envio de datos a la WEB.
+          // sendSecurityEvent(); // Envia el evento de seguridad a la web.
+          sendSecurityEvent(); // Envio de Json a MongoDB.
         }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
@@ -331,7 +352,7 @@ void loop(){
     //-L5.4 F- Server Update.
       if(Node.F_Master_Update){
         //-L5.4.1 MQTT Publish.
-          Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
+          // Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
           Node.F_Master_Update=false;
       }
     //-L5.5 F- Master Execute order from Server
@@ -518,7 +539,24 @@ void loop(){
         Serial.print("MQTT TX: ");
         Serial.println(jsonString);
     }
+  void registerNode() {
   
+  String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
+  int httpResponseCode = http.POST(payload);
+  
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    Serial.println("Node registered: " + response);
+  }
+  http.end();
+}
+
+void sendSecurityEvent() {
+      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
+      httpResponseCode = http.POST(jsonString);
+  
+  http.end();
+}
 //6. Json Send
   void sendJsonToMongoDB() {
     if (WiFi.status() == WL_CONNECTED) {
@@ -534,6 +572,7 @@ void loop(){
       }
       // http.end();
       Serial.println(jsonString);
+      http.end(); // Finaliza la conexión HTTP
     }
   }
 
