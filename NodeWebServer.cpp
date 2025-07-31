@@ -43,7 +43,7 @@ void LoRaWebServer::handleRoot() {
 <html lang='es'>
 <head>
     <meta charset="UTF-8">
-    <title>LoRa System Control</title>
+    <title>Barrio San Diego</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
