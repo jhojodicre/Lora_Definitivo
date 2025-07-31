@@ -10,7 +10,7 @@
     #include <WiFi.h>
     #include <ArduinoJson.h>
     #include <HTTPClient.h>
-    // #include "WebServer.h"
+    #include "NodeWebServer.h"
 
 //2. Definicion de Pinout.
   //  Las Etiquetas para los pinout son los que comienzan con GPIO
@@ -108,7 +108,8 @@
       String nodoJson="";
 
       // const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
-      const char* serverName = "http://192.168.1.24:5000/api/nodes/register"; // URL de tu API de Interfaz WEB
+      const char* serverName = "http://192.168.1.24:3000/api/nodes"; // URL de tu API de Interfaz WEB
+
 
 
       int httpResponseCode ;
@@ -140,7 +141,7 @@
     PubSubClient client(espClient);
     HTTPClient http; // Instancia para HTTPClient
     StaticJsonDocument<200> doc;
-    // LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
+    LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
   //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -225,18 +226,21 @@ void setup(){
     if(Master.Mode){
       http.begin(serverName);
       http.addHeader("Content-Type", "application/json");
-    }
-    //S6. WiFi (solo Master)
-    if(Master.Mode){
-        setup_wifi();
-        
-        //S7. MQTT
-        // client.setServer(mqtt_server, 1883);
-        // client.setCallback(callback);
-        
-        //S8. Web Server
-        // webServer.begin(&Node, &Master, &Correr);
-        // Serial.println("🌐 Servidor web iniciado en puerto 80");
+    
+    //S-5.1 WiFi (solo Master)
+        // setup_wifi();
+
+    //S-5.2 MQTT
+      // client.setServer(mqtt_server, 1883);
+      // client.setCallback(callback);
+
+    //S-5.3 HTTP Client
+      http.begin(serverName);
+      http.addHeader("Content-Type", "application/json");
+
+    //S-5.4 Web Server
+      webServer.begin(&Node, &Master, &Correr);
+      Serial.println("🌐 Servidor web iniciado en puerto 80");
     }
 }
 void loop(){
@@ -251,7 +255,7 @@ void loop(){
   
     // ✅ AGREGAR: Manejo del Web Server
     if(Master.Mode){
-      // webServer.handle();
+      webServer.handle();
     }
   
   //L2. Functions Serial RX
@@ -337,10 +341,9 @@ void loop(){
         Master.Next=false;
         Serial.println("Master TXed");
         //-L5.2.7 Simular
-          // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
+          Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
         //-L.5.2.8 Probamos el envio de datos a la WEB.
-          // sendSecurityEvent(); // Envia el evento de seguridad a la web.
-          sendSecurityEvent(); // Envio de Json a MongoDB.
+          http_Post(); // Envia los datos a la WEB.
         }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
@@ -403,7 +406,7 @@ void loop(){
         // 1 o se envia a MQTT.
           Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
           Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-          Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
+          // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
         // 2 o se envia a MongoDB.
               // sendJsonToMongoDB(); // Envio de Json a MongoDB.
       }
@@ -551,13 +554,7 @@ void loop(){
   http.end();
 }
 
-void sendSecurityEvent() {
-      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-      httpResponseCode = http.POST(jsonString);
-  
-  http.end();
-}
-//6. Json Send
+//6. HTTP Send
   void sendJsonToMongoDB() {
     if (WiFi.status() == WL_CONNECTED) {
       jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
@@ -570,12 +567,20 @@ void sendSecurityEvent() {
       } else {
         Serial.println("Error en la solicitud HTTP");
       }
-      // http.end();
       Serial.println(jsonString);
       http.end(); // Finaliza la conexión HTTP
     }
+    else {
+      Serial.println("WiFi not connected");
+    }
   }
 
+  void http_Post() {
+      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
+      httpResponseCode = http.POST(jsonString);
+  
+    http.end();
+  }
 
   void DeserializeJson(){
     // jsonString = "{\"comm\":1,\"node\":3,\"zoneA\":100,\"zoneB\":100,\"output1\":0,\"output2\":1}"; // Ejemplo de cadena JSON

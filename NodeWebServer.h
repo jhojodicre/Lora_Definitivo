@@ -1,6 +1,6 @@
 // WebServer.h
-#ifndef WEBSERVER_H
-#define WEBSERVER_H
+#ifndef NODEWEBSERVER_H
+#define NODEWEBSERVER_H
 
 #include <Arduino.h>
 #include <WiFi.h>
