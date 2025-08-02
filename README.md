@@ -65,15 +65,15 @@ void LoRaWebServer::configurarRutasServidor() {
 
 | Método | Endpoint | Función Handler | Descripción |
 |--------|----------|----------------|-------------|
-| GET | `/` | `handleRoot()` | Página principal HTML |
-| GET | `/api` | `handleAPI()` | Información básica del sistema |
-| GET | `/api/status` | `handleGetStatus()` | Estado completo del nodo |
-| GET | `/api/test` | `manejarPruebaSistema()` | Test del sistema |
-| POST | `/api/send` | `manejarMensajeRecibido()` | Enviar mensajes al sistema |
-| POST | `/control` | `handleNodeControl()` | Control de comandos |
-| POST | `/set-address` | `handleSetAddress()` | Cambiar dirección del nodo |
-| GET | `/hola-mundo` | `manejarHolaMundo()` | Saludo de prueba del sistema |
-| OPTIONS | `/api/send` | `manejarPreflightCORS()` | Preflight CORS |
+| GET       | `/`         | `handleRoot()` | Página principal HTML |
+| GET       | `/api`      | `handleAPI()` | Información básica del sistema |
+| GET       | `/api/status` | `handleGetStatus()` | Estado completo del nodo |
+| GET       | `/api/test` | `manejarPruebaSistema()` | Test del sistema |
+| POST      | `/api/send` | `manejarMensajeRecibido()` | Enviar mensajes al sistema |
+| POST      | `/control` | `handleNodeControl()` | Control de comandos |
+| POST      | `/set-address` | `handleSetAddress()` | Cambiar dirección del nodo |
+| GET       | `/hola-mundo` | `manejarHolaMundo()` | Saludo de prueba del sistema |
+| OPTIONS   | `/api/send` | `manejarPreflightCORS()` | Preflight CORS |
 
 ---
 

@@ -21,6 +21,7 @@ public:
     static  void   Lora_timerNodo_Answer();
     void   Lora_Master_DB();
     void   SerializeObjectToJson();
+    void   Lora_WebMessage(String mensaje);
 
     bool    F_Responder=false;
     bool    F_Recibido=false;

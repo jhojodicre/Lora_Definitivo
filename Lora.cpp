@@ -349,3 +349,9 @@ void Lora::SerializeObjectToJson() {
     // Serial.print("LORA_JSON String:");
     // Serial.println(jsonString);
 }
+void Lora::Lora_WebMessage(String mensaje) {
+    tx_funct_mode=mensaje.charAt(2); // Modo de Funcion a ejecutar.
+    tx_funct_num=mensaje.charAt(3); // Numero de Funcion a ejecutar.
+    tx_funct_parameter1=mensaje.charAt(4); // Primer parametro de Funcion a ejecutar.
+    tx_funct_parameter2=mensaje.charAt(5); // Segundo parametro de Funcion a ejecutar.
+}

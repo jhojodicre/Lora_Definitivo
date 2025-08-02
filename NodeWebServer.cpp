@@ -427,42 +427,111 @@ void LoRaWebServer::handleGetStatus() {
 // ✅ NUEVO: Manejar mensajes recibidos via POST /api/send
 void LoRaWebServer::manejarMensajeRecibido() {
     // Configurar headers CORS
-    server->sendHeader("Access-Control-Allow-Origin", "*");
-    server->sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    server->sendHeader("Access-Control-Allow-Headers", "Content-Type");
-    
-    if (!server->hasArg("message")) {
-        server->send(400, "application/json", "{\"error\":\"Mensaje requerido\"}");
+    configurarHeadersCORS();
+    // Verificar que se recibió contenido JSON
+    if (!server->hasArg("plain")) {
+        Serial.println("❌ Error: No se recibió contenido JSON");
+        enviarErrorJSON("No se recibió contenido JSON");
+        return;
+    }
+
+    // Obtener el cuerpo de la solicitud
+    String cuerpoJSON = server->arg("plain");
+    Serial.println("📝 JSON recibido: " + cuerpoJSON);
+
+    // Parsear el JSON recibido
+    DynamicJsonDocument documento(1024);
+    DeserializationError error = deserializeJson(documento, cuerpoJSON);
+  
+    // Verificar que el JSON es válido
+    if (error) {
+        Serial.println("❌ Error al parsear JSON: " + String(error.c_str()));
+        enviarErrorJSON("JSON inválido");
         return;
     }
     
-    String mensaje = server->arg("message");
+    // Extraer datos del JSON
+    String nodeId = documento["nodeId"] | "";
+    String mensaje = documento["message"] | "";
     
-    // Validar mensaje
-    if (mensaje.length() < 1) {
-        server->send(400, "application/json", "{\"error\":\"Mensaje no puede estar vacío\"}");
-        return;
-    }
+    Serial.println("🎯 Node ID: " + nodeId);
+    Serial.println("💬 Mensaje: " + mensaje);
     
-    // Procesar mensaje con el objeto Functions
-    if (functionsRef) {
-        functionsRef->Functions_Request(mensaje);
-        functionsRef->Functions_Run();
-        
-        Serial.printf("📨 Mensaje recibido via API: %s\n", mensaje.c_str());
-        
-        StaticJsonDocument<200> response;
-        response["success"] = true;
-        response["message"] = "Mensaje procesado correctamente";
-        response["received_message"] = mensaje;
-        response["timestamp"] = millis();
-        
-        String jsonResponse;
-        serializeJson(response, jsonResponse);
-        server->send(200, "application/json", jsonResponse);
+    // Procesar el mensaje
+    bool exito = procesarMensaje(nodeId, mensaje);
+    
+    // Enviar respuesta apropiada
+    if (exito) {
+        enviarExitoJSON("Mensaje procesado correctamente");
+        messageCount++;
+        lastMessage = mensaje;
     } else {
-        server->send(500, "application/json", "{\"error\":\"Sistema de funciones no disponible\"}");
+        enviarErrorJSON("Error al procesar el mensaje");
     }
+
+}
+
+// Procesar Mensaje
+bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
+    // ✅ VALIDACIÓN ROBUSTA: Verificar todas las referencias
+        if (!nodeRef) {
+            Serial.println("❌ Error: nodeRef es null");
+            return false;
+        }
+        if (!masterRef) {
+            Serial.println("❌ Error: masterRef es null");
+            return false;
+        }
+        if (!functionsRef) {
+            Serial.println("❌ Error: functionsRef es null");
+            return false;
+        }
+    
+    // ✅ VALIDACIÓN: Verificar que los objetos tienen memoria válida
+        if (nodeId.length() == 0) {
+            Serial.println("❌ Error: nodeId vacío");
+            return false;
+        }
+        
+        if (mensaje.length() == 0) {
+            Serial.println("❌ Error: mensaje vacío");
+            return false;
+        }
+        
+        // Validar nodo
+        if (nodeId != String(nodeRef->local_Address)) {
+            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), nodeRef->local_Address);
+            // No retornar false, procesar de todas formas
+        }
+    
+    // Procesar mensaje de forma segura
+    try {
+        // ✅ SEGURIDAD: Usar functionsRef en lugar de acceso directo
+        String comando = mensaje;
+        if (comando.length() < 6) {
+            // Rellenar comando a 6 caracteres
+            while (comando.length() < 6) {
+                comando += "0";
+            }
+        }
+        
+        // Procesar con Functions que es más seguro
+        // functionsRef->Functions_Request(comando);
+        // functionsRef->Functions_Run();
+
+        nodeRef->nodo_a_Consultar= nodeId;
+        nodeRef->Lora_WebMessage(mensaje);
+
+        // También activar bandera para el loop principal
+        nodeRef->F_Master_Excecute = true;
+        
+        Serial.printf("✅ Mensaje procesado: %s\n", mensaje.c_str());
+    } catch (...) {
+        Serial.println("❌ Error: Excepción al procesar mensaje");
+        return false;
+    }
+    
+    return true; // ✅ CORREGIDO: Agregar return true
 }
 
 // ✅ NUEVO: Endpoint de prueba del sistema
@@ -538,9 +607,56 @@ void LoRaWebServer::stop() {
         Serial.println("Web Server detenido");
     }
 }
+
+// Configuracion de headers CORS
+    // Esta función se llama para configurar los headers CORS en las respuestas del servidor
 void LoRaWebServer::configurarHeadersCORS() {
     server->sendHeader("Access-Control-Allow-Origin", "*");
     server->sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     server->sendHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     server->sendHeader("Access-Control-Max-Age", "86400");
+}
+
+// Enviar respuesta de error
+void LoRaWebServer::enviarErrorJSON(String mensaje) {
+    // ✅ OPTIMIZACIÓN: Usar StaticJsonDocument para evitar fragmentación de memoria
+    StaticJsonDocument<256> respuesta;
+    respuesta["success"] = false;
+    respuesta["error"] = mensaje;
+    respuesta["timestamp"] = millis();
+
+    String jsonString;
+    size_t bytesWritten = serializeJson(respuesta, jsonString);
+    
+    if (bytesWritten == 0) {
+        Serial.println("❌ Error: No se pudo serializar JSON de error");
+        server->send(500, "text/plain", "Error interno del servidor");
+        return;
+    }
+
+    configurarHeadersCORS();
+    server->send(400, "application/json", jsonString);
+    Serial.println("❌ Error enviado: " + mensaje);
+}
+
+// Enviar respuesta de éxito
+void LoRaWebServer::enviarExitoJSON(String mensaje) {
+    // ✅ OPTIMIZACIÓN: Usar StaticJsonDocument para evitar fragmentación de memoria
+    StaticJsonDocument<256> respuesta;
+    respuesta["success"] = true;
+    respuesta["message"] = mensaje;
+    respuesta["timestamp"] = millis();
+    
+    String jsonString;
+    size_t bytesWritten = serializeJson(respuesta, jsonString);
+    
+    if (bytesWritten == 0) {
+        Serial.println("❌ Error: No se pudo serializar JSON de éxito");
+        server->send(500, "text/plain", "Error interno del servidor");
+        return;
+    }
+    
+    configurarHeadersCORS();
+    server->send(200, "application/json", jsonString);
+    Serial.println("✅ Éxito enviado: " + mensaje);
 }

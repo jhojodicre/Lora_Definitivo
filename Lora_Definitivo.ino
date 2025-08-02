@@ -361,10 +361,10 @@ void loop(){
     //-L5.5 F- Master Execute order from Server
       if(Node.F_Master_Excecute && Master.Mode){
         //-L5.5.1 Ejecuta la funcion.
-          Master_RX_Request_2();                // Carga los datos recibidos desde el servidor.
-          Node.Lora_Master_Frame();             // Se prepara el mensaje a enviar.
-          Node.Lora_TX();                       // Se envia el mensaje.
-          Node.F_Master_Excecute=false;         // Bandera activada en MQTT RX Callback.
+          // Master_RX_Request_2();                // 1. Carga los datos recibidos desde el servidor.
+          Node.Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+          Node.Lora_TX();                       // 3. Se envia el mensaje.
+          Node.F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
           Serial.println("Master Executed: testing");
       }
   //L6. Function Lora RX.
@@ -393,7 +393,7 @@ void loop(){
         Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
         Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
       }
-    //-4.7.2 Master RX Request.
+    //-4.7.2 Master RX Request 2.
       void Master_RX_Request_2(){
         Node.nodo_a_Consultar=Nodo_a_Pedir;
         Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
@@ -542,17 +542,7 @@ void loop(){
         Serial.print("MQTT TX: ");
         Serial.println(jsonString);
     }
-  void registerNode() {
-  
-  String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
-  int httpResponseCode = http.POST(payload);
-  
-  if (httpResponseCode > 0) {
-    String response = http.getString();
-    Serial.println("Node registered: " + response);
-  }
-  http.end();
-}
+
 
 //6. HTTP Send
   void sendJsonToMongoDB() {
@@ -600,7 +590,17 @@ void loop(){
     Serial.println(valueJson);
   }
 
-
+  void registerNode() {
+  
+    String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
+    int httpResponseCode = http.POST(payload);
+    
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("Node registered: " + response);
+    }
+    http.end();
+  }
 
 //10. Miscelanius#include <HTTPClient.h>
 
