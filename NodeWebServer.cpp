@@ -1,5 +1,4 @@
 // WebServer.cpp
-#include <WebServer.h>
 #include "Lora.h"
 #include "Master.h"
 #include "Functions.h"
@@ -17,9 +16,7 @@ void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
     functionsRef = functions;
     
     // Configurar rutas
-    server->on("/", [this]() { handleRoot(); });
-    server->on("/api", [this]() { handleAPI(); });
-    server->on("/control", HTTP_POST, [this]() { handleNodeControl(); });
+    configurarRutasServidor();
     server->onNotFound([this]() { handleNotFound(); });
     
     server->begin();
@@ -34,6 +31,58 @@ void LoRaWebServer::handle() {
     if (isRunning) {
         server->handleClient();
     }
+}
+
+// ✅ NUEVA FUNCIÓN: Configurar todas las rutas del servidor
+void LoRaWebServer::configurarRutasServidor() {
+    Serial.println("🛣️  Configurando rutas del servidor...");
+    
+    // RUTA 1: Página principal (GET /)
+    server->on("/", HTTP_GET, [this]() {
+        handleRoot();
+    });
+    
+    // RUTA 2: Endpoint principal para recibir mensajes (POST /api/send)
+    server->on("/api/send", HTTP_POST, [this]() {
+        manejarMensajeRecibido();
+    });
+    
+    // RUTA 3: Endpoint de prueba (GET /api/test)
+    server->on("/api/test", HTTP_GET, [this]() {
+        manejarPruebaSistema();
+    });
+    
+    // RUTA 4: Estado del nodo (GET /api/status)
+    server->on("/api/status", HTTP_GET, [this]() {
+        handleGetStatus();
+    });
+    
+    // RUTA 5: Control de comandos (POST /control)
+    server->on("/control", HTTP_POST, [this]() {
+        handleNodeControl();
+    });
+    
+    // RUTA 6: Cambiar dirección (POST /set-address)
+    server->on("/set-address", HTTP_POST, [this]() {
+        handleSetAddress();
+    });
+    
+    // RUTA 7: API información básica (GET /api)
+    server->on("/api", HTTP_GET, [this]() {
+        handleAPI();
+    });
+    
+    // RUTA 8: Manejo de preflight CORS (OPTIONS)
+    server->on("/api/send", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });
+    
+    // RUTA 9: Hola Mundo (GET /hola-mundo)
+    server->on("/hola-mundo", HTTP_GET, [this]() {
+        manejarHolaMundo();
+    });
+    
+    Serial.println("✅ Rutas configuradas correctamente");
 }
 
 // Página principal
@@ -148,6 +197,17 @@ void LoRaWebServer::handleRoot() {
             <button onclick="location.reload()" class="btn btn-primary">Actualizar</button>
         </div>
         <div class="section">
+            <h3>🔢 Número de Nodo Asignado</h3>
+            <div class="status">
+                <b>Nodo:</b> <span id="nodeChar">)rawliteral" + (nodeRef ? String(nodeRef->local_Address) : String("-")) + R"rawliteral(</span><br>
+                <b>ASCII decimal:</b> <span id="nodeAscii">)rawliteral" + (nodeRef ? String((int)nodeRef->local_Address) : String("-")) + R"rawliteral(</span><br>
+            </div>
+            <input type="text" id="newAddress" placeholder="Nueva dirección (A-Z, 1-9)" maxlength="1">
+            <button onclick="changeAddress()" class="btn btn-primary">Cambiar Dirección</button>
+            <button onclick="refreshStatus()" class="btn btn-config">Actualizar Estado</button>
+            <div id="addressResult"></div>
+        </div>
+        <div class="section">
             <h3>🎮 Control de Comandos</h3>
             <input type="text" id="command" placeholder="Comando (ej: z1AB)" maxlength="6">
             <button onclick="sendCommand()" class="btn btn-primary">Enviar Comando</button>
@@ -189,6 +249,55 @@ void LoRaWebServer::handleRoot() {
         function sendPreset(cmd) {
             document.getElementById('command').value = cmd;
             sendCommand();
+        }
+        
+        // ✅ NUEVA FUNCIÓN: Cambiar dirección del nodo
+        function changeAddress() {
+            var newAddr = document.getElementById('newAddress').value;
+            if(newAddr.length !== 1) {
+                alert('La dirección debe ser un solo carácter (A-Z o 1-9)');
+                return;
+            }
+            
+            fetch('/set-address', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'address=' + newAddr
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('nodeChar').textContent = data.new_address;
+                    document.getElementById('nodeAscii').textContent = data.ascii_value;
+                    document.getElementById('addressResult').innerHTML = 
+                        '<p style="color: green;">✅ Dirección cambiada a: ' + data.new_address + ' (ASCII: ' + data.ascii_value + ')</p>';
+                } else {
+                    document.getElementById('addressResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        // ✅ NUEVA FUNCIÓN: Actualizar estado desde el servidor
+        function refreshStatus() {
+            fetch('/get-status')
+            .then(response => response.json())
+            .then(data => {
+                if(data.node) {
+                    document.getElementById('nodeChar').textContent = data.node.address_char;
+                    document.getElementById('nodeAscii').textContent = data.node.address_ascii;
+                }
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: blue;">🔄 Estado actualizado - Uptime: ' + Math.floor(data.system.uptime_ms / 1000) + 's</p>';
+            })
+            .catch(error => {
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: red;">❌ Error al actualizar: ' + error + '</p>';
+            });
         }
     </script>
 </body>
@@ -249,6 +358,173 @@ void LoRaWebServer::handleNodeControl() {
     }
 }
 
+// ✅ NUEVO: Cambiar dirección del nodo
+void LoRaWebServer::handleSetAddress() {
+    if (!server->hasArg("address")) {
+        server->send(400, "application/json", "{\"error\":\"Dirección requerida\"}");
+        return;
+    }
+    
+    String newAddress = server->arg("address");
+    
+    // Validar que sea un solo carácter
+    if (newAddress.length() != 1) {
+        server->send(400, "application/json", "{\"error\":\"Dirección debe ser un solo carácter\"}");
+        return;
+    }
+    
+    char newChar = newAddress.charAt(0);
+    
+    // Validar rango (por ejemplo, solo A-Z, 1-9)
+    if (!((newChar >= 'A' && newChar <= 'Z') || (newChar >= '1' && newChar <= '9'))) {
+        server->send(400, "application/json", "{\"error\":\"Dirección debe ser A-Z o 1-9\"}");
+        return;
+    }
+    
+    // Cambiar la dirección
+    if (nodeRef) {
+        nodeRef->local_Address = newChar;
+        Serial.printf("Nueva dirección del nodo: %c (%d)\n", newChar, (int)newChar);
+        
+        String response = "{\"success\":true,\"new_address\":\"" + String(newChar) + 
+                         "\",\"ascii_value\":" + String((int)newChar) + "}";
+        server->send(200, "application/json", response);
+    } else {
+        server->send(500, "application/json", "{\"error\":\"Nodo no disponible\"}");
+    }
+}
+
+// ✅ NUEVO: Obtener estado completo
+void LoRaWebServer::handleGetStatus() {
+    StaticJsonDocument<400> doc;
+    
+    doc["timestamp"] = millis();
+    doc["system"]["name"] = "LoRa Security System";
+    doc["system"]["version"] = "1.0";
+    doc["system"]["uptime_ms"] = millis();
+    
+    doc["wifi"]["ssid"] = WiFi.SSID();
+    doc["wifi"]["ip"] = WiFi.localIP().toString();
+    doc["wifi"]["rssi"] = WiFi.RSSI();
+    doc["wifi"]["status"] = (WiFi.status() == WL_CONNECTED) ? "connected" : "disconnected";
+    
+    if (nodeRef) {
+        doc["node"]["address_char"] = String(nodeRef->local_Address);
+        doc["node"]["address_ascii"] = (int)nodeRef->local_Address;
+        doc["node"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    }
+    
+    if (masterRef && masterRef->Mode) {
+        doc["master"]["node_count"] = masterRef->nodeNumber;
+        doc["master"]["next_node"] = masterRef->Nodo_Proximo;
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server->send(200, "application/json", response);
+}
+
+// ✅ NUEVO: Manejar mensajes recibidos via POST /api/send
+void LoRaWebServer::manejarMensajeRecibido() {
+    // Configurar headers CORS
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    server->sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    server->sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    
+    if (!server->hasArg("message")) {
+        server->send(400, "application/json", "{\"error\":\"Mensaje requerido\"}");
+        return;
+    }
+    
+    String mensaje = server->arg("message");
+    
+    // Validar mensaje
+    if (mensaje.length() < 1) {
+        server->send(400, "application/json", "{\"error\":\"Mensaje no puede estar vacío\"}");
+        return;
+    }
+    
+    // Procesar mensaje con el objeto Functions
+    if (functionsRef) {
+        functionsRef->Functions_Request(mensaje);
+        functionsRef->Functions_Run();
+        
+        Serial.printf("📨 Mensaje recibido via API: %s\n", mensaje.c_str());
+        
+        StaticJsonDocument<200> response;
+        response["success"] = true;
+        response["message"] = "Mensaje procesado correctamente";
+        response["received_message"] = mensaje;
+        response["timestamp"] = millis();
+        
+        String jsonResponse;
+        serializeJson(response, jsonResponse);
+        server->send(200, "application/json", jsonResponse);
+    } else {
+        server->send(500, "application/json", "{\"error\":\"Sistema de funciones no disponible\"}");
+    }
+}
+
+// ✅ NUEVO: Endpoint de prueba del sistema
+void LoRaWebServer::manejarPruebaSistema() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    
+    StaticJsonDocument<300> response;
+    response["test_status"] = "OK";
+    response["system_name"] = "LoRa Security System";
+    response["timestamp"] = millis();
+    response["uptime_seconds"] = millis() / 1000;
+    response["free_heap"] = ESP.getFreeHeap();
+    response["chip_id"] = ESP.getChipModel();
+    
+    // Test de componentes
+    response["components"]["wifi"] = (WiFi.status() == WL_CONNECTED);
+    response["components"]["node"] = (nodeRef != nullptr);
+    response["components"]["master"] = (masterRef != nullptr);
+    response["components"]["functions"] = (functionsRef != nullptr);
+    
+    if (nodeRef) {
+        response["node_info"]["address"] = String(nodeRef->local_Address);
+        response["node_info"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    }
+    
+    String jsonResponse;
+    serializeJson(response, jsonResponse);
+    server->send(200, "application/json", jsonResponse);
+    
+    Serial.println("🧪 Test del sistema ejecutado via API");
+}
+
+// ✅ NUEVO: Manejar preflight CORS
+void LoRaWebServer::manejarPreflightCORS() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    server->sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    server->sendHeader("Access-Control-Allow-Headers", "Content-Type");
+    server->send(200, "text/plain", "");
+    configurarHeadersCORS();
+    Serial.println("🌐 Preflight CORS manejado");
+}
+
+// ✅ NUEVO: Endpoint Hola Mundo
+void LoRaWebServer::manejarHolaMundo() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    
+    StaticJsonDocument<200> response;
+    response["message"] = "¡Hola Mundo desde el ESP32!";
+    response["sistema"] = "LoRa Security System";
+    response["timestamp"] = millis();
+    response["uptime_segundos"] = millis() / 1000;
+    response["nodo_actual"] = nodeRef ? String(nodeRef->local_Address) : "N/A";
+    response["modo"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    response["status"] = "🚀 Sistema funcionando correctamente";
+    
+    String jsonResponse;
+    serializeJson(response, jsonResponse);
+    server->send(200, "application/json", jsonResponse);
+    
+    Serial.println("👋 Endpoint Hola Mundo ejecutado");
+}
+
 // 404 Not Found
 void LoRaWebServer::handleNotFound() {
     server->send(404, "text/plain", "Página no encontrada");
@@ -261,4 +537,10 @@ void LoRaWebServer::stop() {
         isRunning = false;
         Serial.println("Web Server detenido");
     }
+}
+void LoRaWebServer::configurarHeadersCORS() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    server->sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    server->sendHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    server->sendHeader("Access-Control-Max-Age", "86400");
 }

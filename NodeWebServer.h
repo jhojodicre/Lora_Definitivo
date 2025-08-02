@@ -27,11 +27,21 @@ public:
     void handle();
     void stop();
     
+    // Configuración de rutas
+    void configurarRutasServidor();
+    
     // Handlers para rutas
     void handleRoot();
     void handleAPI();
     void handleNodeControl();
+    void handleSetAddress();
+    void handleGetStatus();
+    void manejarMensajeRecibido();   // POST /api/send
+    void manejarPruebaSistema();     // GET /api/test
+    void manejarPreflightCORS();     // OPTIONS /api/send
+    void manejarHolaMundo();         // GET /hola-mundo
     void handleNotFound();
+    void configurarHeadersCORS();    // Configurar headers CORS
 };
 
 #endif
