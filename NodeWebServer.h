@@ -54,6 +54,7 @@ public:
     void manejarHolaMundo();         // GET /hola-mundo
     void handleNotFound();
     void configurarHeadersCORS();    // Configurar headers CORS
+    void manejarPingTest();          // POST /api/test
 };
 
 #endif

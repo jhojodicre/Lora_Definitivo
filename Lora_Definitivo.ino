@@ -134,8 +134,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('1');
-    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Lora      Node('2');
+    Master    Master(true,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Protocolos.
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -289,8 +289,8 @@ void loop(){
       }
     //-L4.1 Node IO ENTRADAS DEL NODO.
       if(!Master.Mode){
-        // Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+        Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+        // Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
       }
     //-L4.2 Nodo TX.
       if(Node.F_Responder && !Master.Mode){
@@ -566,10 +566,33 @@ void loop(){
   }
 
   void http_Post() {
-      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-      httpResponseCode = http.POST(jsonString);
-  
-    http.end();
+    jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
+    httpResponseCode = http.POST(jsonString); // Realizar petición POST
+
+    Serial.println("📦 JSON enviando: " + jsonString);
+    
+    // Procesar respuesta
+    if (httpResponseCode > 0) {
+      String respuesta = http.getString();
+      Serial.println("📥 Código respuesta: " + String(httpResponseCode));
+      Serial.println("📄 Respuesta servidor: " + respuesta);
+      
+      if (httpResponseCode == 200 || httpResponseCode == 201) {
+        Serial.println("✅ Datos enviados exitosamente al servidor externo");
+        http.end();
+        // return true;
+      } else {
+        Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
+        http.end();
+        // return false;
+      }
+    } else {
+      Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
+      Serial.println("   Error: " + http.errorToString(httpResponseCode));
+      http.end();
+      // return false;
+    }
+      http.end();
   }
 
   void DeserializeJson(){

@@ -33,58 +33,6 @@ void LoRaWebServer::handle() {
     }
 }
 
-// ✅ NUEVA FUNCIÓN: Configurar todas las rutas del servidor
-void LoRaWebServer::configurarRutasServidor() {
-    Serial.println("🛣️  Configurando rutas del servidor...");
-    
-    // RUTA 1: Página principal (GET /)
-    server->on("/", HTTP_GET, [this]() {
-        handleRoot();
-    });
-    
-    // RUTA 2: Endpoint principal para recibir mensajes (POST /api/send)
-    server->on("/api/send", HTTP_POST, [this]() {
-        manejarMensajeRecibido();
-    });
-    
-    // RUTA 3: Endpoint de prueba (GET /api/test)
-    server->on("/api/test", HTTP_GET, [this]() {
-        manejarPruebaSistema();
-    });
-    
-    // RUTA 4: Estado del nodo (GET /api/status)
-    server->on("/api/status", HTTP_GET, [this]() {
-        handleGetStatus();
-    });
-    
-    // RUTA 5: Control de comandos (POST /control)
-    server->on("/control", HTTP_POST, [this]() {
-        handleNodeControl();
-    });
-    
-    // RUTA 6: Cambiar dirección (POST /set-address)
-    server->on("/set-address", HTTP_POST, [this]() {
-        handleSetAddress();
-    });
-    
-    // RUTA 7: API información básica (GET /api)
-    server->on("/api", HTTP_GET, [this]() {
-        handleAPI();
-    });
-    
-    // RUTA 8: Manejo de preflight CORS (OPTIONS)
-    server->on("/api/send", HTTP_OPTIONS, [this]() {
-        manejarPreflightCORS();
-    });
-    
-    // RUTA 9: Hola Mundo (GET /hola-mundo)
-    server->on("/hola-mundo", HTTP_GET, [this]() {
-        manejarHolaMundo();
-    });
-    
-    Serial.println("✅ Rutas configuradas correctamente");
-}
-
 // Página principal
 void LoRaWebServer::handleRoot() {
     String html = R"rawliteral(
@@ -324,6 +272,61 @@ void LoRaWebServer::handleAPI() {
     String response;
     serializeJson(doc, response);
     server->send(200, "application/json", response);
+}
+
+// ✅ NUEVA FUNCIÓN: Configurar todas las rutas del servidor
+void LoRaWebServer::configurarRutasServidor() {
+    Serial.println("🛣️  Configurando rutas del servidor...");
+    
+    // RUTA 1: Página principal (GET /)
+    server->on("/", HTTP_GET, [this]() {
+        handleRoot();
+    });
+    
+    // RUTA 2: Endpoint principal para recibir mensajes (POST /api/send)
+    server->on("/api/send", HTTP_POST, [this]() {
+        manejarMensajeRecibido();
+    });
+    
+    // RUTA 3: Endpoint de prueba (GET /api/test)
+    server->on("/api/test", HTTP_GET, [this]() {
+        manejarPruebaSistema();
+    });
+    
+    // RUTA 4: Estado del nodo (GET /api/status)
+    server->on("/api/status", HTTP_GET, [this]() {
+        handleGetStatus();
+    });
+    
+    // RUTA 5: Control de comandos (POST /control)
+    server->on("/control", HTTP_POST, [this]() {
+        handleNodeControl();
+    });
+    // RUTA 5.1 Endpoint simple de prueba post
+    server->on("/api/test", HTTP_POST, [this]() {
+        manejarPingTest();
+    });
+    // RUTA 6: Cambiar dirección (POST /set-address)
+    server->on("/set-address", HTTP_POST, [this]() {
+        handleSetAddress();
+    });
+    
+    // RUTA 7: API información básica (GET /api)
+    server->on("/api", HTTP_GET, [this]() {
+        handleAPI();
+    });
+    
+    // RUTA 8: Manejo de preflight CORS (OPTIONS)
+    server->on("/api/send", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });
+    
+    // RUTA 9: Hola Mundo (GET /hola-mundo)
+    server->on("/hola-mundo", HTTP_GET, [this]() {
+        manejarHolaMundo();
+    });
+    
+    Serial.println("✅ Rutas configuradas correctamente");
 }
 
 // Control de nodo
@@ -593,7 +596,21 @@ void LoRaWebServer::manejarHolaMundo() {
     
     Serial.println("👋 Endpoint Hola Mundo ejecutado");
 }
-
+// Manjear Ping Test
+void LoRaWebServer::manejarPingTest() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
+    
+    StaticJsonDocument<200> response;
+    response["message"] = "Ping Test OK";
+    response["timestamp"] = millis();
+    response["uptime_seconds"] = millis() / 1000;
+    
+    String jsonResponse;
+    serializeJson(response, jsonResponse);
+    server->send(200, "application/json", jsonResponse);
+    
+    Serial.println("🔍 Ping Test ejecutado");
+}
 // 404 Not Found
 void LoRaWebServer::handleNotFound() {
     server->send(404, "text/plain", "Página no encontrada");

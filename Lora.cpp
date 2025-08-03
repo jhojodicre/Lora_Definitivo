@@ -306,7 +306,7 @@ void Lora::Lora_Master_Decodificar(){
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
-    Node_Num_str = String(random(1, 6)); // Random between "1" and "3"
+    Node_Num_str = String(random(3, 6)); // Random between "3" and "5"
     Node_Status_str = String(random(0, 2)); // Random between "0" and "1"
     Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
     Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
