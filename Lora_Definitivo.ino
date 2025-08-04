@@ -341,9 +341,8 @@ void loop(){
         Master.Next=false;
         Serial.println("Master TXed");
         //-L5.2.7 Simular
-          Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
+          // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
         //-L.5.2.8 Probamos el envio de datos a la WEB.
-          http_Post(); // Envia los datos a la WEB.
         }
     //-L5.3 F- Master RX.
       if(Node.F_Recibido && Master.Mode){
@@ -357,6 +356,7 @@ void loop(){
         //-L5.4.1 MQTT Publish.
           // Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
           Node.F_Master_Update=false;
+          http_Post(); // Envia los datos a la WEB.
       }
     //-L5.5 F- Master Execute order from Server
       if(Node.F_Master_Excecute && Master.Mode){
