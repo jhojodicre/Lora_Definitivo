@@ -109,10 +109,10 @@
 
       // const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
       const char* serverName = "http://192.168.1.24:3000/api/nodes"; // URL de tu API de Interfaz WEB
-
-
-
       int httpResponseCode ;
+
+
+
 
     long lastMsg = 0;
     char msg[50];
@@ -120,6 +120,7 @@
 
     String MQTT_Frame_TX="";
     String Lora_RX=""; // Mensaje recibido por Lora.
+    StaticJsonDocument<200> doc;
 
     char Nodo_a_Pedir     = ' '; // Nodo a consultar por el Maestro.
     char function_Mode    = ' '; // Modo de Funcion a ejecutar.
@@ -137,10 +138,9 @@
     Lora      Node('2');
     Master    Master(true,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Protocolos.
-    WiFiClient espClient;
-    PubSubClient client(espClient);
-    HTTPClient http; // Instancia para HTTPClient
-    StaticJsonDocument<200> doc;
+    WiFiClient    espClient;
+    PubSubClient  client(espClient);
+    HTTPClient    http; // Instancia para HTTPClient
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
   //-4.3 Timer.
     Ticker timer_0;
