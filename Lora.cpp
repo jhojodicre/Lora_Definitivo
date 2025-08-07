@@ -167,7 +167,7 @@ void Lora::Lora_IO_Zones(){
     Zone_B=digitalRead(Zona_B_in);
   // 3. Bateria o Fuente Lectura.
     Fuente_in_ST=digitalRead(Fuente_in);
-
+  Lora_IO_Zones_Force();
   // 4. ZONAS A y B Reconocimiento.
     // Pulsador C = Realiza reconocimiento de Ambas Zonas A y B. Reset de Ambas Zonas y Fallas.
     if(!Zone_AB_ACK){
@@ -221,6 +221,12 @@ void Lora::Lora_IO_Zones(){
     //SORUCE INPUT
     Fuente_in_str=String(Fuente_in_ST, BIN);
  }
+void Lora::Lora_IO_Zones_Force(){
+  // 1. Fuerza de Zonas A y B.
+  if(Zone_A_Forzar) Zone_A = Zone_A_Force;
+  if(Zone_B_Forzar) Zone_B = Zone_B_Force;
+  if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
+}
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar

@@ -14,9 +14,18 @@ void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
     nodeRef = node;
     masterRef = master;
     functionsRef = functions;
-    
+
+    NodeData nodos[5];          // Array de hasta 5 nodos
+    //Configurar WiFi
+    configurarWiFi();
+
+    // Configurar servidor
+    configurarServidor();
+
     // Configurar rutas
     configurarRutasServidor();
+
+    inicializarNodos();
     server->onNotFound([this]() { handleNotFound(); });
     
     server->begin();
@@ -24,6 +33,102 @@ void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
     
     Serial.println("=== WEB SERVER INICIADO ===");
     Serial.printf("IP: %s:%d\n", WiFi.localIP().toString().c_str(), port);
+}
+
+// Configurar servidor
+void LoRaWebServer::configurarServidor() {
+    //S-5.3 HTTP Client
+      http.begin(serverName);
+      http.addHeader("Content-Type", "application/json");
+
+
+    // server->on("/", [this]() { handleRoot(); });
+    // server->on("/status", [this]() { handleStatus(); });
+    // server->on("/config", [this]() { handleConfig(); });
+    // server->on("/update", [this]() { handleUpdate(); });
+    // server->on("/restart", [this]() { handleRestart(); });
+    // server->on("/logs", [this]() { handleLogs(); });
+    // server->on("/control", [this]() { handleControl(); });
+    // server->on("/info", [this]() { handleInfo(); });
+    // server->on("/api", [this]() { handleApi(); });
+}
+
+// Configurar WiFi
+void LoRaWebServer::configurarWiFi() {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    
+    Serial.println();
+    Serial.println("Conectado a la red WiFi");
+    Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
+}
+
+// FUNCIÓN: INICIALIZAR NODOS
+void LoRaWebServer::inicializarNodos() {
+    Serial.println("📋 Inicializando array de nodos...");
+    
+    for (int i = 0; i < 5; i++) {
+        nodos[i].nodoId = "";
+        nodos[i].comu = "0";
+        nodos[i].zoneA = "0";
+        nodos[i].zoneB = "0";
+        nodos[i].output1 = "0";
+        nodos[i].output2 = "0";
+        nodos[i].fuente = "0";
+        nodos[i].lastUpdate = 0;
+        nodos[i].isActive = false;
+    }
+    
+    Serial.println("✅ Array de nodos inicializado");
+}
+
+// FUNCIÓN: ACTUALIZAR NODO
+bool LoRaWebServer::actualizarNodo(String nodoId, String comu, String zoneA, String zoneB, 
+                                  String output1, String output2, String fuente) {
+    // Buscar si el nodo ya existe
+    int indiceNodo = -1;
+    for (int i = 0; i < 5; i++) {
+        if (nodos[i].nodoId == nodoId) {
+            indiceNodo = i;
+            break;
+        }
+    }
+    
+    // Si el nodo no existe, buscar un espacio libre
+    if (indiceNodo == -1) {
+        for (int i = 0; i < 5; i++) {
+            if (nodos[i].nodoId == "" || !nodos[i].isActive) {
+                indiceNodo = i;
+                totalNodos++;
+                break;
+            }
+        }
+    }
+    
+    // Si no hay espacio disponible
+    if (indiceNodo == -1) {
+        Serial.println("❌ Error: No hay espacio para más nodos");
+        return false;
+    }
+    
+    // Actualizar los datos del nodo
+    nodos[indiceNodo].nodoId = nodoId;
+    nodos[indiceNodo].comu = comu;
+    nodos[indiceNodo].zoneA = zoneA;
+    nodos[indiceNodo].zoneB = zoneB;
+    nodos[indiceNodo].output1 = output1;
+    nodos[indiceNodo].output2 = output2;
+    nodos[indiceNodo].fuente = fuente;
+    nodos[indiceNodo].lastUpdate = millis();
+    nodos[indiceNodo].isActive = true;
+    
+    Serial.println("✅ Nodo " + nodoId + " actualizado en índice " + String(indiceNodo));
+    return true;
 }
 
 // Manejar cliente
@@ -173,6 +278,40 @@ void LoRaWebServer::handleRoot() {
                 <button class="btn btn-config" onclick="sendPreset('C30')">led 3 OFF</button>
             </div>
         </div>
+        <div class="section">
+            <h3>🔧 Control de Forzado de Zonas</h3>
+            <div class="config-label">Forzar valores de sensores:</div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona A:</label>
+                <input type="checkbox" id="forceZoneA" style="margin-right: 5px;">
+                <select id="zoneAValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona B:</label>
+                <input type="checkbox" id="forceZoneB" style="margin-right: 5px;">
+                <select id="zoneBValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Fuente:</label>
+                <input type="checkbox" id="forceFuente" style="margin-right: 5px;">
+                <select id="fuenteValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div class="config-btns">
+                <button onclick="applyForceZones()" class="btn btn-primary">Aplicar Forzado</button>
+                <button onclick="disableAllForcing()" class="btn btn-config">Deshabilitar Todo</button>
+                <button onclick="getForceStatus()" class="btn btn-config">Ver Estado</button>
+            </div>
+            <div id="forceResult"></div>
+        </div>
     </div>
     <script>
         function sendCommand() {
@@ -247,6 +386,107 @@ void LoRaWebServer::handleRoot() {
                     '<p style="color: red;">❌ Error al actualizar: ' + error + '</p>';
             });
         }
+        
+        // ✅ NUEVAS FUNCIONES: Control de forzado de zonas
+        function applyForceZones() {
+            var payload = {};
+            var hasChanges = false;
+            
+            // Verificar Zone A
+            if (document.getElementById('forceZoneA').checked) {
+                payload.zone_a_force = document.getElementById('zoneAValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            // Verificar Zone B
+            if (document.getElementById('forceZoneB').checked) {
+                payload.zone_b_force = document.getElementById('zoneBValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            // Verificar Fuente
+            if (document.getElementById('forceFuente').checked) {
+                payload.fuente_force = document.getElementById('fuenteValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            if (!hasChanges) {
+                alert('Selecciona al menos una zona para forzar');
+                return;
+            }
+            
+            fetch('/api/force-zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: green;">✅ ' + data.message + '</p>';
+                    console.log('Estado actual:', data.current_state);
+                } else {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        function disableAllForcing() {
+            var payload = {
+                disable_force: true
+            };
+            
+            fetch('/api/force-zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: blue;">🔓 ' + data.message + '</p>';
+                    // Desmarcar todos los checkboxes
+                    document.getElementById('forceZoneA').checked = false;
+                    document.getElementById('forceZoneB').checked = false;
+                    document.getElementById('forceFuente').checked = false;
+                } else {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        function getForceStatus() {
+            fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                var statusText = '📊 Estado de forzado:<br>';
+                if (data.node) {
+                    statusText += '• Zona A: ' + (data.node.zone_a_forzar ? 'FORZADA (' + data.node.zone_a_force + ')' : 'NORMAL') + '<br>';
+                    statusText += '• Zona B: ' + (data.node.zone_b_forzar ? 'FORZADA (' + data.node.zone_b_force + ')' : 'NORMAL') + '<br>';
+                    statusText += '• Fuente: ' + (data.node.fuente_forzar ? 'FORZADA (' + data.node.fuente_force + ')' : 'NORMAL');
+                } else {
+                    statusText += 'No se pudo obtener el estado';
+                }
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: blue;">' + statusText + '</p>';
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error al obtener estado: ' + error + '</p>';
+            });
+        }
     </script>
 </body>
 </html>
@@ -295,16 +535,25 @@ void LoRaWebServer::configurarRutasServidor() {
     
     // RUTA 4: Estado del nodo (GET /api/status)
     server->on("/api/status", HTTP_GET, [this]() {
-        handleGetStatus();
+        handleGetStatus(); // se puede usar manejarEstadoNodo() si se desea
+        // manejarEstadoNodo();
     });
-    
+      // RUTA 4.2: Recibir datos de un nodo individual (POST /api/node)
+    server->on("/api/node", HTTP_POST, [this]() {
+        manejarDatoNodoIndividual();
+    });
+
     // RUTA 5: Control de comandos (POST /control)
     server->on("/control", HTTP_POST, [this]() {
         handleNodeControl();
     });
     // RUTA 5.1 Endpoint simple de prueba post
-    server->on("/api/test", HTTP_POST, [this]() {
+    server->on("/api/ping", HTTP_POST, [this]() {
         manejarPingTest();
+    });
+    // RUTA 5.2: Forzar zonas (POST /api/force-zones)
+    server->on("/api/force-zones", HTTP_POST, [this]() {
+        manejarForzarZonas();
     });
     // RUTA 6: Cambiar dirección (POST /set-address)
     server->on("/set-address", HTTP_POST, [this]() {
@@ -320,111 +569,23 @@ void LoRaWebServer::configurarRutasServidor() {
     server->on("/api/send", HTTP_OPTIONS, [this]() {
         manejarPreflightCORS();
     });
+    // RUTA 8.1: CORS para endpoint /api/node
+    server->on("/api/node", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });
+    // RUTA 8.2: CORS para endpoint /api/force-zones
+    server->on("/api/force-zones", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });
     
     // RUTA 9: Hola Mundo (GET /hola-mundo)
     server->on("/hola-mundo", HTTP_GET, [this]() {
         manejarHolaMundo();
     });
     
+    
+
     Serial.println("✅ Rutas configuradas correctamente");
-}
-
-// Control de nodo
-void LoRaWebServer::handleNodeControl() {
-    if (!server->hasArg("command")) {
-        server->send(400, "text/plain", "Error: Comando requerido");
-        return;
-    }
-    
-    String command = server->arg("command");
-    
-    // Validar comando
-    if (command.length() < 2) {
-        server->send(400, "text/plain", "Error: Comando muy corto");
-        return;
-    }
-    
-    // Rellenar comando a 6 caracteres
-    while (command.length() < 6) {
-        command += "0";
-    }
-    
-    // Ejecutar comando
-    if (functionsRef) {
-        functionsRef->Functions_Request(command);
-        functionsRef->Functions_Run();
-        
-        Serial.printf("WebServer ejecutó: %s\n", command.c_str());
-        server->send(200, "text/plain", "Comando ejecutado: " + command);
-    } else {
-        server->send(500, "text/plain", "Error: Functions no disponible");
-    }
-}
-
-// ✅ NUEVO: Cambiar dirección del nodo
-void LoRaWebServer::handleSetAddress() {
-    if (!server->hasArg("address")) {
-        server->send(400, "application/json", "{\"error\":\"Dirección requerida\"}");
-        return;
-    }
-    
-    String newAddress = server->arg("address");
-    
-    // Validar que sea un solo carácter
-    if (newAddress.length() != 1) {
-        server->send(400, "application/json", "{\"error\":\"Dirección debe ser un solo carácter\"}");
-        return;
-    }
-    
-    char newChar = newAddress.charAt(0);
-    
-    // Validar rango (por ejemplo, solo A-Z, 1-9)
-    if (!((newChar >= 'A' && newChar <= 'Z') || (newChar >= '1' && newChar <= '9'))) {
-        server->send(400, "application/json", "{\"error\":\"Dirección debe ser A-Z o 1-9\"}");
-        return;
-    }
-    
-    // Cambiar la dirección
-    if (nodeRef) {
-        nodeRef->local_Address = newChar;
-        Serial.printf("Nueva dirección del nodo: %c (%d)\n", newChar, (int)newChar);
-        
-        String response = "{\"success\":true,\"new_address\":\"" + String(newChar) + 
-                         "\",\"ascii_value\":" + String((int)newChar) + "}";
-        server->send(200, "application/json", response);
-    } else {
-        server->send(500, "application/json", "{\"error\":\"Nodo no disponible\"}");
-    }
-}
-
-// ✅ NUEVO: Obtener estado completo
-void LoRaWebServer::handleGetStatus() {
-    StaticJsonDocument<400> doc;
-    
-    doc["timestamp"] = millis();
-    doc["system"]["name"] = "LoRa Security System";
-    doc["system"]["version"] = "1.0";
-    doc["system"]["uptime_ms"] = millis();
-    
-    doc["wifi"]["ssid"] = WiFi.SSID();
-    doc["wifi"]["ip"] = WiFi.localIP().toString();
-    doc["wifi"]["rssi"] = WiFi.RSSI();
-    doc["wifi"]["status"] = (WiFi.status() == WL_CONNECTED) ? "connected" : "disconnected";
-    
-    if (nodeRef) {
-        doc["node"]["address_char"] = String(nodeRef->local_Address);
-        doc["node"]["address_ascii"] = (int)nodeRef->local_Address;
-        doc["node"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
-    }
-    
-    if (masterRef && masterRef->Mode) {
-        doc["master"]["node_count"] = masterRef->nodeNumber;
-        doc["master"]["next_node"] = masterRef->Nodo_Proximo;
-    }
-    
-    String response;
-    serializeJson(doc, response);
-    server->send(200, "application/json", response);
 }
 
 // ✅ NUEVO: Manejar mensajes recibidos via POST /api/send
@@ -472,6 +633,87 @@ void LoRaWebServer::manejarMensajeRecibido() {
         enviarErrorJSON("Error al procesar el mensaje");
     }
 
+}
+
+// MANEJADOR: ESTADO DEL NODO
+void LoRaWebServer::manejarEstadoNodo() {
+  Serial.println("📊 Solicitud GET /api/status - Estado del nodo");
+  
+  configurarHeadersCORS();
+  
+  // Crear respuesta JSON con estado completo
+  DynamicJsonDocument respuesta(512);
+  respuesta["nodeId"] = "1";  // Cambiar por el ID real del nodo
+  respuesta["status"] = nodeStatus;
+  respuesta["lastMessage"] = lastMessage;
+  respuesta["messageCount"] = messageCount;
+  respuesta["uptime"] = millis();
+  respuesta["wifiRSSI"] = WiFi.RSSI();
+  respuesta["freeHeap"] = ESP.getFreeHeap();
+  
+  String jsonString;
+  serializeJson(respuesta, jsonString);
+  
+  server->send(200, "application/json", jsonString);
+}
+
+// MANEJADOR: DATO DE NODO INDIVIDUAL
+void LoRaWebServer::manejarDatoNodoIndividual() {
+    Serial.println("\n📦 RECIBIENDO DATOS DE NODO INDIVIDUAL - POST /api/node");
+    configurarHeadersCORS();
+    // Verificar que se recibió contenido JSON
+    if (!server->hasArg("plain")) {
+        Serial.println("❌ Error: No se recibió contenido JSON");
+        enviarErrorJSON("No se recibió contenido JSON");
+        return;
+    }
+    // Obtener el cuerpo de la solicitud
+    String cuerpoJSON = server->arg("plain");
+    Serial.println("📝 JSON de nodo recibido: " + cuerpoJSON);
+    // Parsear el JSON recibido
+    StaticJsonDocument<512> documento;
+    DeserializationError error = deserializeJson(documento, cuerpoJSON);
+    // Verificar que el JSON es válido
+    if (error) {
+        Serial.println("❌ Error al parsear JSON: " + String(error.c_str()));
+        enviarErrorJSON("JSON inválido");
+        return;
+    }
+    // Extraer datos del nodo
+    nodoId   = documento["nodoId"] | "";
+    comu     = documento["comu"] | "0";
+    zoneA    = documento["zoneA"] | "0";
+    zoneB    = documento["zoneB"] | "0";
+    output1  = documento["output1"] | "0";
+    output2  = documento["output2"] | "0";
+    fuente   = documento["fuente"] | "0";
+    // Validar que el nodoId no esté vacío
+    if (nodoId == "") {
+        Serial.println("❌ Error: nodoId requerido");
+        enviarErrorJSON("nodoId es requerido");
+        return;
+    }
+    Serial.println("🎯 Actualizando datos del Nodo: " + nodoId);
+    Serial.println("   Comu: " + comu + " | ZoneA: " + zoneA + " | ZoneB: " + zoneB);
+    Serial.println("   Out1: " + output1 + " | Out2: " + output2 + " | Fuente: " + fuente);
+    // Actualizar o crear el nodo en el array LOCAL
+    actualizado = actualizarNodo(nodoId, comu, zoneA, zoneB, output1, output2, fuente);
+    // ENVIAR DATOS AL SERVIDOR EXTERNO
+    // enviadoExterno = enviarDatosAlServidorExterno(nodoId, comu, zoneA, zoneB, output1, output2, fuente);
+    // Evaluar resultado de ambas operaciones
+    if (actualizado && enviadoExterno) {
+        enviarExitoJSON("Datos del nodo " + nodoId + " actualizados localmente y enviados al servidor");
+        Serial.println("✅ Nodo " + nodoId + " procesado completamente (local + externo)");
+    } else if (actualizado && !enviadoExterno) {
+        enviarExitoJSON("Datos del nodo " + nodoId + " actualizados localmente (error al enviar al servidor externo)");
+        Serial.println("⚠️  Nodo " + nodoId + " actualizado solo localmente");
+    } else if (!actualizado && enviadoExterno) {
+        enviarErrorJSON("Error local del nodo " + nodoId + " pero enviado al servidor externo");
+        Serial.println("⚠️  Nodo " + nodoId + " enviado externamente pero error local");
+    } else {
+        enviarErrorJSON("Error completo al procesar el nodo " + nodoId);
+        Serial.println("❌ Error completo procesando nodo " + nodoId);
+    }
 }
 
 // Procesar Mensaje
@@ -611,6 +853,115 @@ void LoRaWebServer::manejarPingTest() {
     
     Serial.println("🔍 Ping Test ejecutado");
 }
+
+// ✅ NUEVO: Manejar forzar zonas
+void LoRaWebServer::manejarForzarZonas() {
+    Serial.println("\n🔧 FORZANDO ZONAS - POST /api/force-zones");
+    configurarHeadersCORS();
+    
+    // Verificar que se recibió contenido JSON
+    if (!server->hasArg("plain")) {
+        Serial.println("❌ Error: No se recibió contenido JSON");
+        enviarErrorJSON("No se recibió contenido JSON");
+        return;
+    }
+
+    // Obtener el cuerpo de la solicitud
+    String cuerpoJSON = server->arg("plain");
+    Serial.println("📝 JSON de forzar zonas recibido: " + cuerpoJSON);
+
+    // Parsear el JSON recibido
+    StaticJsonDocument<512> documento;
+    DeserializationError error = deserializeJson(documento, cuerpoJSON);
+
+    // Verificar que el JSON es válido
+    if (error) {
+        Serial.println("❌ Error al parsear JSON: " + String(error.c_str()));
+        enviarErrorJSON("JSON inválido");
+        return;
+    }
+
+    // Verificar que nodeRef existe
+    if (!nodeRef) {
+        Serial.println("❌ Error: nodeRef no disponible");
+        enviarErrorJSON("Node reference no disponible");
+        return;
+    }
+
+    // Variables para trackear qué se actualizó
+    bool actualizado = false;
+    String mensajeRespuesta = "Zonas actualizadas: ";
+
+    // Procesar Zone_A_Force
+    if (documento.containsKey("zone_a_force")) {
+        bool valor = documento["zone_a_force"] | false;
+        nodeRef->Zone_A_Force = valor;
+        nodeRef->Zone_A_Forzar = true;  // Activar el forzado
+        Serial.println("🔧 Zone_A_Force = " + String(valor ? "true" : "false"));
+        mensajeRespuesta += "Zone_A(" + String(valor ? "1" : "0") + ") ";
+        actualizado = true;
+    }
+
+    // Procesar Zone_B_Force
+    if (documento.containsKey("zone_b_force")) {
+        bool valor = documento["zone_b_force"] | false;
+        nodeRef->Zone_B_Force = valor;
+        nodeRef->Zone_B_Forzar = true;  // Activar el forzado
+        Serial.println("🔧 Zone_B_Force = " + String(valor ? "true" : "false"));
+        mensajeRespuesta += "Zone_B(" + String(valor ? "1" : "0") + ") ";
+        actualizado = true;
+    }
+
+    // Procesar Fuente_in_Force
+    if (documento.containsKey("fuente_force")) {
+        bool valor = documento["fuente_force"] | false;
+        nodeRef->Fuente_in_Force = valor;
+        nodeRef->Fuente_in_Forzar = true;  // Activar el forzado
+        Serial.println("🔧 Fuente_in_Force = " + String(valor ? "true" : "false"));
+        mensajeRespuesta += "Fuente(" + String(valor ? "1" : "0") + ") ";
+        actualizado = true;
+    }
+
+    // Procesar desactivación de forzado
+    if (documento.containsKey("disable_force")) {
+        bool deshabilitar = documento["disable_force"] | false;
+        if (deshabilitar) {
+            nodeRef->Zone_A_Forzar = false;
+            nodeRef->Zone_B_Forzar = false;
+            nodeRef->Fuente_in_Forzar = false;
+            Serial.println("🔓 Forzado deshabilitado para todas las zonas");
+            mensajeRespuesta = "Forzado deshabilitado para todas las zonas";
+            actualizado = true;
+        }
+    }
+
+    // Enviar respuesta
+    if (actualizado) {
+        // Crear respuesta detallada
+        StaticJsonDocument<400> respuesta;
+        respuesta["success"] = true;
+        respuesta["message"] = mensajeRespuesta;
+        respuesta["timestamp"] = millis();
+        
+        // Estado actual de las zonas forzadas
+        respuesta["current_state"]["zone_a_force"] = nodeRef->Zone_A_Force;
+        respuesta["current_state"]["zone_a_forzar"] = nodeRef->Zone_A_Forzar;
+        respuesta["current_state"]["zone_b_force"] = nodeRef->Zone_B_Force;
+        respuesta["current_state"]["zone_b_forzar"] = nodeRef->Zone_B_Forzar;
+        respuesta["current_state"]["fuente_force"] = nodeRef->Fuente_in_Force;
+        respuesta["current_state"]["fuente_forzar"] = nodeRef->Fuente_in_Forzar;
+        
+        String jsonRespuesta;
+        serializeJson(respuesta, jsonRespuesta);
+        server->send(200, "application/json", jsonRespuesta);
+        
+        Serial.println("✅ " + mensajeRespuesta);
+    } else {
+        Serial.println("❌ No se especificaron zonas válidas para forzar");
+        enviarErrorJSON("No se especificaron zonas válidas para forzar");
+    }
+}
+
 // 404 Not Found
 void LoRaWebServer::handleNotFound() {
     server->send(404, "text/plain", "Página no encontrada");
@@ -677,3 +1028,227 @@ void LoRaWebServer::enviarExitoJSON(String mensaje) {
     server->send(200, "application/json", jsonString);
     Serial.println("✅ Éxito enviado: " + mensaje);
 }
+
+// Control de nodo
+void LoRaWebServer::handleNodeControl() {
+    if (!server->hasArg("command")) {
+        server->send(400, "text/plain", "Error: Comando requerido");
+        return;
+    }
+    
+    String command = server->arg("command");
+    
+    // Validar comando
+    if (command.length() < 2) {
+        server->send(400, "text/plain", "Error: Comando muy corto");
+        return;
+    }
+    
+    // Rellenar comando a 6 caracteres
+    while (command.length() < 6) {
+        command += "0";
+    }
+    
+    // Ejecutar comando
+    if (functionsRef) {
+        functionsRef->Functions_Request(command);
+        functionsRef->Functions_Run();
+        
+        Serial.printf("WebServer ejecutó: %s\n", command.c_str());
+        server->send(200, "text/plain", "Comando ejecutado: " + command);
+    } else {
+        server->send(500, "text/plain", "Error: Functions no disponible");
+    }
+}
+
+// ✅ NUEVO: Cambiar dirección del nodo
+void LoRaWebServer::handleSetAddress() {
+    if (!server->hasArg("address")) {
+        server->send(400, "application/json", "{\"error\":\"Dirección requerida\"}");
+        return;
+    }
+    
+    String newAddress = server->arg("address");
+    
+    // Validar que sea un solo carácter
+    if (newAddress.length() != 1) {
+        server->send(400, "application/json", "{\"error\":\"Dirección debe ser un solo carácter\"}");
+        return;
+    }
+    
+    char newChar = newAddress.charAt(0);
+    
+    // Validar rango (por ejemplo, solo A-Z, 1-9)
+    if (!((newChar >= 'A' && newChar <= 'Z') || (newChar >= '1' && newChar <= '9'))) {
+        server->send(400, "application/json", "{\"error\":\"Dirección debe ser A-Z o 1-9\"}");
+        return;
+    }
+    
+    // Cambiar la dirección
+    if (nodeRef) {
+        nodeRef->local_Address = newChar;
+        Serial.printf("Nueva dirección del nodo: %c (%d)\n", newChar, (int)newChar);
+        
+        String response = "{\"success\":true,\"new_address\":\"" + String(newChar) + 
+                         "\",\"ascii_value\":" + String((int)newChar) + "}";
+        server->send(200, "application/json", response);
+    } else {
+        server->send(500, "application/json", "{\"error\":\"Nodo no disponible\"}");
+    }
+}
+
+// ✅ NUEVO: Obtener estado completo
+void LoRaWebServer::handleGetStatus() {
+    StaticJsonDocument<400> doc;
+    
+    doc["timestamp"] = millis();
+    doc["system"]["name"] = "LoRa Security System";
+    doc["system"]["version"] = "1.0";
+    doc["system"]["uptime_ms"] = millis();
+    
+    doc["wifi"]["ssid"] = WiFi.SSID();
+    doc["wifi"]["ip"] = WiFi.localIP().toString();
+    doc["wifi"]["rssi"] = WiFi.RSSI();
+    doc["wifi"]["status"] = (WiFi.status() == WL_CONNECTED) ? "connected" : "disconnected";
+    
+    if (nodeRef) {
+        doc["node"]["address_char"] = String(nodeRef->local_Address);
+        doc["node"]["address_ascii"] = (int)nodeRef->local_Address;
+        doc["node"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+        
+        // ✅ AÑADIR: Estado de forzado de zonas
+        doc["node"]["zone_a_force"] = nodeRef->Zone_A_Force;
+        doc["node"]["zone_a_forzar"] = nodeRef->Zone_A_Forzar;
+        doc["node"]["zone_b_force"] = nodeRef->Zone_B_Force;
+        doc["node"]["zone_b_forzar"] = nodeRef->Zone_B_Forzar;
+        doc["node"]["fuente_force"] = nodeRef->Fuente_in_Force;
+        doc["node"]["fuente_forzar"] = nodeRef->Fuente_in_Forzar;
+    }
+    
+    if (masterRef && masterRef->Mode) {
+        doc["master"]["node_count"] = masterRef->nodeNumber;
+        doc["master"]["next_node"] = masterRef->Nodo_Proximo;
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    server->send(200, "application/json", response);
+}
+
+bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
+
+  Serial.println("\n🌐 ENVIANDO DATOS AL SERVIDOR EXTERNO...");
+  
+  // Verificar conexión WiFi
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ Error: WiFi no conectado");
+    return false;
+  }
+  
+  // Construir URL completa
+  Serial.println("🎯 URL destino: " + String(apiEndpoint));
+
+  // Configurar conexión HTTP
+  http.begin(apiEndpoint);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("User-Agent", "ESP32-Master/1.0");
+  http.setTimeout(timeoutHTTP);
+
+  Serial.println("📦 JSON enviando " + JsonString);
+
+  // Realizar petición POST
+  httpResponseCode = http.POST(JsonString);
+
+  // Procesar respuesta
+  if (httpResponseCode > 0) {
+    respuesta = http.getString();
+    Serial.println("📥 Código respuesta: " + String(httpResponseCode));
+    Serial.println("📄 Respuesta servidor: " + respuesta);
+    
+    if (httpResponseCode == 200 || httpResponseCode == 201) {
+      Serial.println("✅ Datos enviados exitosamente al servidor externo");
+      http.end();
+      return true;
+    } else {
+      Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
+      http.end();
+      return false;
+    }
+  } else {
+    Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
+    Serial.println("   Error: " + String(http.errorToString(httpResponseCode)));
+    http.end();
+    return false;
+  }
+}
+
+//6. HTTP Send
+    //   void sendJsonToMongoDB() {
+    //     if (WiFi.status() == WL_CONNECTED) {
+    //       jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
+    //       httpResponseCode = http.POST(jsonString);
+    //       if (httpResponseCode > 0) {
+    //         String response = http.getString();
+    //         Serial.println(httpResponseCode);
+    //         Serial.println(response);
+    //       } else {
+    //         Serial.println("Error en la solicitud HTTP");
+    //       }
+    //       Serial.println(jsonString);
+    //       http.end(); // Finaliza la conexión HTTP
+    //     }
+    //     else {
+    //       Serial.println("WiFi not connected");
+    //     }
+    //   }
+    //   void http_Post() {
+    //     jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
+    //     httpResponseCode = http.POST(jsonString); // Realizar petición POST
+    //     Serial.println("📦 JSON enviando: " + jsonString);
+    //     // Procesar respuesta
+    //     if (httpResponseCode > 0) {
+    //       String respuesta = http.getString();
+    //       Serial.println("📥 Código respuesta: " + String(httpResponseCode));
+    //       Serial.println("📄 Respuesta servidor: " + respuesta);
+    //       if (httpResponseCode == 200 || httpResponseCode == 201) {
+    //         Serial.println("✅ Datos enviados exitosamente al servidor externo");
+    //         http.end();
+    //         // return true;
+    //       } else {
+    //         Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
+    //         http.end();
+    //         // return false;
+    //       }
+    //     } else {
+    //       Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
+    //       Serial.println("   Error: " + http.errorToString(httpResponseCode));
+    //       http.end();
+    //       // return false;
+    //     }
+    //       http.end();
+    //   }
+    //   void DeserializeJson(){
+    //     // jsonString = "{\"comm\":1,\"node\":3,\"zoneA\":100,\"zoneB\":100,\"output1\":0,\"output2\":1}"; // Ejemplo de cadena JSON
+    //     DeserializationError error = deserializeJson(doc, jsonString);
+    //     if (error) {
+    //       Serial.print(F("deserializeJson() failed: "));
+    //       Serial.println(error.f_str());
+    //       return;
+    //     }
+    //     // nombre = doc["nombre"].as<String>();
+    //     nombre = doc["temperature"];
+    //     valueJson = doc["humidity"];   //.as<int>();
+    //     Serial.print("MCU: ");
+    //     Serial.println(nombre);
+    //     Serial.print("Valor: ");
+    //     Serial.println(valueJson);
+    //   }
+    //   void registerNode() {
+    //     String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
+    //     int httpResponseCode = http.POST(payload);
+    //     if (httpResponseCode > 0) {
+    //       String response = http.getString();
+    //       Serial.println("Node registered: " + response);
+    //     }
+    //     http.end();
+    //   }

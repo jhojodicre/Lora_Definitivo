@@ -22,6 +22,7 @@ public:
     void   Lora_Master_DB();
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
+    void   Lora_IO_Zones_Force();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -84,6 +85,15 @@ public:
         String    rx_master_lora_5;
         String    rx_master_lora_6;
         String    rx_master_lora_7;
+
+                // Forzados
+        bool    Zone_A_Force;
+        bool    Zone_B_Force;
+        bool    Fuente_in_Force;
+
+        bool    Zone_A_Forzar;
+        bool    Zone_B_Forzar;
+        bool    Fuente_in_Forzar;
 private:
     // Entradas Fisicas
         int     Zona_A_in=38;
@@ -99,6 +109,7 @@ private:
 
         int     Fuente_in=43; // 3.3V
 
+        
         // Estadon del Nodo
         bool    Node_Status;
         String  Node_Status_str;
@@ -112,6 +123,8 @@ private:
         bool    Zone_AB_ACK;
 
         bool    Fuente_in_ST;
+
+
 
         // Estados de Zonas
         bool    Zone_A_ST;

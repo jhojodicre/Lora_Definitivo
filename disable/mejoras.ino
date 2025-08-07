@@ -17,12 +17,20 @@
 #include <WiFi.h>        // Librería para conectividad WiFi
 #include <WebServer.h>   // Librería para servidor HTTP
 #include <ArduinoJson.h> // Librería para manejo de JSON
+#include <HTTPClient.h>  // Librería para cliente HTTP (enviar datos)
 
 // ===============================
 // CONFIGURACIÓN DE RED WIFI
 // ===============================
 const char* ssid = "TU_WIFI_NOMBRE";         // Cambia por el nombre de tu red WiFi
 const char* password = "TU_WIFI_PASSWORD";   // Cambia por la contraseña de tu WiFi
+
+// ===============================
+// CONFIGURACIÓN DEL SERVIDOR EXTERNO
+// ===============================
+const char* servidorExterno = "http://192.168.1.100:3000"; // Cambia por la IP/URL de tu servidor
+const char* endpointExterno = "/api/nodes";                 // Endpoint del servidor externo
+const int timeoutHTTP = 5000;                              // Timeout para peticiones HTTP (5 segundos)
 
 // ===============================
 // CONFIGURACIÓN DEL SERVIDOR
@@ -36,6 +44,23 @@ String lastMessage = "";      // Último mensaje recibido
 String nodeStatus = "idle";   // Estado actual del nodo
 int messageCount = 0;         // Contador de mensajes recibidos
 
+// Array para almacenar datos de los nodos (máximo 50 nodos)
+struct NodeData {
+  String nodoId;
+  String comu;
+  String zoneA;
+  String zoneB;
+  String output1;
+  String output2;
+  String fuente;
+  unsigned long lastUpdate;  // Timestamp de última actualización
+  bool isActive;            // Si el nodo está activo
+};
+
+NodeData nodos[50];          // Array de hasta 50 nodos
+int totalNodos = 0;          // Contador de nodos registrados
+unsigned long timeoutNodo = 30000; // Timeout de nodo (30 segundos)
+
 // ===============================
 // CONFIGURACIÓN INICIAL
 // ===============================
@@ -43,6 +68,9 @@ void setup() {
   // Inicializar comunicación serie para debugging
   Serial.begin(115200);
   Serial.println("\n=== INICIANDO ESP32 SERVIDOR WEB ===");
+  
+  // Inicializar array de nodos
+  inicializarNodos();
   
   // Configurar pines si es necesario (ejemplo)
   // pinMode(LED_BUILTIN, OUTPUT);
@@ -67,11 +95,40 @@ void loop() {
   // Manejar solicitudes HTTP entrantes
   server.handleClient();
   
+  // Limpiar nodos expirados cada 10 segundos
+  static unsigned long ultimaLimpieza = 0;
+  if (millis() - ultimaLimpieza > 10000) {
+    limpiarNodosExpirados();
+    ultimaLimpieza = millis();
+  }
+  
   // Aquí puedes agregar otras tareas del ESP32
   // Por ejemplo: leer sensores, controlar actuadores, etc.
   
   // Pequeña pausa para evitar sobrecarga del procesador
   delay(10);
+}
+
+// ===============================
+// FUNCIÓN: INICIALIZAR NODOS
+// ===============================
+void inicializarNodos() {
+  Serial.println("📋 Inicializando array de nodos...");
+  
+  
+  for (int i = 0; i < 50; i++) {
+    nodos[i].nodoId = "";
+    nodos[i].comu = "0";
+    nodos[i].zoneA = "0";
+    nodos[i].zoneB = "0";
+    nodos[i].output1 = "0";
+    nodos[i].output2 = "0";
+    nodos[i].fuente = "0";
+    nodos[i].lastUpdate = 0;
+    nodos[i].isActive = false;
+  }
+  
+  Serial.println("✅ Array de nodos inicializado");
 }
 
 // ===============================
@@ -131,9 +188,34 @@ void configurarRutasServidor() {
     manejarEstadoNodo();
   });
   
+  // RUTA 4.1: Datos de todos los nodos (GET /api/nodes)
+  server.on("/api/nodes", HTTP_GET, []() {
+    manejarDatosNodos();
+  });
+  
+  // RUTA 4.2: Recibir datos de un nodo individual (POST /api/node)
+  server.on("/api/node", HTTP_POST, []() {
+    manejarDatoNodoIndividual();
+  });
+  
   // RUTA 5: Manejo de preflight CORS (OPTIONS)
   server.on("/api/send", HTTP_OPTIONS, []() {
     manejarPreflightCORS();
+  });
+  
+  // RUTA 5.1: CORS para endpoint /api/node
+  server.on("/api/node", HTTP_OPTIONS, []() {
+    manejarPreflightCORS();
+  });
+  
+  // RUTA 5.2: Endpoint simple de prueba POST
+  server.on("/api/ping", HTTP_POST, []() {
+    manejarPingTest();
+  });
+  
+  // RUTA 5.3: Probar conexión con servidor externo
+  server.on("/api/test-external", HTTP_GET, []() {
+    manejarPruebaServidorExterno();
   });
   
   // RUTA 6: Página 404 para rutas no encontradas
@@ -173,6 +255,7 @@ void manejarPaginaPrincipal() {
 // ===============================
 void manejarMensajeRecibido() {
   Serial.println("\n📨 MENSAJE RECIBIDO - POST /api/send");
+  Serial.println("🔗 Cliente conectado desde: " + server.client().remoteIP().toString());
   
   // Configurar headers CORS para permitir solicitudes desde navegadores
   configurarHeadersCORS();
@@ -207,203 +290,18 @@ void manejarMensajeRecibido() {
   Serial.println("💬 Mensaje: " + mensaje);
   
   // Procesar el mensaje
-  bool exito = procesarMensaje(nodeId, mensaje);
+  // bool exito = procesarMensaje(nodeId, mensaje);
   
   // Enviar respuesta apropiada
   if (exito) {
     enviarExitoJSON("Mensaje procesado correctamente");
     messageCount++;
     lastMessage = mensaje;
+    Serial.println("✅ Respuesta de éxito enviada al cliente");
   } else {
     enviarErrorJSON("Error al procesar el mensaje");
+    Serial.println("❌ Respuesta de error enviada al cliente");
   }
-}
-
-// ===============================
-// FUNCIÓN: PROCESAR MENSAJE
-// ===============================
-bool procesarMensaje(String nodeId, String mensaje) {
-  Serial.println("\n🔄 PROCESANDO MENSAJE...");
-  
-  // Verificar formato básico del mensaje (debe ser N + nodeId + función + números)
-  String prefijoEsperado = "N" + nodeId;
-  
-  if (!mensaje.startsWith(prefijoEsperado)) {
-    Serial.println("❌ El mensaje no corresponde a este nodo");
-    Serial.println("   Esperado: " + prefijoEsperado + "...");
-    Serial.println("   Recibido: " + mensaje);
-    return false;
-  }
-  
-  // Verificar longitud del mensaje (debe ser exactamente 6 caracteres)
-  if (mensaje.length() != 6) {
-    Serial.println("❌ Longitud de mensaje incorrecta: " + String(mensaje.length()));
-    Serial.println("   Debe ser exactamente 6 caracteres");
-    return false;
-  }
-  
-  // Extraer componentes del mensaje
-  // Formato: N[nodeId][función][número][param1][param2]
-  // Ejemplo: N1A123 = Nodo 1, Función A, Número 1, Parámetros 2,3
-  
-  char funcion = mensaje.charAt(2);    // Tercer carácter (A, B, C, D, E)
-  char numero = mensaje.charAt(3);     // Cuarto carácter (0-9)
-  char param1 = mensaje.charAt(4);     // Quinto carácter (0-9)
-  char param2 = mensaje.charAt(5);     // Sexto carácter (0-9)
-  
-  Serial.println("📋 DESGLOSE DEL MENSAJE:");
-  Serial.println("   Nodo: " + nodeId);
-  Serial.println("   Función: " + String(funcion));
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetro 1: " + String(param1));
-  Serial.println("   Parámetro 2: " + String(param2));
-  
-  // Ejecutar acción según la función
-  bool resultado = ejecutarFuncion(funcion, numero, param1, param2);
-  
-  if (resultado) {
-    Serial.println("✅ Mensaje procesado exitosamente");
-    nodeStatus = "active";
-  } else {
-    Serial.println("❌ Error al ejecutar la función");
-    nodeStatus = "error";
-  }
-  
-  return resultado;
-}
-
-// ===============================
-// FUNCIÓN: EJECUTAR FUNCIÓN
-// ===============================
-bool ejecutarFuncion(char funcion, char numero, char param1, char param2) {
-  Serial.println("⚙️  EJECUTANDO FUNCIÓN: " + String(funcion));
-  
-  // Convertir caracteres a números para facilitar el procesamiento
-  int num = numero - '0';    // Convertir char a int
-  int p1 = param1 - '0';     // Convertir char a int
-  int p2 = param2 - '0';     // Convertir char a int
-  
-  switch (funcion) {
-    case 'A':
-      return ejecutarFuncionA(num, p1, p2);
-      
-    case 'B':
-      return ejecutarFuncionB(num, p1, p2);
-      
-    case 'C':
-      return ejecutarFuncionC(num, p1, p2);
-      
-    case 'D':
-      return ejecutarFuncionD(num, p1, p2);
-      
-    case 'E':
-      return ejecutarFuncionE(num, p1, p2);
-      
-    default:
-      Serial.println("❌ Función desconocida: " + String(funcion));
-      return false;
-  }
-}
-
-// ===============================
-// FUNCIÓN A: CONTROL ZONA A
-// ===============================
-bool ejecutarFuncionA(int numero, int param1, int param2) {
-  Serial.println("🔵 FUNCIÓN A - Control Zona A");
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetros: " + String(param1) + ", " + String(param2));
-  
-  // AQUÍ IMPLEMENTA TU LÓGICA ESPECÍFICA PARA LA ZONA A
-  // Ejemplos:
-  // - Controlar relés
-  // - Activar motores
-  // - Configurar sensores
-  
-  // Ejemplo básico: controlar LED según parámetros
-  /*
-  if (param1 == 1) {
-    digitalWrite(LED_BUILTIN, HIGH);  // Encender LED
-    Serial.println("   LED encendido");
-  } else {
-    digitalWrite(LED_BUILTIN, LOW);   // Apagar LED
-    Serial.println("   LED apagado");
-  }
-  */
-  
-  Serial.println("✅ Función A ejecutada correctamente");
-  return true;  // Retornar true si la operación fue exitosa
-}
-
-// ===============================
-// FUNCIÓN B: CONTROL ZONA B
-// ===============================
-bool ejecutarFuncionB(int numero, int param1, int param2) {
-  Serial.println("🟢 FUNCIÓN B - Control Zona B");
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetros: " + String(param1) + ", " + String(param2));
-  
-  // AQUÍ IMPLEMENTA TU LÓGICA ESPECÍFICA PARA LA ZONA B
-  
-  Serial.println("✅ Función B ejecutada correctamente");
-  return true;
-}
-
-// ===============================
-// FUNCIÓN C: CONTROL SALIDAS
-// ===============================
-bool ejecutarFuncionC(int numero, int param1, int param2) {
-  Serial.println("🟡 FUNCIÓN C - Control Salidas Digitales");
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetros: " + String(param1) + ", " + String(param2));
-  
-  // AQUÍ IMPLEMENTA TU LÓGICA PARA CONTROL DE SALIDAS
-  // Ejemplo: controlar múltiples salidas digitales
-  
-  Serial.println("✅ Función C ejecutada correctamente");
-  return true;
-}
-
-// ===============================
-// FUNCIÓN D: CONFIGURACIÓN
-// ===============================
-bool ejecutarFuncionD(int numero, int param1, int param2) {
-  Serial.println("🟠 FUNCIÓN D - Configuración del Sistema");
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetros: " + String(param1) + ", " + String(param2));
-  
-  // AQUÍ IMPLEMENTA LÓGICA DE CONFIGURACIÓN
-  // Ejemplos:
-  // - Cambiar configuraciones
-  // - Guardar parámetros en EEPROM
-  // - Reiniciar configuraciones
-  
-  if (numero == 0 && param1 == 0 && param2 == 0) {
-    Serial.println("   Reset de configuración solicitado");
-    // Implementar reset aquí
-  }
-  
-  Serial.println("✅ Función D ejecutada correctamente");
-  return true;
-}
-
-// ===============================
-// FUNCIÓN E: RESET SISTEMA
-// ===============================
-bool ejecutarFuncionE(int numero, int param1, int param2) {
-  Serial.println("🔴 FUNCIÓN E - Reset del Sistema");
-  Serial.println("   Número: " + String(numero));
-  Serial.println("   Parámetros: " + String(param1) + ", " + String(param2));
-  
-  // AQUÍ IMPLEMENTA LÓGICA DE RESET
-  
-  if (numero == 9 && param1 == 9 && param2 == 9) {
-    Serial.println("   ⚠️  RESET COMPLETO SOLICITADO");
-    // Implementar reset completo aquí
-    // ESP.restart();  // Descomentar para reiniciar el ESP32
-  }
-  
-  Serial.println("✅ Función E ejecutada correctamente");
-  return true;
 }
 
 // ===============================
@@ -454,6 +352,316 @@ void manejarEstadoNodo() {
 }
 
 // ===============================
+// MANEJADOR: DATO DE NODO INDIVIDUAL
+// ===============================
+void manejarDatoNodoIndividual() {
+  Serial.println("\n📦 RECIBIENDO DATOS DE NODO INDIVIDUAL - POST /api/node");
+  
+  configurarHeadersCORS();
+  
+  // Verificar que se recibió contenido JSON
+  if (!server.hasArg("plain")) {
+    Serial.println("❌ Error: No se recibió contenido JSON");
+    enviarErrorJSON("No se recibió contenido JSON");
+    return;
+  }
+  
+  // Obtener el cuerpo de la solicitud
+  String cuerpoJSON = server.arg("plain");
+  Serial.println("📝 JSON de nodo recibido: " + cuerpoJSON);
+  
+  // Parsear el JSON recibido
+  DynamicJsonDocument documento(512);
+  DeserializationError error = deserializeJson(documento, cuerpoJSON);
+  
+  // Verificar que el JSON es válido
+  if (error) {
+    Serial.println("❌ Error al parsear JSON: " + String(error.c_str()));
+    enviarErrorJSON("JSON inválido");
+    return;
+  }
+  
+  // Extraer datos del nodo
+  String nodoId = documento["nodoId"] | "";
+  String comu = documento["comu"] | "0";
+  String zoneA = documento["zoneA"] | "0";
+  String zoneB = documento["zoneB"] | "0";
+  String output1 = documento["output1"] | "0";
+  String output2 = documento["output2"] | "0";
+  String fuente = documento["fuente"] | "0";
+  
+  // Validar que el nodoId no esté vacío
+  if (nodoId == "") {
+    Serial.println("❌ Error: nodoId requerido");
+    enviarErrorJSON("nodoId es requerido");
+    return;
+  }
+  
+  Serial.println("🎯 Actualizando datos del Nodo: " + nodoId);
+  Serial.println("   Comu: " + comu + " | ZoneA: " + zoneA + " | ZoneB: " + zoneB);
+  Serial.println("   Out1: " + output1 + " | Out2: " + output2 + " | Fuente: " + fuente);
+  
+  // Actualizar o crear el nodo en el array LOCAL
+  bool actualizado = actualizarNodo(nodoId, comu, zoneA, zoneB, output1, output2, fuente);
+  
+  // ENVIAR DATOS AL SERVIDOR EXTERNO
+  bool enviadoExterno = enviarDatosAlServidorExterno(nodoId, comu, zoneA, zoneB, output1, output2, fuente);
+  
+  // Evaluar resultado de ambas operaciones
+  if (actualizado && enviadoExterno) {
+    enviarExitoJSON("Datos del nodo " + nodoId + " actualizados localmente y enviados al servidor");
+    Serial.println("✅ Nodo " + nodoId + " procesado completamente (local + externo)");
+  } else if (actualizado && !enviadoExterno) {
+    enviarExitoJSON("Datos del nodo " + nodoId + " actualizados localmente (error al enviar al servidor externo)");
+    Serial.println("⚠️  Nodo " + nodoId + " actualizado solo localmente");
+  } else if (!actualizado && enviadoExterno) {
+    enviarErrorJSON("Error local del nodo " + nodoId + " pero enviado al servidor externo");
+    Serial.println("⚠️  Nodo " + nodoId + " enviado externamente pero error local");
+  } else {
+    enviarErrorJSON("Error completo al procesar el nodo " + nodoId);
+    Serial.println("❌ Error completo procesando nodo " + nodoId);
+  }
+}
+
+// ===============================
+// FUNCIÓN: ACTUALIZAR NODO
+// ===============================
+bool actualizarNodo(String nodoId, String comu, String zoneA, String zoneB, 
+                    String output1, String output2, String fuente) {
+  
+  // Buscar si el nodo ya existe
+  int indice = -1;
+  for (int i = 0; i < 50; i++) {
+    if (nodos[i].nodoId == nodoId && nodos[i].isActive) {
+      indice = i;
+      break;
+    }
+  }
+  
+  // Si no existe, buscar un slot libre
+  if (indice == -1) {
+    for (int i = 0; i < 50; i++) {
+      if (!nodos[i].isActive) {
+        indice = i;
+        totalNodos++;
+        Serial.println("🆕 Nuevo nodo registrado en posición " + String(i));
+        break;
+      }
+    }
+  }
+  
+  // Si no hay espacio disponible
+  if (indice == -1) {
+    Serial.println("❌ No hay espacio para más nodos (máximo 50)");
+    return false;
+  }
+  
+  // Actualizar datos del nodo
+  nodos[indice].nodoId = nodoId;
+  nodos[indice].comu = comu;
+  nodos[indice].zoneA = zoneA;
+  nodos[indice].zoneB = zoneB;
+  nodos[indice].output1 = output1;
+  nodos[indice].output2 = output2;
+  nodos[indice].fuente = fuente;
+  nodos[indice].lastUpdate = millis();
+  nodos[indice].isActive = true;
+  
+  return true;
+}
+
+// ===============================
+// FUNCIÓN: LIMPIAR NODOS EXPIRADOS
+// ===============================
+void limpiarNodosExpirados() {
+  unsigned long tiempoActual = millis();
+  int nodosLimpiados = 0;
+  
+  for (int i = 0; i < 50; i++) {
+    if (nodos[i].isActive && (tiempoActual - nodos[i].lastUpdate) > timeoutNodo) {
+      Serial.println("⏰ Nodo " + nodos[i].nodoId + " expirado, removiendo...");
+      nodos[i].isActive = false;
+      nodos[i].nodoId = "";
+      nodosLimpiados++;
+      totalNodos--;
+    }
+  }
+  
+  if (nodosLimpiados > 0) {
+    Serial.println("🧹 " + String(nodosLimpiados) + " nodos expirados removidos");
+  }
+}
+
+// ===============================
+// FUNCIÓN: ENVIAR DATOS AL SERVIDOR EXTERNO
+// ===============================
+bool enviarDatosAlServidorExterno(String nodoId, String comu, String zoneA, String zoneB, 
+                                  String output1, String output2, String fuente) {
+  
+  Serial.println("\n🌐 ENVIANDO DATOS AL SERVIDOR EXTERNO...");
+  
+  // Verificar conexión WiFi
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ Error: WiFi no conectado");
+    return false;
+  }
+  
+  // Construir URL completa
+  String urlCompleta = String(servidorExterno) + String(endpointExterno);
+  Serial.println("🎯 URL destino: " + urlCompleta);
+  
+  // Configurar conexión HTTP
+  http.begin(urlCompleta);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("User-Agent", "ESP32-Master/1.0");
+  http.setTimeout(timeoutHTTP);
+  
+  // Crear JSON con los datos del nodo
+  DynamicJsonDocument documento(512);
+  documento["nodoId"] = nodoId;
+  documento["comu"] = comu;
+  documento["zoneA"] = zoneA;
+  documento["zoneB"] = zoneB;
+  documento["output1"] = output1;
+  documento["output2"] = output2;
+  documento["fuente"] = fuente;
+  documento["timestamp"] = millis();
+  documento["source"] = "ESP32-Master";
+  
+  // Convertir JSON a String
+  String jsonString;
+  serializeJson(documento, jsonString);
+  
+  Serial.println("📦 JSON enviando: " + jsonString);
+  
+  // Realizar petición POST
+  int codigoRespuesta = http.POST(jsonString);
+  
+  // Procesar respuesta
+  if (codigoRespuesta > 0) {
+    String respuesta = http.getString();
+    Serial.println("📥 Código respuesta: " + String(codigoRespuesta));
+    Serial.println("📄 Respuesta servidor: " + respuesta);
+    
+    if (codigoRespuesta == 200 || codigoRespuesta == 201) {
+      Serial.println("✅ Datos enviados exitosamente al servidor externo");
+      http.end();
+      return true;
+    } else {
+      Serial.println("⚠️  Servidor respondió con código: " + String(codigoRespuesta));
+      http.end();
+      return false;
+    }
+  } else {
+    Serial.println("❌ Error en petición HTTP: " + String(codigoRespuesta));
+    Serial.println("   Error: " + http.errorToString(codigoRespuesta));
+    http.end();
+    return false;
+  }
+}
+// ===============================
+// MANEJADOR: DATOS DE NODOS (MODIFICADO)
+// ===============================
+void manejarDatosNodos() {
+  Serial.println("📊 Solicitud GET /api/nodes - Enviando datos almacenados");
+  
+  configurarHeadersCORS();
+  
+  // Limpiar nodos expirados antes de enviar datos
+  limpiarNodosExpirados();
+  
+  // Crear array JSON con datos almacenados
+  DynamicJsonDocument respuesta(4096);  // Buffer más grande
+  JsonArray nodosArray = respuesta.createNestedArray();
+  
+  int nodosEnviados = 0;
+  
+  // Recorrer array de nodos y enviar solo los activos
+  for (int i = 0; i < 50; i++) {
+    if (nodos[i].isActive) {
+      JsonObject nodo = nodosArray.createNestedObject();
+      nodo["nodoId"] = nodos[i].nodoId;
+      nodo["comu"] = nodos[i].comu;
+      nodo["zoneA"] = nodos[i].zoneA;
+      nodo["zoneB"] = nodos[i].zoneB;
+      nodo["output1"] = nodos[i].output1;
+      nodo["output2"] = nodos[i].output2;
+      nodo["fuente"] = nodos[i].fuente;
+      
+      // Información adicional para debugging
+      unsigned long tiempoTranscurrido = (millis() - nodos[i].lastUpdate) / 1000;
+      Serial.println("   Nodo " + nodos[i].nodoId + 
+                     " - Última actualización: " + String(tiempoTranscurrido) + "s");
+      
+      nodosEnviados++;
+    }
+  }
+  
+  String jsonString;
+  serializeJson(respuesta, jsonString);
+  
+  Serial.println("📤 Enviando " + String(nodosEnviados) + " nodos activos");
+  Serial.println("📊 Total nodos en memoria: " + String(totalNodos));
+  
+  server.send(200, "application/json", jsonString);
+  Serial.println("✅ Datos de nodos enviados correctamente");
+}
+
+// ===============================
+// MANEJADOR: PING TEST
+// ===============================
+void manejarPingTest() {
+  Serial.println("🏓 Solicitud POST /api/ping - Ping test");
+  
+  configurarHeadersCORS();
+  
+  DynamicJsonDocument respuesta(256);
+  respuesta["success"] = true;
+  respuesta["message"] = "Pong! ESP32 respondiendo correctamente";
+  respuesta["timestamp"] = millis();
+  respuesta["ip"] = WiFi.localIP().toString();
+  
+  String jsonString;
+  serializeJson(respuesta, jsonString);
+  
+  Serial.println("📤 Enviando pong: " + jsonString);
+  server.send(200, "application/json", jsonString);
+  Serial.println("✅ Ping test completado");
+}
+
+// ===============================
+// MANEJADOR: PRUEBA SERVIDOR EXTERNO
+// ===============================
+void manejarPruebaServidorExterno() {
+  Serial.println("🌐 Solicitud GET /api/test-external - Probando servidor externo");
+  
+  configurarHeadersCORS();
+  
+  // Probar conexión con datos de prueba
+  bool conexionExitosa = enviarDatosAlServidorExterno("TEST", "1", "0", "1", "0", "1", "1");
+  
+  DynamicJsonDocument respuesta(512);
+  respuesta["success"] = conexionExitosa;
+  respuesta["serverUrl"] = String(servidorExterno) + String(endpointExterno);
+  respuesta["timestamp"] = millis();
+  
+  if (conexionExitosa) {
+    respuesta["message"] = "Conexión exitosa con servidor externo";
+    respuesta["status"] = "connected";
+  } else {
+    respuesta["message"] = "Error al conectar con servidor externo";
+    respuesta["status"] = "disconnected";
+    respuesta["troubleshooting"] = "Verificar URL, red y que el servidor esté funcionando";
+  }
+  
+  String jsonString;
+  serializeJson(respuesta, jsonString);
+  
+  server.send(conexionExitosa ? 200 : 500, "application/json", jsonString);
+  Serial.println(conexionExitosa ? "✅ Prueba servidor externo OK" : "❌ Prueba servidor externo FALLO");
+}
+
+// ===============================
 // MANEJADOR: PREFLIGHT CORS
 // ===============================
 void manejarPreflightCORS() {
@@ -486,24 +694,33 @@ void manejarPaginaNoEncontrada() {
 // FUNCIÓN: CONFIGURAR HEADERS CORS
 // ===============================
 void configurarHeadersCORS() {
+  Serial.println("🌐 Configurando headers CORS...");
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   server.sendHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   server.sendHeader("Access-Control-Max-Age", "86400");
+  server.sendHeader("Connection", "close");
+  Serial.println("✅ Headers CORS configurados");
 }
 
 // ===============================
 // FUNCIÓN: ENVIAR ERROR JSON
 // ===============================
 void enviarErrorJSON(String mensaje) {
+  Serial.println("📤 Preparando respuesta de error...");
+  
+  configurarHeadersCORS();  // Asegurar CORS en la respuesta
+  
   DynamicJsonDocument respuesta(256);
   respuesta["success"] = false;
   respuesta["error"] = mensaje;
   respuesta["timestamp"] = millis();
+  respuesta["nodeId"] = "1";  // ID del nodo que responde
   
   String jsonString;
   serializeJson(respuesta, jsonString);
   
+  Serial.println("📤 Enviando JSON de error: " + jsonString);
   server.send(400, "application/json", jsonString);
   Serial.println("❌ Error enviado: " + mensaje);
 }
@@ -512,14 +729,20 @@ void enviarErrorJSON(String mensaje) {
 // FUNCIÓN: ENVIAR ÉXITO JSON
 // ===============================
 void enviarExitoJSON(String mensaje) {
+  Serial.println("📤 Preparando respuesta de éxito...");
+  
+  configurarHeadersCORS();  // Asegurar CORS en la respuesta
+  
   DynamicJsonDocument respuesta(256);
   respuesta["success"] = true;
   respuesta["message"] = mensaje;
   respuesta["timestamp"] = millis();
+  respuesta["nodeId"] = "1";  // ID del nodo que responde
   
   String jsonString;
   serializeJson(respuesta, jsonString);
   
+  Serial.println("📤 Enviando JSON de éxito: " + jsonString);
   server.send(200, "application/json", jsonString);
   Serial.println("✅ Éxito enviado: " + mensaje);
 }
@@ -537,23 +760,47 @@ void enviarExitoJSON(String mensaje) {
  *    - WiFi.h (incluida en ESP32)
  *    - WebServer.h (incluida en ESP32)
  *    - ArduinoJson.h (buscar en Library Manager)
+ *    - HTTPClient.h (incluida en ESP32)
  * 
  * 2. CONFIGURAR CREDENCIALES WIFI:
  *    - Cambiar "TU_WIFI_NOMBRE" por el nombre de tu red
  *    - Cambiar "TU_WIFI_PASSWORD" por tu contraseña
  * 
- * 3. CARGAR CÓDIGO AL ESP32:
+ * 3. CONFIGURAR SERVIDOR EXTERNO:
+ *    - Cambiar "http://192.168.1.100:3000" por la URL de tu servidor
+ *    - Cambiar "/api/nodes" por el endpoint correcto
+ *    - Ajustar timeout si es necesario
+ * 
+ * 4. CARGAR CÓDIGO AL ESP32:
  *    - Seleccionar la placa ESP32 en Arduino IDE
  *    - Compilar y subir el código
  * 
- * 4. VERIFICAR FUNCIONAMIENTO:
+ * 5. VERIFICAR FUNCIONAMIENTO:
  *    - Abrir Monitor Serie (115200 baudios)
  *    - Anotar la dirección IP que aparece
- *    - Actualizar la IP en tu interfaz web
+ *    - Probar endpoint /api/test-external para verificar conexión
  * 
- * 5. PROBAR CONEXIÓN:
+ * 6. PROBAR CONEXIÓN:
  *    - Acceder a http://IP_DEL_ESP32 en el navegador
+ *    - Usar /api/test-external para probar servidor externo
  *    - Usar NetworkDiagnostics en la interfaz web
+ * 
+ * ==========================================
+ * NUEVOS ENDPOINTS DISPONIBLES
+ * ==========================================
+ * 
+ * POST /api/node - Recibir datos de nodo (ahora envía también al servidor externo)
+ * GET /api/test-external - Probar conexión con servidor externo
+ * 
+ * ==========================================
+ * ARQUITECTURA DE COMUNICACIÓN
+ * ==========================================
+ * 
+ * [Nodos LoRa] → [ESP32 Maestro] → [Servidor Externo]
+ *                      ↓               ↓
+ *                 Almacena local    node-monitor-web
+ *                      ↓
+ *                [Interfaz React] (backup/local)
  * 
  * ==========================================
  * FORMATO DE MENSAJES SOPORTADOS
@@ -569,12 +816,3 @@ void enviarExitoJSON(String mensaje) {
  * 
  * ==========================================
  */
-
-
-        String    nodeJS    = "nodoId";
-        String    commJS    = "comu";
-        String    zoneAJS   = "zoneA";
-        String    zoneBJS   = "zoneB";
-        String    output1JS = "output1";
-        String    output2JS = "output2";
-        String    fuenteJS  = "fuente";

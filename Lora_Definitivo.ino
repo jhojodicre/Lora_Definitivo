@@ -95,24 +95,17 @@
       int         fastTime    =   1;
 
   //-3.5 Variables Para Conection WiFi and MQTT.
-    // Replace the next variables with your SSID/Password combination
-    const char* ssid = "ANTEL_0322";
-    const char* password = "xBKJ474S";
+    
     // Add your MQTT Broker IP address, example:
     //const char* mqtt_server = "192.168.1.144";
-    const char* mqtt_server = "192.168.1.27";
+      const char* mqtt_server = "192.168.1.27";
     // JSON Variables.
-      String jsonString; // Cadena JSON para enviar a MongoDB
-      int nombre;
-      int    valueJson;
-      String nodoJson="";
+      String  jsonString; // Cadena JSON para enviar a MongoDB
+      int     nombre;
+      int     valueJson;
+      String  nodoJson="";
 
       // const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
-      const char* serverName = "http://192.168.1.24:3000/api/nodes"; // URL de tu API de Interfaz WEB
-      int httpResponseCode ;
-
-
-
 
     long lastMsg = 0;
     char msg[50];
@@ -137,10 +130,10 @@
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('2');
     Master    Master(true,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+  
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;
     PubSubClient  client(espClient);
-    HTTPClient    http; // Instancia para HTTPClient
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
   //-4.3 Timer.
     Ticker timer_0;
@@ -206,16 +199,11 @@ void setup(){
       updateTime      = 1000;
       masterTime      = cycleTime*2;
       wakeUpTime      = 30.0;
-
   //S2. Nodo Setup.
     Node.Lora_Setup();
     //S2.1 Nodo Dummy Se;ales Simuladas
     if(!Master.Mode){
       Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-    }
-  //S3. WiFi
-    if(Master.Mode){
-      setup_wifi();
     }
   //S4. MQTT
     if(Master.Mode){
@@ -224,19 +212,9 @@ void setup(){
     }
   //S5. HTTTP Client
     if(Master.Mode){
-      http.begin(serverName);
-      http.addHeader("Content-Type", "application/json");
-    
-    //S-5.1 WiFi (solo Master)
-        // setup_wifi();
-
     //S-5.2 MQTT
       // client.setServer(mqtt_server, 1883);
       // client.setCallback(callback);
-
-    //S-5.3 HTTP Client
-      http.begin(serverName);
-      http.addHeader("Content-Type", "application/json");
 
     //S-5.4 Web Server
       webServer.begin(&Node, &Master, &Correr);
@@ -249,7 +227,6 @@ void loop(){
       F_iniciado=General.Iniciar();
       if(Master.Mode){
         Master.Iniciar();
-        registerNode(); // Registrar el nodo en la base de datos
       }
     }
   
@@ -316,9 +293,7 @@ void loop(){
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         // Node_Print_LORA_RX(); // Imprime los datos recibidos por Lora.
-
       }
-
     //-L4.5 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
         if(Node.F_function_Special){
@@ -355,8 +330,9 @@ void loop(){
       if(Node.F_Master_Update){
         //-L5.4.1 MQTT Publish.
           // Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
-          Node.F_Master_Update=false;
-          http_Post(); // Envia los datos a la WEB.
+          //Update Server.
+          updateServer();
+        Node.F_Master_Update=false;
       }
     //-L5.5 F- Master Execute order from Server
       if(Node.F_Master_Excecute && Master.Mode){
@@ -410,6 +386,14 @@ void loop(){
         // 2 o se envia a MongoDB.
               // sendJsonToMongoDB(); // Envio de Json a MongoDB.
       }
+    //-4.7.4 Update Server.
+      void updateServer() {
+        // Obtener los datos del objeto Node (clase Lora)
+        jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
+
+        // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
+        bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+      }
   //-4.8 Node Functions Complementary.
     //-4.8.1 Nodo Muestra msg Lora_RX
       void Node_Print_LORA_RX(){
@@ -437,26 +421,7 @@ void loop(){
         Correr.Functions_Run(); // Ejecuta la función correspondiente.
       }
 //5. Funciones de Dispositivos Externos. 
-  //-5.1 WiFi
-    void setup_wifi() {
-    delay(10);
-    // We start by connecting to a WiFi network
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    }
+  //-5.1 
   //-5.2 MQTT Reconnect.
     void reconnect() {
       // Loop until we're reconnected
@@ -544,86 +509,6 @@ void loop(){
     }
 
 
-//6. HTTP Send
-  void sendJsonToMongoDB() {
-    if (WiFi.status() == WL_CONNECTED) {
-      jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-      httpResponseCode = http.POST(jsonString);
-
-      if (httpResponseCode > 0) {
-        String response = http.getString();
-        Serial.println(httpResponseCode);
-        Serial.println(response);
-      } else {
-        Serial.println("Error en la solicitud HTTP");
-      }
-      Serial.println(jsonString);
-      http.end(); // Finaliza la conexión HTTP
-    }
-    else {
-      Serial.println("WiFi not connected");
-    }
-  }
-
-  void http_Post() {
-    jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-    httpResponseCode = http.POST(jsonString); // Realizar petición POST
-
-    Serial.println("📦 JSON enviando: " + jsonString);
-    
-    // Procesar respuesta
-    if (httpResponseCode > 0) {
-      String respuesta = http.getString();
-      Serial.println("📥 Código respuesta: " + String(httpResponseCode));
-      Serial.println("📄 Respuesta servidor: " + respuesta);
-      
-      if (httpResponseCode == 200 || httpResponseCode == 201) {
-        Serial.println("✅ Datos enviados exitosamente al servidor externo");
-        http.end();
-        // return true;
-      } else {
-        Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
-        http.end();
-        // return false;
-      }
-    } else {
-      Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
-      Serial.println("   Error: " + http.errorToString(httpResponseCode));
-      http.end();
-      // return false;
-    }
-      http.end();
-  }
-
-  void DeserializeJson(){
-    // jsonString = "{\"comm\":1,\"node\":3,\"zoneA\":100,\"zoneB\":100,\"output1\":0,\"output2\":1}"; // Ejemplo de cadena JSON
-
-    DeserializationError error = deserializeJson(doc, jsonString);
-    if (error) {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
-    }
-    // nombre = doc["nombre"].as<String>();
-    nombre = doc["temperature"];
-    valueJson = doc["humidity"];   //.as<int>();
-    Serial.print("MCU: ");
-    Serial.println(nombre);
-    Serial.print("Valor: ");
-    Serial.println(valueJson);
-  }
-
-  void registerNode() {
-  
-    String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
-    int httpResponseCode = http.POST(payload);
-    
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println("Node registered: " + response);
-    }
-    http.end();
-  }
 
 //10. Miscelanius#include <HTTPClient.h>
 

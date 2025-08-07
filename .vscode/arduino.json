@@ -1,6 +1,6 @@
 {
     "board": "Heltec-esp32:esp32:heltec_wifi_lora_32_V3",
-    "port": "COM6",
+    "port": "COM5",
     "output": "../build",
     "programmer": "Esptool",
     "package": "esp32",

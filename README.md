@@ -242,7 +242,68 @@ fetch('/api/send', {
 
 ---
 
-### 8. **GET /hola-mundo** - Saludo del Sistema
+### 9. **POST /api/force-zones** - Forzar Zonas de Sensores
+**Función:** `manejarForzarZonas()`  
+**Propósito:** Controlar el forzado de valores de sensores (Zone_A, Zone_B, Fuente)
+
+**Parámetros JSON:**
+- `zone_a_force` (boolean, opcional): Valor forzado para Zona A
+- `zone_b_force` (boolean, opcional): Valor forzado para Zona B 
+- `fuente_force` (boolean, opcional): Valor forzado para Fuente
+- `disable_force` (boolean, opcional): Deshabilitar todo el forzado
+
+**Funcionalidad:**
+- Permite sobrescribir valores de sensores reales
+- Activa automáticamente las banderas de forzado (`Zone_A_Forzar`, etc.)
+- Opción para deshabilitar todo el forzado de una vez
+
+**Ejemplo de uso:**
+```javascript
+// Forzar Zona A como activada y Zona B como desactivada
+fetch('/api/force-zones', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+        zone_a_force: true,
+        zone_b_force: false
+    })
+});
+
+// Deshabilitar todo el forzado
+fetch('/api/force-zones', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+        disable_force: true
+    })
+});
+```
+
+**Respuesta JSON:**
+```json
+{
+    "success": true,
+    "message": "Zonas actualizadas: Zone_A(1) Zone_B(0)",
+    "timestamp": 123456,
+    "current_state": {
+        "zone_a_force": true,
+        "zone_a_forzar": true,
+        "zone_b_force": false,
+        "zone_b_forzar": true,
+        "fuente_force": false,
+        "fuente_forzar": false
+    }
+}
+```
+
+**Validaciones:**
+- Verifica la disponibilidad de `nodeRef`
+- Requiere al menos un parámetro válido o `disable_force`
+- JSON válido obligatorio
+
+---
+
+### 10. **GET /hola-mundo** - Saludo del Sistema
 **Función:** `manejarHolaMundo()`  
 **Propósito:** Endpoint de prueba que saluda y muestra información básica del sistema
 
@@ -274,7 +335,7 @@ fetch('/hola-mundo')
 
 ---
 
-### 9. **OPTIONS /api/send** - CORS Preflight
+### 11. **OPTIONS /api/send** - CORS Preflight
 **Función:** `manejarPreflightCORS()`  
 **Propósito:** Manejar peticiones preflight para CORS
 
