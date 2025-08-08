@@ -4,12 +4,12 @@
 #include "Functions.h"
 #include "NodeWebServer.h"
 
-// Constructor
+//1. Constructor
 LoRaWebServer::LoRaWebServer(uint16_t serverPort) : port(serverPort), isRunning(false) {
     server = new WebServer(port);
 }
 
-// Inicializar servidor
+//2. Inicializar servidor
 void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
     nodeRef = node;
     masterRef = master;
@@ -35,7 +35,7 @@ void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
     Serial.printf("IP: %s:%d\n", WiFi.localIP().toString().c_str(), port);
 }
 
-// Configurar servidor
+//2.1 Configurar servidor
 void LoRaWebServer::configurarServidor() {
     //S-5.3 HTTP Client
       http.begin(serverName);
@@ -53,7 +53,7 @@ void LoRaWebServer::configurarServidor() {
     // server->on("/api", [this]() { handleApi(); });
 }
 
-// Configurar WiFi
+//2.2 Configurar WiFi
 void LoRaWebServer::configurarWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -68,9 +68,9 @@ void LoRaWebServer::configurarWiFi() {
     Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
 }
 
-// FUNCIÓN: INICIALIZAR NODOS
+//2.3 FUNCIÓN: INICIALIZAR NODOS
 void LoRaWebServer::inicializarNodos() {
-    Serial.println("📋 Inicializando array de nodos...");
+    Serial.println("📋 Inicializando NUMERO de nodos...");
     
     for (int i = 0; i < 5; i++) {
         nodos[i].nodoId = "";

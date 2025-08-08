@@ -128,8 +128,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('2');
-    Master    Master(true,2);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Lora      Node('3');
+    Master    Master(true,3);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;
@@ -217,9 +217,9 @@ void setup(){
       // client.setCallback(callback);
 
     //S-5.4 Web Server
+    }
       webServer.begin(&Node, &Master, &Correr);
       Serial.println("🌐 Servidor web iniciado en puerto 80");
-    }
 }
 void loop(){
   //L1. Function Start
@@ -232,8 +232,8 @@ void loop(){
   
     // ✅ AGREGAR: Manejo del Web Server
     if(Master.Mode){
-      webServer.handle();
     }
+      webServer.handle();
   
   //L2. Functions Serial RX
     //-L2.1 Decode
