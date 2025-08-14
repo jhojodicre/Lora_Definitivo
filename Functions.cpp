@@ -6,9 +6,9 @@ Functions::Functions(bool ready)
     // Constructor de la clase Functions
     // Inicializar variables
     firstScan = true;
-    LED_Azul = 46; // Pin del LED azul
-    LED_Verde = 45; // Pin del LED verde
-    LED_Rojo = 37; // Pin del LED rojo
+    LED_Azul = 6; // 46 Pin del LED azul
+    LED_Verde = 35; // 45 Pin del LED verde
+    LED_Rojo = 5; // 44 Pin del LED rojo
 
     // Configuración de la instancia
     

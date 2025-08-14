@@ -128,9 +128,9 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('3');
-    Master    Master(true,3);      // Clase para el Maestro, con el numero de nodos que va a controlar.
-  
+    Lora      Node('1');
+    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;
     PubSubClient  client(espClient);
@@ -209,15 +209,13 @@ void setup(){
     if(Master.Mode){
       // client.setServer(mqtt_server, 1883);
       // client.setCallback(callback);
-    }
   //S5. HTTTP Client
-    if(Master.Mode){
-    //S-5.2 MQTT
-      // client.setServer(mqtt_server, 1883);
-      // client.setCallback(callback);
-
-    //S-5.4 Web Server
+  //S-5.2 MQTT
+    // client.setServer(mqtt_server, 1883);
+    // client.setCallback(callback);
     }
+
+  //S-5.4 Web Server
       webServer.begin(&Node, &Master, &Correr);
       Serial.println("🌐 Servidor web iniciado en puerto 80");
 }
@@ -233,7 +231,7 @@ void loop(){
     // ✅ AGREGAR: Manejo del Web Server
     if(Master.Mode){
     }
-      webServer.handle();
+    webServer.handle();
   
   //L2. Functions Serial RX
     //-L2.1 Decode

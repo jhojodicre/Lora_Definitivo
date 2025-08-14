@@ -96,16 +96,16 @@ public:
         bool    Fuente_in_Forzar;
 private:
     // Entradas Fisicas
-        int     Zona_A_in=38;
-        int     Zona_B_in=39;
+        int     Zona_A_in=39;
+        int     Zona_B_in=38;
         int     Zona_C_in=40; // Pulsador C. PRG.
 
         int     PB_ZA_in=40;
         int     PB_ZB_in=41;
         int     PB_ZC_in=42;
-        
-        int     Rele_1_out=16;
-        int     Rele_2_out=17;
+
+        int     Rele_1_out=5;            // 16;
+        int     Rele_2_out=6;            // 17;
 
         int     Fuente_in=43; // 3.3V
 
@@ -124,7 +124,8 @@ private:
 
         bool    Fuente_in_ST;
 
-
+        bool    Rele_1_out_ST;
+        bool    Rele_2_out_ST;
 
         // Estados de Zonas
         bool    Zone_A_ST;
