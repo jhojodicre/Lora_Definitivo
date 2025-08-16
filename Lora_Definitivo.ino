@@ -129,7 +129,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
 
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;

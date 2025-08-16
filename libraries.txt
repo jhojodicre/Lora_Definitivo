@@ -1,0 +1,5 @@
+ArduinoJson
+PubSubClient
+Ticker
+RadioLib
+heltec_unofficial (instalar manualmente si no está en Library Manager)

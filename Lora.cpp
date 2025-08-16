@@ -165,28 +165,14 @@ void Lora::Lora_IO_Zones(){
   // 2. Zona A y Zona B Lectura.
     Zone_A=digitalRead(Zona_A_in);
     Zone_B=digitalRead(Zona_B_in);
-  // 3. Bateria o Fuente Lectura.
-    Fuente_in_ST=digitalRead(Fuente_in);
-  // 3.1 Fuerza de las entradas.
-    Lora_IO_Zones_Force();
-  // 3.2 Leer Salidas de rele
-        Rele_1_out_ST = digitalRead(Rele_1_out);
-        Rele_2_out_ST = digitalRead(Rele_2_out);
-  // 4. ZONAS A y B Reconocimiento.
-    // Pulsador C = Realiza reconocimiento de Ambas Zonas A y B. Reset de Ambas Zonas y Fallas.
-    if(!Zone_AB_ACK){
-      bitClear(Zonas, Zone_A);      // ZONA A Reset.
-      bitClear(Zonas, Zone_B);      // ZONA B Reset.
+    bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
+    bitClear(Zonas_Fallan, Zone_B);     // ZONA B FALLA Reset.
 
-      bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
-      bitClear(Zonas_Fallan, Zone_B);     // ZONA B FALLA Reset.
+    Zone_A_F_str='.';
+    Zone_B_F_str='.';
 
-      Zone_A_F_str='.';
-      Zone_B_F_str='.';
-
-      Zone_A_ERR=false;
-      Zone_B_ERR=false;
-    }
+    Zone_A_ERR=false;
+    Zone_B_ERR=false;
   // 5. ZONA A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
     if(!Zone_A_ACK){
       bitClear(Zonas, Zone_A);
@@ -210,10 +196,10 @@ void Lora::Lora_IO_Zones(){
       Zone_A_ST=true;
     }
   // 8. ZONE B ACTIVA.
-      if(!Zone_B){
-        bitSet(Zonas, Zone_B);
-        Zone_B_ST=true;
-      }
+    if(!Zone_B){
+      bitSet(Zonas, Zone_B);
+      Zone_B_ST=true;
+    }
   // 10 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
     Zone_A_str=String(Zone_A_ST, BIN);
@@ -233,7 +219,7 @@ void Lora::Lora_IO_Zones_Force(){
   if(Zone_A_Forzar) Zone_A = Zone_A_Force;
   if(Zone_B_Forzar) Zone_B = Zone_B_Force;
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
-}
+  }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
@@ -277,10 +263,10 @@ void Lora::Lora_Nodo_Decodificar(){
       }
     }
     // 2. Ejecutamos Funcion.
-}
+    }
 void Lora::Lora_Node_Print(String z_executed){
   both.printf(z_executed.c_str());
-}
+  }
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
