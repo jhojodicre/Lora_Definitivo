@@ -48,6 +48,8 @@ volatile    bool rxFlag = false;
 //Instancias
 Functions   Update (false);
 Ticker      Timer_Nodo_Answer;
+Ticker      Timer_ZoneA_Enable;
+Ticker      Timer_ZoneB_Enable;
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
 Master      Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
@@ -165,6 +167,11 @@ void Lora::Lora_IO_Zones(){
   // 2. Zona A y Zona B Lectura.
     Zone_A=digitalRead(Zona_A_in);
     Zone_B=digitalRead(Zona_B_in);
+
+  // 3. LLamada a la Funcion de Forazado.
+    // Lora_IO_Zones_Force();
+
+  // 4. ________________  
     bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
     bitClear(Zonas_Fallan, Zone_B);     // ZONA B FALLA Reset.
 
@@ -192,13 +199,17 @@ void Lora::Lora_IO_Zones(){
 
   // 7. ZONA A ACTIVA.
     if(!Zone_A){
-      bitSet(Zonas, Zone_A);
-      Zone_A_ST=true;
+      if(timer_ZA_En){
+        Timer_ZoneA_Enable.once_ms(3000, Lora_time_ZoneA_reach); // Si pasan mas de 3 segundos.
+        timer_ZA_En=false;
+      }
     }
   // 8. ZONE B ACTIVA.
     if(!Zone_B){
-      bitSet(Zonas, Zone_B);
-      Zone_B_ST=true;
+      if(timer_ZB_En){
+        Timer_ZoneB_Enable.once_ms(3000, Lora_time_ZoneB_reach); // Si pasan mas de 3 segundos.
+        timer_ZB_En=false;
+      }
     }
   // 10 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
@@ -220,6 +231,12 @@ void Lora::Lora_IO_Zones_Force(){
   if(Zone_B_Forzar) Zone_B = Zone_B_Force;
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
   }
+void Lora::Lora_IO_Zone_A_ACK(){
+  // Zone_A_ST=false;
+}
+void Lora::Lora_IO_Zone_B_ACK(){
+  Zone_B_ST=false;
+}
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
@@ -317,6 +334,18 @@ void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
       nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
+  }
+}
+void Lora::Lora_time_ZoneA_reach(){
+  nodeInstance->timer_ZA_En=true;
+  if(!(nodeInstance->Zone_A)){
+    nodeInstance->Zone_A_ST=true;
+  }
+}
+void Lora::Lora_time_ZoneB_reach(){
+  nodeInstance->timer_ZB_En=true;
+  if(!(nodeInstance->Zone_B)){
+    nodeInstance->Zone_B_ST=true;
   }
 }
 void Lora::Lora_Master_DB(){

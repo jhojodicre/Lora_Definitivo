@@ -12,6 +12,7 @@ public:
     Functions(bool ready);
     void Functions_Request(String rxString);
     void Functions_Run();
+    void Function_begin(class Lora* node);
     void a0();
     void a1(int repeticiones, int tiempo);
     void A1();
@@ -57,8 +58,8 @@ public:
     void c1(String output_1);
     void c2(String output_2);
     void c3(String output_3);
-    void c4(String output_4);
-    void c5(String output_5);
+    void c4();
+    void c5();
     void c6(String output_6);
     void c7(String output_7);
     void c8();
@@ -88,6 +89,10 @@ public:
     String  function_Parameter4;
     String  function_Exct; // Variable para almacenar la función ejecutada
     bool F_Correr_Dale=false;
+
+    // Referencias a objetos externos
+    class Lora* nodeRef;
+
 private:
     bool    firstScan;
 

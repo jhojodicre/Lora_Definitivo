@@ -1,4 +1,5 @@
 #include "Functions.h"
+#include "Lora.h"
 #include <Arduino.h>
 #include "Master.h"
 Functions::Functions(bool ready)
@@ -21,6 +22,9 @@ Functions::Functions(bool ready)
     digitalWrite(LED_Azul, HIGH);
     digitalWrite(LED_Verde, HIGH);
     digitalWrite(LED_Rojo, HIGH);
+}
+void Functions::Function_begin(Lora* node){
+    nodeRef = node;
 }
 void Functions::Functions_Request(String rxString)
 {
@@ -133,10 +137,10 @@ void Functions::Functions_Run()
             c3(function_Parameter1);
             break;
         case '4':
-            c4(function_Parameter1);
+            c4();
             break;
         case '5':
-            c5(function_Parameter1);
+            c5();
             break;
         case '6':
             c6(function_Parameter1);
@@ -425,13 +429,15 @@ void Functions::c3(String argumento1)
         digitalWrite(LED_Verde, HIGH);
     }
 }
-void Functions::c4(String argumento1)
+void Functions::c4()
 {
     // Implementación del método c4
+    nodeRef->Lora_IO_Zone_A_ACK();
 }
-void Functions::c5(String argumento1)
+void Functions::c5()
 {
     // Implementación del método c5
+    nodeRef->Lora_IO_Zone_B_ACK();
 }
 void Functions::c6(String argumento1)
 {
@@ -460,6 +466,8 @@ void Functions::n0()
 void Functions::n1()
 {
     // Implementación del método n1
+    ESP.restart();
+
 
 }
 

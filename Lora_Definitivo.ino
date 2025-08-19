@@ -129,12 +129,14 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(true,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    
 
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;
     PubSubClient  client(espClient);
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
+
   //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -218,6 +220,9 @@ void setup(){
   //S-5.4 Web Server
       webServer.begin(&Node, &Master, &Correr);
       Serial.println("🌐 Servidor web iniciado en puerto 80");
+
+  //-5.6
+    Correr.Function_begin(&Node);
 }
 void loop(){
   //L1. Function Start
@@ -345,7 +350,7 @@ void loop(){
     //-L6.1 lora RX.
       Node.Lora_RX();
 }
-//4. Funciones UPDATE.
+//3. Funciones UPDATE.
   //-4.1 Estados de Zonas.
     void reviso(){
     }
@@ -358,67 +363,67 @@ void loop(){
   //-4.5 Analizar.
     void analizar(){
     }
-  //-4.7 Master RX Request.
-    //-4.7.1 Master RX Request.
-      void Master_RX_Request(){
-        Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
-        Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-        Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-        Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-        Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
-      }
-    //-4.7.2 Master RX Request 2.
-      void Master_RX_Request_2(){
-        Node.nodo_a_Consultar=Nodo_a_Pedir;
-        Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
-        Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
-        Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
-        Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
-      }
-    //-4.7.3 Master Dummy Simulate.
-      void Master_Dummy_Simulate(){
-        // 1 o se envia a MQTT.
-          Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-          Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-          // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
-        // 2 o se envia a MongoDB.
-              // sendJsonToMongoDB(); // Envio de Json a MongoDB.
-      }
-    //-4.7.4 Update Server.
-      void updateServer() {
-        // Obtener los datos del objeto Node (clase Lora)
-        jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
+//4 Node Functions Complementary.
+  //-4.8.1 Nodo Muestra msg Lora_RX
+    void Node_Print_LORA_RX(){
+        Serial.print("RX: ");
+        Serial.println(String(Node.rx_destinatario));
+        Serial.print("LA: ");
+        Serial.println(String(Node.local_Address));
+        Serial.print("ms: ");
+        Serial.println(String(Node.rx_mensaje));
+        Serial.print("md: ");
+        Serial.println(String(Node.rx_funct_mode));
+        Serial.print("nf: ");
+        Serial.println(String(Node.rx_funct_num));
+        Serial.print("p1: ");
+        Serial.println(String(Node.rx_funct_parameter1));
+        Serial.print("p2: ");
+        Serial.println(String(Node.rx_funct_parameter2));
+      
+    }
+  //-4.8.2 Nodo Ejecuta Funciones.
+    void Nodo_Ejecutar_Funciones(String mode, String number, String parameter_1, String parameter_2) {
+      // Aquí se implementa la lógica para ejecutar las funciones del nodo
+      // dependiendo de los parámetros recibidos.
+      Correr.Functions_Request(mode + number + parameter_1 + parameter_2);
+      Correr.Functions_Run(); // Ejecuta la función correspondiente.
+    }
+//5 Master RX Request.
+  //-4.7.1 Master RX Request.
+    void Master_RX_Request(){
+      Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
+      Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
+      Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
+      Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
+      Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
+    }
+  //-4.7.2 Master RX Request 2.
+    void Master_RX_Request_2(){
+      Node.nodo_a_Consultar=Nodo_a_Pedir;
+      Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
+      Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
+      Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
+      Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
+    }
+  //-4.7.3 Master Dummy Simulate.
+    void Master_Dummy_Simulate(){
+      // 1 o se envia a MQTT.
+        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
+        // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
+      // 2 o se envia a MongoDB.
+            // sendJsonToMongoDB(); // Envio de Json a MongoDB.
+    }
+  //-4.7.4 Update Server.
+    void updateServer() {
+      // Obtener los datos del objeto Node (clase Lora)
+      jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
 
-        // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
-        bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
-      }
-  //-4.8 Node Functions Complementary.
-    //-4.8.1 Nodo Muestra msg Lora_RX
-      void Node_Print_LORA_RX(){
-          Serial.print("RX: ");
-          Serial.println(String(Node.rx_destinatario));
-          Serial.print("LA: ");
-          Serial.println(String(Node.local_Address));
-          Serial.print("ms: ");
-          Serial.println(String(Node.rx_mensaje));
-          Serial.print("md: ");
-          Serial.println(String(Node.rx_funct_mode));
-          Serial.print("nf: ");
-          Serial.println(String(Node.rx_funct_num));
-          Serial.print("p1: ");
-          Serial.println(String(Node.rx_funct_parameter1));
-          Serial.print("p2: ");
-          Serial.println(String(Node.rx_funct_parameter2));
-        
-      }
-    //-4.8.2 Nodo Ejecuta Funciones.
-      void Nodo_Ejecutar_Funciones(String mode, String number, String parameter_1, String parameter_2) {
-        // Aquí se implementa la lógica para ejecutar las funciones del nodo
-        // dependiendo de los parámetros recibidos.
-        Correr.Functions_Request(mode + number + parameter_1 + parameter_2);
-        Correr.Functions_Run(); // Ejecuta la función correspondiente.
-      }
-//5. Funciones de Dispositivos Externos. 
+      // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
+      bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+    }
+//6 Funciones de Dispositivos Externos. 
   //-5.1 
   //-5.2 MQTT Reconnect.
     void reconnect() {

@@ -23,6 +23,11 @@ public:
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
     void   Lora_IO_Zones_Force();
+    void   Lora_IO_Zone_A_ACK();
+    void   Lora_IO_Zone_B_ACK();
+    static void   Lora_time_ZoneA_reach();
+    static void   Lora_time_ZoneB_reach();
+
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -30,7 +35,8 @@ public:
     bool    F_Master_Excecute=false;
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
-
+    bool    timer_ZA_En=true;
+    bool    timer_ZB_En=true;
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
         char    ascii_representation[9];
