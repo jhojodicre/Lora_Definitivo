@@ -467,7 +467,7 @@ void Functions::n1()
 {
     // Implementación del método n1
     ESP.restart();
-
+    
 
 }
 
@@ -479,6 +479,8 @@ void Functions::n2()
 void Functions::n3()
 {
     // Implementación del método n3
+    nodeRef->Lora_Event_Disable();
+
 }
 
 void Functions::n4()

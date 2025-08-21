@@ -150,6 +150,7 @@ void Lora::Lora_RX(){
     rx_master_lora_5 = rxdata.substring(4, 5); // Estado de la salida 1.
     rx_master_lora_6 = rxdata.substring(5, 6); // Estado de la salida 2.
     rx_master_lora_7 = rxdata.substring(6, 7); // Estado de la fuente.
+    rx_master_lora_8 = rxdata.substring(7, 8); // Tipo de mensaje, si es de emergencia.
 
     rx_mensaje_DB       = rxdata.substring(2, 3);         // Mensaje recibido.
     // rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
@@ -160,17 +161,21 @@ void Lora::rx(){
   rxFlag = true;
  }
 void Lora::Lora_IO_Zones(){
-  // 1. Pulsadores A y B Lectura.
+  // 1. Lectura de Pulsadores A y B.
     Zone_A_ACK=digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
     Zone_B_ACK=digitalRead(PB_ZB_in);       // pulsador B.
     Zone_AB_ACK=digitalRead(PB_ZC_in);      // pulsador C. Pulsador por defecto PRG.
-  // 2. Zona A y Zona B Lectura.
+
+  // 2. Lectura Zona A y Zona B.
     Zone_A=digitalRead(Zona_A_in);
     Zone_B=digitalRead(Zona_B_in);
 
-  // 3. LLamada a la Funcion de Forazado.
-    // Lora_IO_Zones_Force();
-
+    // 3. Lectura de Estado de Salidas.
+    Rele_1_out_ST = digitalRead(Rele_1_out);
+    Rele_2_out_ST = digitalRead(Rele_2_out);
+    
+    // 3.1 LLamada a la Funcion de Forazado.
+      // Lora_IO_Zones_Force();
   // 4. ________________  
     bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
     bitClear(Zonas_Fallan, Zone_B);     // ZONA B FALLA Reset.
@@ -181,22 +186,23 @@ void Lora::Lora_IO_Zones(){
     Zone_A_ERR=false;
     Zone_B_ERR=false;
   // 5. ZONA A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
-    if(!Zone_A_ACK){
+    if(Zone_A_ACK){
       bitClear(Zonas, Zone_A);
       bitClear(Zonas_Fallan, Zone_A);
       Zone_A_ERR=false;
       Zone_A_F_str='.';
-      Zone_A_ST=false;
+      if (Zone_A_ST) {
+        Zone_A_ST=false;
+      }
     }
   // 6. ZONE B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
-    if(!Zone_B_ACK){
+    if(Zone_B_ACK){
       bitClear(Zonas, Zone_B);
       bitClear(Zonas_Fallan, Zone_B);
       Zone_B_ERR=false;
       Zone_B_F_str='.';        
       Zone_B_ST=false;
     }
-
   // 7. ZONA A ACTIVA.
     if(!Zone_A){
       if(timer_ZA_En){
@@ -211,6 +217,11 @@ void Lora::Lora_IO_Zones(){
         timer_ZB_En=false;
       }
     }
+  // 9. Evento en Zonas.
+    if(Zone_A_ST || Zone_B_ST && !F_Event_Enable){
+      F_Event_Enable = true;
+      Lora_Event_Enable();
+    } 
   // 10 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
     Zone_A_str=String(Zone_A_ST, BIN);
@@ -232,10 +243,12 @@ void Lora::Lora_IO_Zones_Force(){
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
   }
 void Lora::Lora_IO_Zone_A_ACK(){
-  // Zone_A_ST=false;
+  Zone_A_ST=false;
+  F_Event_Enable = false;
 }
 void Lora::Lora_IO_Zone_B_ACK(){
   Zone_B_ST=false;
+  F_Event_Enable = false;
 }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
@@ -259,6 +272,7 @@ void Lora::Lora_Nodo_Frame(){
     tx_nodo_lora_5          =Rele_1_out_str;          // Estado de la Salida 1
     tx_nodo_lora_6          =Rele_2_out_str;          // Estado de la Salida 2
     tx_nodo_lora_7          =Fuente_in_str;           // Estado de la Fuente
+    tx_nodo_lora_8          =Tipo_de_Mensaje;
 
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 );
@@ -310,10 +324,10 @@ void Lora::Lora_Master_Decodificar(){
     Node_Status_str = "1"; // Comunicacion ok
   }
   else{
-    Node_Status = false; // No comunica
-    Node_Status_str = "0"; // Comunicacion  No ok
-    // Si no es el nodo consultado, no se actualiza la base de datos.
-    // nodo_DB = "{\"comm\":\"" + String(commJS) + "\",\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
+    if(rx_master_lora_8=="U"){
+      txdata=(Master_Address + rx_remitente + "0" + "N" + "3" + "0" + "0" + "A");
+      Lora_TX();
+    }
   }
   Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
   SerializeObjectToJson(); // Serializa el objeto a JSON
@@ -339,7 +353,10 @@ void Lora::Lora_timerNodo_Answer(){
 void Lora::Lora_time_ZoneA_reach(){
   nodeInstance->timer_ZA_En=true;
   if(!(nodeInstance->Zone_A)){
-    nodeInstance->Zone_A_ST=true;
+    if (!nodeInstance->Zone_A_ST) {
+      // Serial.println("[DEBUG] Zone_A_ST pasa a true por temporizador");
+      nodeInstance->Zone_A_ST=true;
+    }
   }
 }
 void Lora::Lora_time_ZoneB_reach(){
@@ -382,4 +399,12 @@ void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_num=mensaje.charAt(3); // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4); // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5); // Segundo parametro de Funcion a ejecutar.
+}
+void Lora::Lora_Event_Enable(){
+    Timer_Nodo_Answer.attach_ms(1000,Lora_timerNodo_Answer);
+}
+void Lora::Lora_Event_Disable(){
+  Timer_Nodo_Answer.detach();
+  F_Event_Enable = false;
+
 }

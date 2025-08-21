@@ -27,6 +27,8 @@ public:
     void   Lora_IO_Zone_B_ACK();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
+    void   Lora_Event_Enable();
+    void   Lora_Event_Disable();
 
 
     bool    F_Responder=false;
@@ -35,8 +37,10 @@ public:
     bool    F_Master_Excecute=false;
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
+    bool    F_Event_Enable=false;
     bool    timer_ZA_En=true;
     bool    timer_ZB_En=true;
+    bool    Timer_Nodo_Answer_F=false;      // flag que indica que el timer de responder esta activo.
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
         char    ascii_representation[9];
@@ -83,6 +87,8 @@ public:
         String    tx_nodo_lora_5;
         String    tx_nodo_lora_6;
         String    tx_nodo_lora_7;
+        String    tx_nodo_lora_8;
+
 
         String    rx_master_lora_1;
         String    rx_master_lora_2;
@@ -91,6 +97,7 @@ public:
         String    rx_master_lora_5;
         String    rx_master_lora_6;
         String    rx_master_lora_7;
+        String    rx_master_lora_8;
 
                 // Forzados
         bool    Zone_A_Force;
@@ -141,9 +148,9 @@ private:
         bool    Zone_A_ERR;
         bool    Zone_B_ERR;
 
-    //otras
         int     Zonas;
         int     Zonas_Fallan;
+    //mensaje para enviar
 
         String  Node_Num_str;
         String  Zone_A_str;
@@ -159,6 +166,7 @@ private:
 
         String  Rele_1_out_str;
         String  Rele_2_out_str;
+        String  Tipo_de_Mensaje;
 
     // long        mensaje = 0;
         uint64_t    last_tx = 0;

@@ -129,7 +129,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(false,1);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Master    Master(true,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
     
 
   //-4.2 Clases de Protocolos.
@@ -275,7 +275,7 @@ void loop(){
     //-L4.2 Nodo TX.
       if(Node.F_Responder && !Master.Mode){
         Node.Lora_TX();       // Se envia el mensaje.
-        Serial.println("Node TX");
+        // Serial.println("Node TX");
       }
     //-L4.3 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
@@ -351,16 +351,16 @@ void loop(){
       Node.Lora_RX();
 }
 //3. Funciones UPDATE.
-  //-4.1 Estados de Zonas.
+  //-3.1 Estados de Zonas.
     void reviso(){
     }
-  //-4.2 Secuencia.
+  //-3.2 Secuencia.
     void secuencia(){
     }
-  //-4.4 Actualizar.  
+  //-3.4 Actualizar.  
     void actualizar(){
     }
-  //-4.5 Analizar.
+  //-3.5 Analizar.
     void analizar(){
     }
 //4 Node Functions Complementary.
