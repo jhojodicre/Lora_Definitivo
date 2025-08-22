@@ -380,7 +380,6 @@ void Functions::b5()
 {
     // Implementación del método b5
 }
-
 void Functions::b6()
 {
     // Implementación del método b6
@@ -447,22 +446,18 @@ void Functions::c7(String argumento1)
 {
     // Implementación del método c7
 }
-
 void Functions::c8()
 {
     // Implementación del método c8
 }
-
 void Functions::c9()
 {
     // Implementación del método c9
 }
-
 void Functions::n0()
 {
     // Implementación del método n0
 }
-
 void Functions::n1()
 {
     // Implementación del método n1
@@ -470,34 +465,28 @@ void Functions::n1()
     
 
 }
-
 void Functions::n2()
 {
     // Implementación del método n2
 }
-
 void Functions::n3()
 {
     // Implementación del método n3
     nodeRef->Lora_Event_Disable();
 
 }
-
 void Functions::n4()
 {
     // Implementación del método n4
 }
-
 void Functions::n5()
 {
     // Implementación del método n5
 }
-
 void Functions::n6()
 {
     // Implementación del método n6
 }
-
 void Functions::n7()
 {
     // Implementación del método n7

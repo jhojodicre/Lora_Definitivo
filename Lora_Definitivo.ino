@@ -61,7 +61,7 @@
     bool          flag_F_totalTime=false;
     bool          flag_F_contar_tiempo=false;
 
-  
+    bool          F_updateServer=false;
  
   //-3.4 Variables TIME.
       long        initialTime= 0;
@@ -128,8 +128,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('1');
-    Master    Master(true,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Lora      Node('2');
+    Master    Master(false,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
     
 
   //-4.2 Clases de Protocolos.
@@ -267,44 +267,36 @@ void loop(){
       // flag_ISR_prueba=false;
         // a1_Nodo_Destellos(1,3);
       }
-    //-L4.1 Node IO ENTRADAS DEL NODO.
+    //-L4.1 Node IO.
       if(!Master.Mode){
         Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
         // Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
       }
-    //-L4.2 Nodo TX.
+    //-L4.2 Nodo Evento de Zona
+      if(Node.F_Event_Enable){
+        Node.F_Responder=true;
+        Node.Lora_Timer_Enable(1200);
+      }
+    //-L4.3 Nodo TX.
       if(Node.F_Responder && !Master.Mode){
         Node.Lora_TX();       // Se envia el mensaje.
-        // Serial.println("Node TX");
       }
-    //-L4.3 Nodo Ejecuta Funciones.
+    //-L4.4 Nodo Ejecuta Funciones.
       if(Node.F_Nodo_Excecute && !Master.Mode){
-        if(Node.F_function_Special){
-          Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
-        }
         //-L4.3.1 Ejecuta la funcion.
         Nodo_Ejecutar_Funciones(Node.rx_funct_mode, Node.rx_funct_num, Node.rx_funct_parameter1, Node.rx_funct_parameter2);
-      // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
+        // if(Correr.F_Correr_Dale) {
+        //   Node.Lora_Node_Print(Correr.function_Exct); // Imprime la funcion ejecutada.
+        //   Correr.F_Correr_Dale=false;
+        // }
         Node.F_Nodo_Excecute=false;
-        if(Correr.F_Correr_Dale) {
-          Node.Lora_Node_Print(Correr.function_Exct); // Imprime la funcion ejecutada.
-          Correr.F_Correr_Dale=false;
-        }
       }
-    //-L4.4 Nodo RX.
+    //-L4.5 Nodo RX.
       if(Node.F_Recibido && !Master.Mode){
         Node.Lora_Nodo_Decodificar();       // Se recibe el mensaje.
+        Node.Lora_Timer_Enable(2);
         Node.F_Recibido=false; // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
         // Node_Print_LORA_RX(); // Imprime los datos recibidos por Lora.
-      }
-    //-L4.5 Nodo Ejecuta Funciones.
-      if(Node.F_Nodo_Excecute && !Master.Mode){
-        if(Node.F_function_Special){
-          Node.F_function_Special=false; // Bandera activada en Lora_Nodo_Decodificar.
-        }
-        Node.F_Nodo_Excecute=false;  // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de ejecucion.
-        //-L4.5.1 Ejecuta la funcion.
-        Nodo_Ejecutar_Funciones(Node.rx_funct_mode, Node.rx_funct_num, Node.rx_funct_parameter1, Node.rx_funct_parameter2);
       }
 
   //L5. Funciones del Master.
@@ -312,11 +304,18 @@ void loop(){
         //
     //-L5.2 Master TX
       if(Master.Next){
+        if(!F_updateServer){
+          Node.Node_Status_str="0";
+          Node.Node_Num_str=Node.nodo_consultado;
+          Node.SerializeObjectToJson();
+          updateServer();
+        }
         Master.Master_Nodo();         // Se prepara el nodo maestro.
         Master_RX_Request();          // Se cargan los datos recibidos desde via serial.
         Node.Lora_Master_Frame();     // Se prepara el mensaje a enviar.
         Node.Lora_TX();               // Se envia el mensaje.
         Master.Next=false;
+        F_updateServer=false;
         Serial.println("Master TXed");
         //-L5.2.7 Simular
           // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
@@ -334,7 +333,7 @@ void loop(){
         //-L5.4.1 MQTT Publish.
           // Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
           //Update Server.
-          updateServer();
+        updateServer();
         Node.F_Master_Update=false;
       }
     //-L5.5 F- Master Execute order from Server
@@ -390,7 +389,7 @@ void loop(){
       Correr.Functions_Run(); // Ejecuta la función correspondiente.
     }
 //5 Master RX Request.
-  //-4.7.1 Master RX Request.
+  //-5.1 Master RX Request.
     void Master_RX_Request(){
       Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
       Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
@@ -398,7 +397,7 @@ void loop(){
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
     }
-  //-4.7.2 Master RX Request 2.
+  //-5.2 Master RX Request 2.
     void Master_RX_Request_2(){
       Node.nodo_a_Consultar=Nodo_a_Pedir;
       Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
@@ -406,7 +405,7 @@ void loop(){
       Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
     }
-  //-4.7.3 Master Dummy Simulate.
+  //-5.3 Master Dummy Simulate.
     void Master_Dummy_Simulate(){
       // 1 o se envia a MQTT.
         Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
@@ -415,13 +414,15 @@ void loop(){
       // 2 o se envia a MongoDB.
             // sendJsonToMongoDB(); // Envio de Json a MongoDB.
     }
-  //-4.7.4 Update Server.
+  //-5.4 Update Server.
     void updateServer() {
+
       // Obtener los datos del objeto Node (clase Lora)
       jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
 
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+      F_updateServer=true;
     }
 //6 Funciones de Dispositivos Externos. 
   //-5.1 

@@ -117,6 +117,7 @@ void Lora::Lora_TX(){
     radio.setDio1Action(rx);
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     F_Responder = false;      // Bandera activada en Lora_Nodo_Decodificar.
+    nodo_consultado=nodo_a_Consultar.charAt(0);
  }
 void Lora::Lora_RX(){
     // If a packet was received, display it and the RSSI and SNR
@@ -170,11 +171,11 @@ void Lora::Lora_IO_Zones(){
     Zone_A=digitalRead(Zona_A_in);
     Zone_B=digitalRead(Zona_B_in);
 
-    // 3. Lectura de Estado de Salidas.
+  // 3. Lectura de Estado de Salidas.
     Rele_1_out_ST = digitalRead(Rele_1_out);
     Rele_2_out_ST = digitalRead(Rele_2_out);
     
-    // 3.1 LLamada a la Funcion de Forazado.
+  // 3.1 LLamada a la Funcion de Forazado.
       // Lora_IO_Zones_Force();
   // 4. ________________  
     bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
@@ -220,8 +221,11 @@ void Lora::Lora_IO_Zones(){
   // 9. Evento en Zonas.
     if(Zone_A_ST || Zone_B_ST && !F_Event_Enable){
       F_Event_Enable = true;
-      Lora_Event_Enable();
+      Tipo_de_Mensaje="U";
     } 
+    else{
+      Tipo_de_Mensaje="A";
+    }
   // 10 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
     Zone_A_str=String(Zone_A_ST, BIN);
@@ -275,9 +279,7 @@ void Lora::Lora_Nodo_Frame(){
     tx_nodo_lora_8          =Tipo_de_Mensaje;
 
   // 2. Armamos el paquete a enviar.
-    txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 );
-    // txdata = "123";
-    Timer_Nodo_Answer.once(2, Lora_timerNodo_Answer); // 500 ms para enviar el mensaje.
+    txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 + tx_nodo_lora_8);
  }
 void Lora::Lora_Nodo_Decodificar(){
   // 0. Functon Llamada desde L4.4 Nodo.F_Recibido.
@@ -400,8 +402,8 @@ void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_parameter1=mensaje.charAt(4); // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5); // Segundo parametro de Funcion a ejecutar.
 }
-void Lora::Lora_Event_Enable(){
-    Timer_Nodo_Answer.attach_ms(1000,Lora_timerNodo_Answer);
+void Lora::Lora_Timer_Enable(int answerTime){
+    Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
 }
 void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();

@@ -27,7 +27,7 @@ public:
     void   Lora_IO_Zone_B_ACK();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
-    void   Lora_Event_Enable();
+    void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
 
 
@@ -107,6 +107,23 @@ public:
         bool    Zone_A_Forzar;
         bool    Zone_B_Forzar;
         bool    Fuente_in_Forzar;
+
+    //mensaje para enviar
+
+        String  Node_Num_str;
+        String  Node_Status_str;
+        String  Zone_A_str;
+        String  Zone_B_str;
+        String  Rele_1_out_str;
+        String  Rele_2_out_str;
+        String  Fuente_in_str;
+        String  Tipo_de_Mensaje;
+        
+        String  Zone_A_F_str;
+        String  Zone_B_F_str;
+
+        String  Zone_A_ACK_str;
+        String  Zone_B_ACK_str;
 private:
     // Entradas Fisicas
         int     Zona_A_in=39;
@@ -125,7 +142,7 @@ private:
         
         // Estadon del Nodo
         bool    Node_Status;
-        String  Node_Status_str;
+
     // Entradas Auxiliares
         bool    Zone_A;
         bool    Zone_B;
@@ -150,23 +167,7 @@ private:
 
         int     Zonas;
         int     Zonas_Fallan;
-    //mensaje para enviar
 
-        String  Node_Num_str;
-        String  Zone_A_str;
-        String  Zone_B_str;
-
-        String  Zone_A_F_str;
-        String  Zone_B_F_str;
-
-        String  Zone_A_ACK_str;
-        String  Zone_B_ACK_str;
-
-        String  Fuente_in_str;
-
-        String  Rele_1_out_str;
-        String  Rele_2_out_str;
-        String  Tipo_de_Mensaje;
 
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
