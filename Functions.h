@@ -1,7 +1,10 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 #include <Arduino.h>
-
+//2. Definicion de Pinout.
+  //  Las Etiquetas para los pinout son los que comienzan con GPIO
+  //  Es decir, si queremos activar la salida 1, tenemos que buscar la referencia GPIO 1, Pero solomante Escribir 1 sin "GPIO"
+  //  NO tomar como referencia las etiquetas D1, D2,D3, ....Dx.
 
 
 class Functions {

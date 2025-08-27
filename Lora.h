@@ -7,7 +7,7 @@ class Lora {
 public:
     Lora(char nodeNumber);
     void   Setup();
-    void   Lora_Setup();
+    void   Lora_Setup(class Functions* correr);
     void   Lora_TX();
     void   Lora_RX();
     static void rx();
@@ -29,7 +29,8 @@ public:
     static void   Lora_time_ZoneB_reach();
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
-
+    void   Lora_Node_Protocol();
+    void   Lora_Node_Print_RX();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -41,6 +42,7 @@ public:
     bool    timer_ZA_En=true;
     bool    timer_ZB_En=true;
     bool    Timer_Nodo_Answer_F=false;      // flag que indica que el timer de responder esta activo.
+    bool    F_No_Responder=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
         char    ascii_representation[9];
@@ -99,7 +101,7 @@ public:
         String    rx_master_lora_7;
         String    rx_master_lora_8;
 
-                // Forzados
+    // Forzados
         bool    Zone_A_Force;
         bool    Zone_B_Force;
         bool    Fuente_in_Force;
@@ -124,6 +126,9 @@ public:
 
         String  Zone_A_ACK_str;
         String  Zone_B_ACK_str;
+
+    // Instancias de Clases:
+        class Functions* correrRef;
 private:
     // Entradas Fisicas
         int     Zona_A_in=39;
@@ -140,7 +145,7 @@ private:
         int     Fuente_in=43; // 3.3V
 
         
-        // Estadon del Nodo
+    // Estadon del Nodo
         bool    Node_Status;
 
     // Entradas Auxiliares
@@ -157,11 +162,11 @@ private:
         bool    Rele_1_out_ST;
         bool    Rele_2_out_ST;
 
-        // Estados de Zonas
+    // Estados de Zonas
         bool    Zone_A_ST;
         bool    Zone_B_ST;
 
-        // Zonas en Error
+    // Zonas en Error
         bool    Zone_A_ERR;
         bool    Zone_B_ERR;
 

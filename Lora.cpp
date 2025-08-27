@@ -67,6 +67,7 @@ Lora::Lora(char nodeNumber){
 
         pinMode(Rele_1_out, OUTPUT);
         pinMode(Rele_2_out, OUTPUT);
+
     //2. Condicion Inicial.
         digitalWrite(Rele_1_out, LOW);
         digitalWrite(Rele_2_out, LOW);
@@ -77,8 +78,9 @@ Lora::Lora(char nodeNumber){
         nodeInstance = this; // Asignar la instancia actual al puntero global
 }
 
-void Lora::Lora_Setup()
+void Lora::Lora_Setup(Functions* correr)
 {
+    correrRef = correr;
     heltec_setup();
     RADIOLIB_OR_HALT(radio.begin());
     // Set the callback function for received packets
@@ -289,10 +291,9 @@ void Lora::Lora_Nodo_Decodificar(){
       Serial.println("Nodo_Atiende");
       Lora_Nodo_Frame();
       if(rx_funct_mode!="0"){
-        // 1. Ejecutamos Funcion.
         Serial.println("Peticion escuchada");
         F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
-        // F_function_Special=true; // Bandera Desactivada en L4.3
+        F_Responder=true;
       }
     }
     // 2. Ejecutamos Funcion.
@@ -408,5 +409,48 @@ void Lora::Lora_Timer_Enable(int answerTime){
 void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();
   F_Event_Enable = false;
-
+}
+void Lora::Lora_Node_Print_RX(){
+  //Nodo Muestra msg Lora_RX
+    Serial.print("RX: ");
+    Serial.println(String(rx_destinatario));
+    Serial.print("LA: ");
+    Serial.println(String(local_Address));
+    Serial.print("ms: ");
+    Serial.println(String(rx_mensaje));
+    Serial.print("md: ");
+    Serial.println(String(rx_funct_mode));
+    Serial.print("nf: ");
+    Serial.println(String(rx_funct_num));
+    Serial.print("p1: ");
+    Serial.println(String(rx_funct_parameter1));
+    Serial.print("p2: ");
+    Serial.println(String(rx_funct_parameter2));
+}
+void Lora::Lora_Node_Protocol(){
+  //-P.1 Nodo Evento en Zonas
+    if(F_Event_Enable){
+      F_Responder=true;
+      Lora_Timer_Enable(1200);
+      Serial.println("event_en");
+    }
+  //-P.2 Nodo RX.
+    if(F_Recibido){
+      Lora_Nodo_Decodificar();        // Se recibe el mensaje.
+      F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+    }
+  //-P.3 Nodo TX.
+    if(F_Responder){
+      Lora_TX();       // Se envia el mensaje.
+    }
+  //-P.4 Nodo Ejecuta Funciones.
+    if(F_Nodo_Excecute){
+      correrRef->Functions_Request(rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
+      correrRef->Functions_Run();
+      // if(Correr.F_Correr_Dale) {
+      //   Node.Lora_Node_Print(Correr.function_Exct); // Imprime la funcion ejecutada.
+      //   Correr.F_Correr_Dale=false;
+      // }
+      F_Nodo_Excecute=false;
+    }
 }
