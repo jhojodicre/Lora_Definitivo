@@ -21,7 +21,7 @@ private:
     // WiFi Replace the next variables with your SSID/Password combination
     const char* ssid        = "ANTEL_0322";
     const char* password    = "xBKJ474S";
-
+    int         conection_try=0;
 
     // Referencias a objetos externos
     class Lora* nodeRef;

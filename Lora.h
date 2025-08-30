@@ -133,21 +133,20 @@ private:
     // Entradas Fisicas
         int     Zona_A_in=39;
         int     Zona_B_in=38;
-        int     Zona_C_in=40; // Pulsador C. PRG.
+        int     Zona_C_in; // Pulsador C. PRG.
 
-        int     PB_ZA_in=40;
-        int     PB_ZB_in=41;
-        int     PB_ZC_in=42;
+        int     PB_ZA_in=45;
+        int     PB_ZB_in=42;
+        int     PB_ZC_in=0;
 
         int     Rele_1_out=5;            // 16;
         int     Rele_2_out=6;            // 17;
 
-        int     Fuente_in=43; // 3.3V
+        int     Fuente_in=43;           // 3.3V
 
         
     // Estadon del Nodo
         bool    Node_Status;
-
     // Entradas Auxiliares
         bool    Zone_A;
         bool    Zone_B;
@@ -173,7 +172,9 @@ private:
         int     Zonas;
         int     Zonas_Fallan;
 
-
+    // Protocolo
+        bool        msg_enviar=false;
+        int         msg_enviado=0;
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time;

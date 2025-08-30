@@ -16,22 +16,16 @@
     volatile bool flag_ISR_prueba=false;             // Flag: prueba para interrupcion serial.
     volatile bool falg_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.
     String        inputString;           // Buffer recepcion Serial.
-
     String        function_Remote;
     String        function_Enable;
     bool          flag_ISR_temporizador_0=false;
     bool          flag_ISR_temporizador_1=false;
     bool          flag_ISR_temporizador_2=false;
     bool          flag_ISR_temporizador_3=false;
-  //-3.2 Variables Banderas.
+  //-3.2 Variables Banderas. 
     bool          flag_F_codified_funtion=false;   // Notifica que la funcion ha sido codificada.
-    bool          flag_F_Un_segundo=false;         // Se activa cuando Pasa un Segundo por Interrupcion.
     bool          F_iniciado=false;              // Habilitar mensaje de F_iniciado por unica vez
-    bool          flag_F_responder=false;          // Se activa cuando recibe un mensaje para luego responder.
-    bool          flag_F_modo_Continuo=false;
     bool          flag_F_depurar=false;
-
-
     bool          flag_F_T2_run=false;
     bool          flag_F_T1_run=false;
     bool          flag_F_Nodo_Iniciado=false;
@@ -106,7 +100,6 @@
     WiFiClient    espClient;
     PubSubClient  client(espClient);
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
-
   //-4.3 Timer.
     Ticker timer_0;
     Ticker timer_1;
@@ -150,7 +143,7 @@
     }
 void setup(){
   //S1. Condiciones Iniciales.
-    //-2.3 Timer Answer.
+    //-1.1 Timer Answer.
       tokenTime       = 1000;
       baseTime        = 1000;
       updateTime      = 1000;
@@ -159,9 +152,7 @@ void setup(){
   //S2. Class Setup.
     Node.Lora_Setup(&Correr);
     Correr.Function_begin(&Node);
-  //S3. Web Server.
     webServer.begin(&Node, &Master, &Correr);
-    Serial.println("🌐 Servidor web iniciado en puerto 80");
 }
 void loop(){
   //L1. Function Start
@@ -189,19 +180,12 @@ void loop(){
       }
   //L4. Funciones del Nodo.
     if(!Master.Mode){
-      //-L4.0 Node Function Test.
-        if(flag_ISR_prueba){
-        // flag_ISR_prueba=false;
-          // a1_Nodo_Destellos(1,3);
-        }
-      //-L4.1 Node IO.
-        Node.Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-        // Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-      //-L4.2 Node Protocol.
+      //-L4.1 Node Protocol.
         Node.Lora_Node_Protocol();
     }
   //L5. Funciones del Master.
     if(Master.Mode){
+      Node.Lora_RX();
       //-L5.1 F- Master TX
         if(Master.Next){
           if(!F_updateServer){
@@ -247,9 +231,7 @@ void loop(){
         }
 
     }
-  //L6. Function Lora RX.
-    //-L6.1 lora RX.
-      Node.Lora_RX();
+      
 }
 //5 Master RX Request.
   //-5.1 Master RX Request.
@@ -286,7 +268,7 @@ void loop(){
       F_updateServer=true;
     }
 //6 Funciones de Dispositivos Externos. 
-  //-5.2 MQTT Reconnect.
+  //-6.2 MQTT Reconnect.
     void reconnect() {
       // Loop until we're reconnected
       while (!client.connected()) {
@@ -305,7 +287,7 @@ void loop(){
         }
       }
     }
-  //-5.3 MQTT RX Callback.
+  //-6.3 MQTT RX Callback.
     void callback(char* topic, byte* payload, unsigned int length) {
       Serial.print("MQTT RX: :[");
       Serial.print(topic);
@@ -362,9 +344,9 @@ void loop(){
       }
 
     }
-  //-5.4 MQTT TX PUBLISH
+  //-6.4 MQTT TX PUBLISH
     void Master_MQTT_Publish(){
-      //-5.4.1 MQTT Publish.
+      //-6.4.1 MQTT Publish.
         jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
         client.publish("lora/master/status", jsonString.c_str());
       //-5.4.10 Debug.

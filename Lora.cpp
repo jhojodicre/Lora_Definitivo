@@ -57,25 +57,25 @@ Master      Node_2("2", "0", "0","0"); // Instancia de Nodo en el Perimetro
 Master      Node_3("3", "0", "0","0"); // Instancia de Nodo en el Perimetro
 
 Lora::Lora(char nodeNumber){
-    // Constructor de la clase Node
+  // Constructor de la clase Node
     //1. Configuracion de Hardware
-        pinMode(Zona_A_in, INPUT);
-        pinMode(Zona_B_in, INPUT);
-        pinMode(PB_ZA_in, INPUT);
-        pinMode(PB_ZB_in, INPUT);
-        pinMode(PB_ZC_in, INPUT);
+      pinMode(Zona_A_in, INPUT);
+      pinMode(Zona_B_in, INPUT);
+      pinMode(PB_ZA_in, INPUT);
+      pinMode(PB_ZB_in, INPUT);
+      pinMode(PB_ZC_in, INPUT);
 
-        pinMode(Rele_1_out, OUTPUT);
-        pinMode(Rele_2_out, OUTPUT);
+      pinMode(Rele_1_out, OUTPUT);
+      pinMode(Rele_2_out, OUTPUT);
 
     //2. Condicion Inicial.
-        digitalWrite(Rele_1_out, LOW);
-        digitalWrite(Rele_2_out, LOW);
-        Zone_A = false;
-        Zone_B = false;
-        local_Address = nodeNumber; // Direccion del nodo local.
-        F_Nodo_Excecute=false;
-        nodeInstance = this; // Asignar la instancia actual al puntero global
+      digitalWrite(Rele_1_out, LOW);
+      digitalWrite(Rele_2_out, LOW);
+      Zone_A = false;
+      Zone_B = false;
+      local_Address = nodeNumber; // Direccion del nodo local.
+      F_Nodo_Excecute=false;
+      nodeInstance = this; // Asignar la instancia actual al puntero global
 }
 
 void Lora::Lora_Setup(Functions* correr)
@@ -105,8 +105,7 @@ void Lora::Lora_TX(){
     both.printf("TX [%s] ", txdata.c_str());
     radio.clearDio1Action();
     heltec_led(50); // 50% brightness is plenty for this LED
-    RADIOLIB(radio.transmit(txdata.c_str()));      
-    // RADIOLIB(radio.transmit(String(mensaje).c_str()));
+    RADIOLIB(radio.transmit(txdata.c_str()));
     heltec_led(0);
     if (_radiolib_status == RADIOLIB_ERR_NONE)
     {
@@ -165,13 +164,13 @@ void Lora::rx(){
  }
 void Lora::Lora_IO_Zones(){
   // 1. Lectura de Pulsadores A y B.
-    Zone_A_ACK=digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
-    Zone_B_ACK=digitalRead(PB_ZB_in);       // pulsador B.
-    Zone_AB_ACK=digitalRead(PB_ZC_in);      // pulsador C. Pulsador por defecto PRG.
+    Zone_A_ACK    = digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
+    Zone_B_ACK    = digitalRead(PB_ZB_in);       // pulsador B.
+    Zone_AB_ACK   = digitalRead(PB_ZC_in);       // pulsador C. Pulsador por defecto PRG.
 
   // 2. Lectura Zona A y Zona B.
-    Zone_A=digitalRead(Zona_A_in);
-    Zone_B=digitalRead(Zona_B_in);
+    Zone_A        = digitalRead(Zona_A_in);
+    Zone_B        = digitalRead(Zona_B_in);
 
   // 3. Lectura de Estado de Salidas.
     Rele_1_out_ST = digitalRead(Rele_1_out);
@@ -188,23 +187,37 @@ void Lora::Lora_IO_Zones(){
 
     Zone_A_ERR=false;
     Zone_B_ERR=false;
+  //4 ZONES AB RESET con el pulsador C.
+    if(!Zone_AB_ACK){
+      bitClear(Zonas, Zone_A);
+      bitClear(Zonas, Zone_B);
+      bitClear(Zonas_Fallan, Zone_A);
+      bitClear(Zonas_Fallan, Zone_B);
+      Zone_A_ERR=false;
+      Zone_B_ERR=false;
+      Zone_A_F_str='.';
+      Zone_B_F_str='.';        
+      Zone_A_ST=false;
+      Zone_B_ST=false;
+      F_Event_Enable = true;
+    }
   // 5. ZONA A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
-    if(Zone_A_ACK){
+    if(!Zone_A_ACK){
       bitClear(Zonas, Zone_A);
       bitClear(Zonas_Fallan, Zone_A);
       Zone_A_ERR=false;
       Zone_A_F_str='.';
-      if (Zone_A_ST) {
-        Zone_A_ST=false;
-      }
+      Zone_A_ST=false;
+      F_Event_Enable = true;
     }
   // 6. ZONE B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
-    if(Zone_B_ACK){
+    if(!Zone_B_ACK){
       bitClear(Zonas, Zone_B);
       bitClear(Zonas_Fallan, Zone_B);
       Zone_B_ERR=false;
       Zone_B_F_str='.';        
       Zone_B_ST=false;
+      F_Event_Enable = true;
     }
   // 7. ZONA A ACTIVA.
     if(!Zone_A){
@@ -221,8 +234,9 @@ void Lora::Lora_IO_Zones(){
       }
     }
   // 9. Evento en Zonas.
-    if(Zone_A_ST || Zone_B_ST && !F_Event_Enable){
-      F_Event_Enable = true;
+    if(F_Event_Enable){
+      msg_enviar = true;
+      msg_enviado=0;
       Tipo_de_Mensaje="U";
     } 
     else{
@@ -232,7 +246,6 @@ void Lora::Lora_IO_Zones(){
     //ZONES INPUTS
     Zone_A_str=String(Zone_A_ST, BIN);
     Zone_B_str=String(Zone_B_ST, BIN);
-
     //PUSHBUTTON INPUTS
     Zone_A_ACK_str=String(!Zone_A_ACK, BIN);
     Zone_B_ACK_str=String(!Zone_B_ACK, BIN);
@@ -247,7 +260,7 @@ void Lora::Lora_IO_Zones_Force(){
   if(Zone_A_Forzar) Zone_A = Zone_A_Force;
   if(Zone_B_Forzar) Zone_B = Zone_B_Force;
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
-  }
+}
 void Lora::Lora_IO_Zone_A_ACK(){
   Zone_A_ST=false;
   F_Event_Enable = false;
@@ -284,20 +297,17 @@ void Lora::Lora_Nodo_Frame(){
     txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 + tx_nodo_lora_8);
  }
 void Lora::Lora_Nodo_Decodificar(){
-  // 0. Functon Llamada desde L4.4 Nodo.F_Recibido.
   // 1. Preparamos mensaje para enviar.
-    // Serial.println(String(local_Address));
     if(rx_destinatario==local_Address){
       Serial.println("Nodo_Atiende");
       Lora_Nodo_Frame();
       if(rx_funct_mode!="0"){
         Serial.println("Peticion escuchada");
         F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
-        F_Responder=true;
       }
+      F_Responder=true;
     }
-    // 2. Ejecutamos Funcion.
-    }
+  }
 void Lora::Lora_Node_Print(String z_executed){
   both.printf(z_executed.c_str());
   }
@@ -356,16 +366,15 @@ void Lora::Lora_timerNodo_Answer(){
 void Lora::Lora_time_ZoneA_reach(){
   nodeInstance->timer_ZA_En=true;
   if(!(nodeInstance->Zone_A)){
-    if (!nodeInstance->Zone_A_ST) {
-      // Serial.println("[DEBUG] Zone_A_ST pasa a true por temporizador");
-      nodeInstance->Zone_A_ST=true;
-    }
+    nodeInstance->Zone_A_ST=true;
+    nodeInstance->F_Event_Enable=true;
   }
 }
 void Lora::Lora_time_ZoneB_reach(){
   nodeInstance->timer_ZB_En=true;
   if(!(nodeInstance->Zone_B)){
     nodeInstance->Zone_B_ST=true;
+    nodeInstance->F_Event_Enable=true;
   }
 }
 void Lora::Lora_Master_DB(){
@@ -398,10 +407,10 @@ void Lora::SerializeObjectToJson() {
     // Serial.println(jsonString);
 }
 void Lora::Lora_WebMessage(String mensaje) {
-    tx_funct_mode=mensaje.charAt(2); // Modo de Funcion a ejecutar.
-    tx_funct_num=mensaje.charAt(3); // Numero de Funcion a ejecutar.
-    tx_funct_parameter1=mensaje.charAt(4); // Primer parametro de Funcion a ejecutar.
-    tx_funct_parameter2=mensaje.charAt(5); // Segundo parametro de Funcion a ejecutar.
+    tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
+    tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
+    tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
+    tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
 }
 void Lora::Lora_Timer_Enable(int answerTime){
     Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
@@ -428,22 +437,31 @@ void Lora::Lora_Node_Print_RX(){
     Serial.println(String(rx_funct_parameter2));
 }
 void Lora::Lora_Node_Protocol(){
-  //-P.1 Nodo Evento en Zonas
-    if(F_Event_Enable){
-      F_Responder=true;
-      Lora_Timer_Enable(1200);
-      Serial.println("event_en");
+  //-P.1 LORA RX
+    Lora_RX();
+  //-P.2 Node IO.
+    Lora_IO_Zones(); // Se actualizan los estados de las zonas.  // Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+  //-P.3 Nodo Evento en Zonas
+    if(F_Event_Enable && msg_enviar){
+      Serial.println("event");
+      while(msg_enviado<2){
+        Lora_TX();
+        delay(100);
+        ++ msg_enviado;
+      }
+      msg_enviar=false;
+      F_Event_Enable = false;
     }
-  //-P.2 Nodo RX.
+  //-P.4 Nodo RX.
     if(F_Recibido){
       Lora_Nodo_Decodificar();        // Se recibe el mensaje.
       F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
     }
-  //-P.3 Nodo TX.
+  //-P.5 Nodo TX.
     if(F_Responder){
       Lora_TX();       // Se envia el mensaje.
     }
-  //-P.4 Nodo Ejecuta Funciones.
+  //-P.5 Nodo Ejecuta Funciones.
     if(F_Nodo_Excecute){
       correrRef->Functions_Request(rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
       correrRef->Functions_Run();

@@ -58,10 +58,11 @@ void LoRaWebServer::configurarWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     
-    while (WiFi.status() != WL_CONNECTED) {
+    do{
         delay(500);
         Serial.print(".");
-    }
+        ++conection_try;
+    }while(WiFi.status() != WL_CONNECTED && conection_try != 20);
     
     Serial.println();
     Serial.println("Conectado a la red WiFi");
