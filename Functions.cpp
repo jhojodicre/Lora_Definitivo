@@ -10,6 +10,7 @@ Functions::Functions(bool ready)
     LED_Azul = 6; // 46 Pin del LED azul
     LED_Verde = 35; // 45 Pin del LED verde
     LED_Rojo = 5; // 44 Pin del LED rojo
+    LED_ROJO = 7; // 7 Pin del LED ROJO DE LA PLACA
 
     // Configuración de la instancia
     
@@ -17,11 +18,13 @@ Functions::Functions(bool ready)
     pinMode(LED_Azul, OUTPUT);
     pinMode(LED_Verde, OUTPUT);
     pinMode(LED_Rojo, OUTPUT);
+    pinMode(LED_ROJO, OUTPUT);
 
     // Condición Inicial
     digitalWrite(LED_Azul, HIGH);
     digitalWrite(LED_Verde, HIGH);
     digitalWrite(LED_Rojo, HIGH);
+    digitalWrite(LED_ROJO, HIGH);
 }
 void Functions::Function_begin(Lora* node){
     nodeRef = node;
@@ -149,7 +152,7 @@ void Functions::Functions_Run()
             c7(function_Parameter1);
             break;
         case '8':
-            c8();
+            c8(function_Parameter1);
             break;
         case '9':
             c9();
@@ -446,9 +449,14 @@ void Functions::c7(String argumento1)
 {
     // Implementación del método c7
 }
-void Functions::c8()
+void Functions::c8(String argumento1)
 {
     // Implementación del método c8
+    if (function_Parameter1 == "1") {
+        digitalWrite(LED_ROJO, LOW);
+    } else if (function_Parameter1 == "0") {
+        digitalWrite(LED_ROJO, HIGH);
+    }
 }
 void Functions::c9()
 {
