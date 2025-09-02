@@ -314,8 +314,8 @@ void Lora::Lora_Node_Print(String z_executed){
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
-    tx_remitente        = Master_Address;                      // Direccion del maestro.
-    tx_destinatario     = nodo_a_Consultar;          // Direccion del nodo local.
+    tx_remitente        = Master_Address;                  // Direccion del maestro.
+    tx_destinatario     = nodo_a_Consultar;                // Direccion del nodo local.
     tx_mensaje          = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
 
 
@@ -457,18 +457,15 @@ void Lora::Lora_Node_Protocol(){
       Lora_Nodo_Decodificar();        // Se recibe el mensaje.
       F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
     }
-  //-P.5 Nodo TX.
-    if(F_Responder){
-      Lora_TX();       // Se envia el mensaje.
-    }
   //-P.5 Nodo Ejecuta Funciones.
     if(F_Nodo_Excecute){
       correrRef->Functions_Request(rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
       correrRef->Functions_Run();
-      // if(Correr.F_Correr_Dale) {
-      //   Node.Lora_Node_Print(Correr.function_Exct); // Imprime la funcion ejecutada.
-      //   Correr.F_Correr_Dale=false;
-      // }
+      Lora_Nodo_Frame();
       F_Nodo_Excecute=false;
+    }
+  //-P.6 Nodo TX.
+    if(F_Responder){
+      Lora_TX();       // Se envia el mensaje.
     }
 }

@@ -95,7 +95,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node('1');
-    Master    Master(false,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Master    Master(true,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
   //-4.2 Clases de Protocolos.
     WiFiClient    espClient;
     PubSubClient  client(espClient);
@@ -226,8 +226,8 @@ void loop(){
             // Master_RX_Request_2();                // 1. Carga los datos recibidos desde el servidor.
             Node.Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
             Node.Lora_TX();                       // 3. Se envia el mensaje.
-            Node.F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
             Serial.println("Master Executed: testing");
+            Node.F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
         }
 
     }
