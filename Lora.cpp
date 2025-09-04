@@ -300,7 +300,6 @@ void Lora::Lora_Nodo_Decodificar(){
   // 1. Preparamos mensaje para enviar.
     if(rx_destinatario==local_Address){
       Serial.println("Nodo_Atiende");
-      Lora_Nodo_Frame();
       if(rx_funct_mode!="0"){
         Serial.println("Peticion escuchada");
         F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
@@ -461,11 +460,15 @@ void Lora::Lora_Node_Protocol(){
     if(F_Nodo_Excecute){
       correrRef->Functions_Request(rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
       correrRef->Functions_Run();
-      Lora_Nodo_Frame();
       F_Nodo_Excecute=false;
     }
   //-P.6 Nodo TX.
     if(F_Responder){
-      Lora_TX();       // Se envia el mensaje.
+      Lora_Nodo_Frame();    // Antes de enviar el mensaje se prepara la trama del nodo.
+      Lora_TX();            // Se envia el mensaje.
     }
+}
+void Lora::Lora_Master_Protocol(){
+  // Implementar el protocolo maestro aquí
+  Node.Lora_RX();
 }

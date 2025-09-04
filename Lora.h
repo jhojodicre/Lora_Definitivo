@@ -31,6 +31,7 @@ public:
     void   Lora_Event_Disable();
     void   Lora_Node_Protocol();
     void   Lora_Node_Print_RX();
+    void   Lora_Master_Protocol();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;

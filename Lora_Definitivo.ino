@@ -185,7 +185,8 @@ void loop(){
     }
   //L5. Funciones del Master.
     if(Master.Mode){
-      Node.Lora_RX();
+      Node.Lora_Master_Protocol();
+      
       //-L5.1 F- Master TX
         if(Master.Next){
           if(!F_updateServer){
