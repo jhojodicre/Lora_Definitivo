@@ -10,9 +10,8 @@ LoRaWebServer::LoRaWebServer(uint16_t serverPort) : port(serverPort), isRunning(
 }
 
 //2. Inicializar servidor
-void LoRaWebServer::begin(Lora* node, Master* master, Functions* functions) {
+void LoRaWebServer::begin(Lora* node, Functions* functions) {
     nodeRef = node;
-    masterRef = master;
     functionsRef = functions;
 
     NodeData nodos[5];          // Array de hasta 5 nodos
@@ -507,7 +506,7 @@ void LoRaWebServer::handleAPI() {
     
     if (nodeRef) {
         doc["node"]["address"] = String(nodeRef->local_Address);
-        doc["node"]["mode"] = masterRef->Mode ? "MASTER" : "SLAVE";
+        doc["node"]["mode"] = nodeRef->F_MasterMode ? "MASTER" : "SLAVE";
     }
     
     String response;
@@ -795,12 +794,11 @@ void LoRaWebServer::manejarPruebaSistema() {
     // Test de componentes
     response["components"]["wifi"] = (WiFi.status() == WL_CONNECTED);
     response["components"]["node"] = (nodeRef != nullptr);
-    response["components"]["master"] = (masterRef != nullptr);
     response["components"]["functions"] = (functionsRef != nullptr);
     
     if (nodeRef) {
         response["node_info"]["address"] = String(nodeRef->local_Address);
-        response["node_info"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+        response["node_info"]["mode"] = nodeRef->F_MasterMode ? "MASTER" : "SLAVE";
     }
     
     String jsonResponse;
@@ -830,7 +828,7 @@ void LoRaWebServer::manejarHolaMundo() {
     response["timestamp"] = millis();
     response["uptime_segundos"] = millis() / 1000;
     response["nodo_actual"] = nodeRef ? String(nodeRef->local_Address) : "N/A";
-    response["modo"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    response["modo"] = nodeRef ? (nodeRef->F_MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
     response["status"] = "🚀 Sistema funcionando correctamente";
     
     String jsonResponse;
@@ -1115,7 +1113,7 @@ void LoRaWebServer::handleGetStatus() {
     if (nodeRef) {
         doc["node"]["address_char"] = String(nodeRef->local_Address);
         doc["node"]["address_ascii"] = (int)nodeRef->local_Address;
-        doc["node"]["mode"] = masterRef ? (masterRef->Mode ? "MASTER" : "SLAVE") : "UNKNOWN";
+        doc["node"]["mode"] = nodeRef ? (nodeRef->F_MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
         
         // ✅ AÑADIR: Estado de forzado de zonas
         doc["node"]["zone_a_force"] = nodeRef->Zone_A_Force;
@@ -1125,10 +1123,10 @@ void LoRaWebServer::handleGetStatus() {
         doc["node"]["fuente_force"] = nodeRef->Fuente_in_Force;
         doc["node"]["fuente_forzar"] = nodeRef->Fuente_in_Forzar;
     }
-    
-    if (masterRef && masterRef->Mode) {
-        doc["master"]["node_count"] = masterRef->nodeNumber;
-        doc["master"]["next_node"] = masterRef->Nodo_Proximo;
+
+    if (nodeRef && nodeRef) {
+    doc["master"]["node_count"] = String(nodeRef->nodo_Number); // Corregido: char a String
+        doc["master"]["next_node"] = nodeRef->nodo_a_Consultar;
     }
     
     String response;

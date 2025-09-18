@@ -52,11 +52,14 @@ Ticker      Timer_ZoneA_Enable;
 Ticker      Timer_ZoneB_Enable;
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
-Master      Node_1("1", "0", "0","0"); // Instancia de Nodo en el Perimetro
-Master      Node_2("2", "0", "0","0"); // Instancia de Nodo en el Perimetro
-Master      Node_3("3", "0", "0","0"); // Instancia de Nodo en el Perimetro
+Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
+  : Protocol(isMaster, NumNodes) // Inicializa el atributo Master correctamente
+{
+  F_MasterMode  = isMaster;
+  F_NodeMode    = !isMaster;
+  local_Address = nodeNumber; // Direccion del nodo local.
+  Num_Nodos     = NumNodes;
 
-Lora::Lora(char nodeNumber){
   // Constructor de la clase Node
     //1. Configuracion de Hardware
       pinMode(Zona_A_in, INPUT);
@@ -73,7 +76,7 @@ Lora::Lora(char nodeNumber){
       digitalWrite(Rele_2_out, LOW);
       Zone_A = false;
       Zone_B = false;
-      local_Address = nodeNumber; // Direccion del nodo local.
+      Protocol.Iniciar();
       F_Nodo_Excecute=false;
       nodeInstance = this; // Asignar la instancia actual al puntero global
 }
@@ -119,6 +122,8 @@ void Lora::Lora_TX(){
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     F_Responder = false;      // Bandera activada en Lora_Nodo_Decodificar.
     nodo_consultado=nodo_a_Consultar.charAt(0);
+    F_Node_Atiende=false;    // Flag desactivado en Lora_Nodo_Decodificar.
+    Protocol.nodeResponde=F_Node_Atiende;
  }
 void Lora::Lora_RX(){
     // If a packet was received, display it and the RSSI and SNR
@@ -305,6 +310,8 @@ void Lora::Lora_Nodo_Decodificar(){
         F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       }
       F_Responder=true;
+      F_Node_Atiende=true;
+      Protocol.nodeResponde=F_Node_Atiende;
     }
   }
 void Lora::Lora_Node_Print(String z_executed){
@@ -344,7 +351,7 @@ void Lora::Lora_Master_Decodificar(){
   Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
   SerializeObjectToJson(); // Serializa el objeto a JSON
   // Lora_Master_DB();
-  F_Master_Update=true;
+  F_ServerUpdate=true;
 }
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
@@ -435,6 +442,14 @@ void Lora::Lora_Node_Print_RX(){
     Serial.print("p2: ");
     Serial.println(String(rx_funct_parameter2));
 }
+void Lora::Lora_Protocol(){
+  if(F_NodeMode){
+    Lora_Node_Protocol();
+  }
+  if(F_MasterMode){
+    Lora_Master_Protocol();
+  }
+}
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
     Lora_RX();
@@ -470,5 +485,32 @@ void Lora::Lora_Node_Protocol(){
 }
 void Lora::Lora_Master_Protocol(){
   // Implementar el protocolo maestro aquí
-  Node.Lora_RX();
+  Lora_RX();
+  if(Protocol.Next){
+    if(!Protocol.nodeResponde){
+      Node_Status_str="0";
+      Node_Num_str=nodo_consultado;
+      SerializeObjectToJson();
+      F_ServerUpdate=true;
+    }
+    Protocol.Master_Nodo();
+    Lora_Master_Frame(); // Antes de enviar el mensaje se prepara la trama del maestro.
+    Lora_TX();           // Se envia el mensaje.
+    Protocol.Next=false;
+    Serial.println("Master TXed");
+  }
+//-Master RX
+  if(F_Recibido){
+    Lora_Master_Decodificar(); // Se recibe el mensaje.
+    F_Recibido=false;          // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+    Serial.print("Lora RX: ");
+    Serial.println(String(rxdata));
+  }
+  //-Master Execute order from Server
+    if(F_Master_Excecute){
+        Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+        Lora_TX();                       // 3. Se envia el mensaje.
+        F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+        Serial.println("Master Executed: testing");
+    }
 }

@@ -4,7 +4,6 @@
     #include "Functions.h"
     #include "General.h"
     #include "Lora.h"
-    #include "Master.h"
     #include <PubSubClient.h>
     #include <WiFi.h>
     #include <ArduinoJson.h>
@@ -94,18 +93,9 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node('1');
-    Master    Master(true,5);      // Clase para el Maestro, con el numero de nodos que va a controlar.
+    Lora      Node(true,5,'1');
   //-4.2 Clases de Protocolos.
-    WiFiClient    espClient;
-    PubSubClient  client(espClient);
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
-  //-4.3 Timer.
-    Ticker timer_0;
-    Ticker timer_1;
-    Ticker timer_2;
-    Ticker timer_3;
-    Ticker timer_4;
 //5. Funciones ISR.
   //-5.1 Serial Function.
     void serialEvent (){
@@ -143,22 +133,15 @@
     }
 void setup(){
   //S1. Condiciones Iniciales.
-    //-1.1 Timer Answer.
-      tokenTime       = 1000;
-      baseTime        = 1000;
-      updateTime      = 1000;
-      masterTime      = cycleTime*2;
-      wakeUpTime      = 30.0;
   //S2. Class Setup.
     Node.Lora_Setup(&Correr);
     Correr.Function_begin(&Node);
-    webServer.begin(&Node, &Master, &Correr);
+    webServer.begin(&Node, &Correr);
 }
 void loop(){
   //L1. Function Start
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
-      if(Master.Mode) Master.Iniciar();
     }
     //-L1.1Manejo del Web Server
       webServer.handle();
@@ -178,66 +161,20 @@ void loop(){
         inputString="";
         flag_F_codified_funtion=false;
       }
-  //L4. Funciones del Nodo.
-    if(!Master.Mode){
-      //-L4.1 Node Protocol.
-        Node.Lora_Node_Protocol();
-    }
+  //L4. Funciones del Protocolo.
+      Node.Lora_Protocol();
   //L5. Funciones del Master.
-    if(Master.Mode){
-      Node.Lora_Master_Protocol();
-      
-      //-L5.1 F- Master TX
-        if(Master.Next){
-          if(!F_updateServer){
-            Node.Node_Status_str="0";
-            Node.Node_Num_str=Node.nodo_consultado;
-            Node.SerializeObjectToJson();
-            updateServer();
-          }
-          Master.Master_Nodo();         // Se prepara el nodo maestro.
-          Master_RX_Request();          // Se cargan los datos recibidos desde via serial.
-          Node.Lora_Master_Frame();     // Se prepara el mensaje a enviar.
-          Node.Lora_TX();               // Se envia el mensaje.
-          Master.Next=false;
-          F_updateServer=false;
-          Serial.println("Master TXed");
-          //-L5.2.7 Simular
-            // Master_Dummy_Simulate(); // Simula el envio de datos del nodo maestro.
-          //-L.5.2.8 Probamos el envio de datos a la WEB.
-          }
-      //-L5.2 F- Master RX.
-        if(Node.F_Recibido){
-          Node.Lora_Master_Decodificar();       // Se recibe el mensaje.
-          Serial.print("Lora RX: ");
-          Serial.println(String(Node.rxdata));
-          Node.F_Recibido=false;                // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
-        }
-      //-L5.3 F- Server Update.
-        if(Node.F_Master_Update){
-          //-L5.4.1 MQTT Publish.
-            // Master_MQTT_Publish();              // Se publica el mensaje en el servidor MQTT.
-            //Update Server.
-          updateServer();
-          Node.F_Master_Update=false;
-        }
-      //-L5.4 F- Master Execute order from Server
-        if(Node.F_Master_Excecute){
-          //-L5.5.1 Ejecuta la funcion.
-            // Master_RX_Request_2();                // 1. Carga los datos recibidos desde el servidor.
-            Node.Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-            Node.Lora_TX();                       // 3. Se envia el mensaje.
-            Serial.println("Master Executed: testing");
-            Node.F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-        }
-
+    if(Node.F_MasterMode){
+      if(Node.F_ServerUpdate){
+        updateServer();
+        Node.F_ServerUpdate=false;
+      }
     }
-      
 }
 //5 Master RX Request.
   //-5.1 Master RX Request.
     void Master_RX_Request(){
-      Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
+      // Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
       Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
       Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
       Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
@@ -266,100 +203,14 @@ void loop(){
       jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
-      F_updateServer=true;
     }
-//6 Funciones de Dispositivos Externos. 
-  //-6.2 MQTT Reconnect.
-    void reconnect() {
-      // Loop until we're reconnected
-      while (!client.connected()) {
-        Serial.print("Attempting MQTT connection...");
-        // Attempt to connect
-        if (client.connect("ESP32Client")) {
-          Serial.println("connected");
-          // ... and subscribe to topic
-          client.subscribe("lora/master/cmd");
-        } else {
-          Serial.print("failed, rc=");
-          Serial.print(client.state());
-          Serial.println(" try again in 5 seconds");
-          // Wait 5 seconds before retrying
-          delay(5000);
-        }
-      }
-    }
-  //-6.3 MQTT RX Callback.
-    void callback(char* topic, byte* payload, unsigned int length) {
-      Serial.print("MQTT RX: :[");
-      Serial.print(topic);
-      Serial.println("] ");
-      String messageTemp;
-      for (int i = 0; i < length; i++) {
-        Serial.print((char)payload[i]);
-        messageTemp += (char)payload[i];
-      }
-      Serial.println();
-      // Feel free to add more if statements to control more GPIOs with MQTT
-          // General.Led_1(1); // Led ON.
 
-      // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
-      // Changes the output state according to the message
-      if (String(topic) == "lora/master/cmd") {
-        Serial.print("MQTT processing message: ");
-        char firstChar = messageTemp.charAt(0);
-            Nodo_a_Pedir = messageTemp.charAt(1);
-            function_Mode = messageTemp.charAt(2);
-            function_Number = messageTemp.charAt(3);
-            parameter_1 = messageTemp.charAt(4);
-            parameter_2 = messageTemp.charAt(5);
-        switch (firstChar) {
-          case 'N':
-            Serial.println("Case N: Master command received");
-            Node.F_Master_Excecute = true; // Activar bandera para ejecutar la función en el nodo.
-        // Acción para 'N'
-            break;
-          case 'M':
-            Serial.println("Case M: Master command received");
-            // Acción para 'M'
-            break;
-          case 'C':
-            Serial.println("Case C: Config command received");
-            // Acción para 'C'
-            break;
-          case 'F':
-            Serial.println("Case F: Function command received");
-            // Acción para 'F'
-            break;
-          case 'G':
-            Serial.println("Case G: General command received");
-            // Acción para 'G'
-            break;
-            case 'Z':
-              Serial.println("Case Z: Special command received");
-              // Acción para 'Z'
-              break;
-          default:
-            Serial.println("Unknown command");
-            break;
-        }
-      }
-
-    }
-  //-6.4 MQTT TX PUBLISH
-    void Master_MQTT_Publish(){
-      //-6.4.1 MQTT Publish.
-        jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-        client.publish("lora/master/status", jsonString.c_str());
-      //-5.4.10 Debug.
-        Serial.print("MQTT TX: ");
-        Serial.println(jsonString);
-    }
 //10. Miscelanius#include <HTTPClient.h>
   //https://resource.heltec.cn/download/package_heltec_esp32_index.json
   // mongodb+srv://jhojodicre:l7emAppTNpcVUTsc@cluster0.wa5aztt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-  // The password for jhojodicre is included in the connection string for your first time setup. This password will not be available again after exiting this connect flow.
+  // The password for jhojodicre is included in the connection string for your first time setup. 
+  // This password will not be available again after exiting this connect flow.
   // jhojodicre
   // password: l7emAppTNpcVUTsc
-  // ip ip (186.52.249.162)
-
-  // ramita agregada a la rama principal
+  // ip ip (186.52.249.162).
+  // ramita agregada a la rama principal.

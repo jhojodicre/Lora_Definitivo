@@ -3,9 +3,11 @@
 #include <Arduino.h>
 #include <Ticker.h>
 #include <ArduinoJson.h>
+#include <Master.h>
 class Lora {
 public:
-    Lora(char nodeNumber);
+    Master      Protocol;
+    Lora(bool isMaster,int  nodeNumber, char localAddress);
     void   Setup();
     void   Lora_Setup(class Functions* correr);
     void   Lora_TX();
@@ -29,6 +31,7 @@ public:
     static void   Lora_time_ZoneB_reach();
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
+    void   Lora_Protocol();
     void   Lora_Node_Protocol();
     void   Lora_Node_Print_RX();
     void   Lora_Master_Protocol();
@@ -44,6 +47,10 @@ public:
     bool    timer_ZB_En=true;
     bool    Timer_Nodo_Answer_F=false;      // flag que indica que el timer de responder esta activo.
     bool    F_No_Responder=false;
+    bool    F_Node_Atiende=false;
+    bool    F_MasterMode=false;
+    bool    F_NodeMode=false;
+    bool    F_ServerUpdate=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
         char    ascii_representation[9];
@@ -51,12 +58,13 @@ public:
         String  txdata;
         String  mensaje;
         byte    nodo_local;
-        char    nodo_status;        // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-        char    local_Address='1';  // Direccion del nodo local.
-        char    nodo_consultado;  // Direccion del nodo consultado.
+        char    nodo_status;            // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char    local_Address='1';      // Direccion del nodo local.
+        char    nodo_consultado;        // Direccion del nodo consultado.
         char    nodo_Number;
         String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
         String  nodo_DB=" ";
+        int     Num_Nodos=1;            // Numero de nodos en el sistema.
     //Variables para la recepcion de mensaje.
         char    rx_remitente;           // Nodo que envia el mensaje.
         char    rx_destinatario;        // Nodo que recibe el mensaje.
@@ -130,6 +138,7 @@ public:
 
     // Instancias de Clases:
         class Functions* correrRef;
+        
 private:
     // Entradas Fisicas
         int     Zona_A_in=39;

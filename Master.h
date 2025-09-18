@@ -9,6 +9,7 @@ public:
     int nodeStatus;
     int mensaje;
     bool Next;          // Flag para transmitir al siguiente nodo.
+    bool nodeResponde; // Flag que indica si el nodo responde o no.
     
     
     Master(bool mode_master, int nodo_number);

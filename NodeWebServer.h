@@ -71,7 +71,7 @@ public:
     LoRaWebServer(uint16_t serverPort = 80);
     
     // Métodos públicos
-    void begin(class Lora* node, class Master* master, class Functions* functions);
+    void begin(class Lora* node, class Functions* functions);
     void handle();
     void stop();
 

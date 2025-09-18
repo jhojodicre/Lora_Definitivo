@@ -25,7 +25,9 @@ Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, Stri
 }
 void Master::Iniciar() {
     // Implementación del método Iniciar
-    timer_master.attach(5, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    if(Mode){
+        timer_master.attach(5, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    }
 }
 void Master::Configuracion() {
     // Implementación del método Configuracion
