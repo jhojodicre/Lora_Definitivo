@@ -1,0 +1,7 @@
+# Comandos para compilar y cargar rápidamente con Arduino CLI
+
+# Compilar proyecto (sin verificación)
+arduino-cli compile --fqbn esp32:esp32:heltec_wifi_lora_32_V2 Lora_Definitivo --build-property "build.code_debug=1" --build-property "compiler.cpp.extra_flags=-DRELEASE_BUILD"
+
+# Subir el programa compilado (con velocidad máxima)
+arduino-cli upload -p COM3 --fqbn esp32:esp32:heltec_wifi_lora_32_V2 Lora_Definitivo --verify --verbose --programmer esptool --upload-speed 921600

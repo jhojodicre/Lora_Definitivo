@@ -13,7 +13,6 @@
 #include <Ticker.h>
 #include <Functions.h>
 #include <ArduinoJson.h>
-#include <PubSubClient.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -95,6 +94,11 @@ void Lora::Lora_Setup(Functions* correr)
     RADIOLIB_OR_HALT(radio.setOutputPower(TRANSMIT_POWER));
     // Start receiving
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
+    
+    // Inicializar el temporizador de Master si estamos en modo Master
+    if (F_MasterMode) {
+        Protocol.Iniciar(); // Esto inicia el temporizador dentro de la clase Master
+    }
 
     // Set the display to show the radio status
     both.println("Radio init");
@@ -451,6 +455,8 @@ void Lora::Lora_Protocol(){
   }
 }
 void Lora::Lora_Node_Protocol(){
+  delay(1000);
+  Serial.println("Node Protocol Running");
   //-P.1 LORA RX
     Lora_RX();
   //-P.2 Node IO.
@@ -485,6 +491,7 @@ void Lora::Lora_Node_Protocol(){
 }
 void Lora::Lora_Master_Protocol(){
   // Implementar el protocolo maestro aquí
+  Serial.println("Master Protocol Running");
   Lora_RX();
   if(Protocol.Next){
     if(!Protocol.nodeResponde){
