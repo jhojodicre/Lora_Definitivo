@@ -446,12 +446,34 @@ void Lora::Lora_Node_Print_RX(){
     Serial.print("p2: ");
     Serial.println(String(rx_funct_parameter2));
 }
+/**
+ * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
+ * 
+ * Este es el punto de entrada principal para la gestión del protocolo
+ * y se debe llamar regularmente desde el loop principal.
+ */
 void Lora::Lora_Protocol(){
-  if(F_NodeMode){
+  // En modo Nodo, ejecuta el protocolo para nodos
+  if (F_NodeMode) {
     Lora_Node_Protocol();
   }
-  if(F_MasterMode){
-    Lora_Master_Protocol();
+  
+  // En modo Master, gestiona el ciclo del protocolo
+  if (F_MasterMode) {
+    // El temporizador en Master.cpp activa la bandera Protocol.Next
+    if (Protocol.Next) {
+      Protocol.Next = false; // Resetear la bandera
+      Serial.println("Temporizador Master activado - Iniciando protocolo");
+      Lora_Master_Protocol();
+    }
+    
+    // Procesar mensajes recibidos en modo Master usando el método dedicado
+    if (F_Recibido) {
+      ProcesarMensajesRecibidos();
+    }
+    
+    // Ejecutar la gestión periódica del protocolo
+    Protocol.Gestion();
   }
 }
 void Lora::Lora_Node_Protocol(){
@@ -489,35 +511,95 @@ void Lora::Lora_Node_Protocol(){
       Lora_TX();            // Se envia el mensaje.
     }
 }
+/**
+ * @brief Implementa el protocolo para el modo Master
+ * 
+ * Este método maneja el ciclo completo del protocolo Master:
+ * 1. Determina el siguiente nodo a consultar
+ * 2. Prepara y envía el mensaje
+ * 3. Procesa las respuestas recibidas
+ */
 void Lora::Lora_Master_Protocol(){
-  // Implementar el protocolo maestro aquí
-  Serial.println("Master Protocol Running");
+  Serial.println("======== Master Protocol Running ========");
+  
+  // Verificar si hay mensajes recibidos pendientes
   Lora_RX();
-  if(Protocol.Next){
-    if(!Protocol.nodeResponde){
-      Node_Status_str="0";
-      Node_Num_str=nodo_consultado;
-      SerializeObjectToJson();
-      F_ServerUpdate=true;
-    }
-    Protocol.Master_Nodo();
-    Lora_Master_Frame(); // Antes de enviar el mensaje se prepara la trama del maestro.
-    Lora_TX();           // Se envia el mensaje.
-    Protocol.Next=false;
-    Serial.println("Master TXed");
+  
+  // Actualizar el estado del nodo anterior si no respondió
+  if (!Protocol.nodeResponde) {
+    // Actualizar el status del nodo que no responde
+    Node_Status_str = "0";
+    Node_Num_str = nodo_consultado;
+    
+    // Serializar para enviar al servidor/DB
+    SerializeObjectToJson();
+    F_ServerUpdate = true;
+    
+    Serial.print("Nodo ");
+    Serial.print(nodo_consultado);
+    Serial.println(" no respondió a la consulta anterior");
   }
-//-Master RX
-  if(F_Recibido){
-    Lora_Master_Decodificar(); // Se recibe el mensaje.
-    F_Recibido=false;          // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+  
+  // Llamar al protocolo de Master para determinar el siguiente nodo
+  Protocol.Master_Nodo();
+  
+  // Registrar el nodo que vamos a consultar
+  nodo_a_Consultar = String(Protocol.Nodo_Consultado); // Convertir el número de nodo a String
+  nodo_consultado = '0' + Protocol.Nodo_Consultado; // Convertir a char (asumiendo que el nodo es un dígito)
+  Serial.print("Consultando Nodo: ");
+  Serial.println(nodo_consultado);
+  
+  // Preparar y enviar el mensaje
+  Lora_Master_Frame(); // Prepara la trama del maestro
+  Lora_TX();           // Envía el mensaje
+  
+  Serial.println("Mensaje enviado al nodo");
+  
+  // Gestionar la base de datos del Master periódicamente
+  static unsigned long ultimaActualizacionDB = 0;
+  if (millis() - ultimaActualizacionDB > 30000) { // Cada 30 segundos
+    Protocol.Master_DB(); // Actualizar/mostrar base de datos de nodos
+    ultimaActualizacionDB = millis();
+  }
+  
+  Serial.println("========================================");
+}
+/**
+ * @brief Procesa mensajes recibidos en modo Master
+ */
+void Lora::ProcesarMensajesRecibidos() {
+  if (F_Recibido) {
+    Serial.println("Procesando mensaje recibido...");
+    
+    // Decodificar el mensaje recibido
+    Lora_Master_Decodificar();
+    
+    // Usar la clase Master para procesar el mensaje según el protocolo
+    int origenNodo = rx_remitente - '0'; // Convertir char a int restando el código ASCII de '0'
+    bool requiereAccionEspecial = Protocol.ProcesarMensaje(origenNodo, rx_mensaje); // Usamos rx_mensaje en lugar de rx_message
+    
+    // Si el mensaje requiere acción especial, tomar medidas adicionales
+    if (requiereAccionEspecial) {
+      Serial.println("¡ACCIÓN ESPECIAL REQUERIDA!");
+      // Implementar acciones especiales aquí
+      // Ejemplos:
+      // - Notificar a un servidor
+      // - Activar alguna alerta
+      // - Enviar comandos adicionales
+    }
+    
+    // Reset de la bandera de recepción
+    F_Recibido = false;
+    
     Serial.print("Lora RX: ");
     Serial.println(String(rxdata));
   }
+  
   //-Master Execute order from Server
-    if(F_Master_Excecute){
-        Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-        Lora_TX();                       // 3. Se envia el mensaje.
-        F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-        Serial.println("Master Executed: testing");
-    }
+  if(F_Master_Excecute){
+      Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+      Lora_TX();                       // 3. Se envia el mensaje.
+      F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+      Serial.println("Master Executed: testing");
+  }
 }
