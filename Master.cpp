@@ -146,7 +146,17 @@ void Master::Nodo_REQUEST() {
         // Información de depuración
         Serial.print("Consultando nodo: ");
         Serial.println(Nodo_Consultado);
+
     }
+    timer_No_Response.once_ms(100, [this]() {
+        // Si el nodo no responde en 100 ms, marcamos que no responde
+        if (!estadosNodos[Nodo_Consultado].responde) {
+            Serial.print("Nodo ");
+            Serial.print(Nodo_Consultado);
+            Serial.println(" no respondió a tiempo");
+        }
+        nodeNoResponde = true;
+    });
 }
 
 /**
@@ -318,38 +328,48 @@ void Master::Master_DB() {
 /**
  * @brief Procesa un mensaje recibido y determina acciones
  */
-bool Master::ProcesarMensaje(int origen, String mensaje) {
+void Master::ProcesarMensaje(String mensaje_loraRX) {
     // Esta función analiza mensajes recibidos y determina acciones especiales
-    
+    // Desglosar el mensaje recibido en los nueve substrings como en la clase Lora
+    Lora_Rxdata         = mensaje_loraRX;
+    rx_remitente        = Lora_Rxdata.substring(0, 1);
+    rx_destinatario     = Lora_Rxdata.substring(1, 2);
+    rx_mensaje          = Lora_Rxdata.substring(2, 3);
+    rx_funct_mode       = Lora_Rxdata.substring(3, 4);
+    rx_funct_num        = Lora_Rxdata.substring(4, 5);
+    rx_funct_parameter1 = Lora_Rxdata.substring(5, 6);
+    rx_funct_parameter2 = Lora_Rxdata.substring(6, 7);
+    rx_funct_parameter3 = Lora_Rxdata.substring(7, 8);
+    rx_funct_parameter4 = Lora_Rxdata.substring(8, 9);
+
     // Registrar que el nodo ha respondido
-    if (origen > 0 && origen <= Nodo_Ultimo) {
-        estadosNodos[origen].responde = true;
-        estadosNodos[origen].ultimaRespuesta = millis();
-        estadosNodos[origen].intentos = 0;
-    }
-    
-    // Buscar comandos especiales en el mensaje
-    if (mensaje.indexOf("ALERTA") >= 0) {
-        // Mensaje de alerta - requiere atención especial
-        Serial.print("¡ALERTA RECIBIDA DE NODO ");
-        Serial.print(origen);
-        Serial.println("!");
-        
-        if (origen > 0 && origen <= Nodo_Ultimo) {
-            estadosNodos[origen].ultimoEstado = 2; // Estado de alerta
+    if (rx_remitente.toInt() == Nodo_Consultado) { // Comparar correctamente convirtiendo String a int
+        int rx_remitente_int = rx_remitente.toInt();
+        estadosNodos[rx_remitente_int].responde = true;
+        estadosNodos[rx_remitente_int].ultimaRespuesta = millis();
+        estadosNodos[rx_remitente_int].intentos = 0;
+        timer_No_Response.detach(); // Detener el temporizador de no respuesta
+
+        // Buscar comandos especiales en el mensaje
+        if (rx_mensaje == "A") {
+            // Mensaje de alerta - requiere atención especial
+            Serial.print("¡ALERTA RECIBIDA DE NODO ");
+            Serial.print(rx_remitente);
+            Serial.println("!");
+        } 
+        else if (rx_mensaje == "R") {
+            // Comando de reinicio
+            Serial.print("Comando de RESET recibido de nodo ");
+            Serial.println(rx_remitente);
         }
-        
-        return true; // Mensaje requiere acción especial
-    } 
-    else if (mensaje.indexOf("RESET") >= 0) {
-        // Comando de reinicio
-        Serial.print("Comando de RESET recibido de nodo ");
-        Serial.println(origen);
-        return true;
+        nodeNoResponde = true; // Mensaje requiere acción especial
     }
-    
-    // Mensaje normal sin acciones especiales
-    return false;
+    else {
+        Serial.print("Mensaje recibido de nodo inesperado: ");
+        Serial.println(rx_remitente);
+        Nodo_Actual = rx_remitente.toInt(); // Convertir String a int antes de asignar
+        nodeAlerta = true; // Mensaje inesperado, posible alerta
+    }
 }
 
 /**
@@ -374,4 +394,9 @@ String Master::GenerarPeticionEspecial(int nodoID, String comando) {
     Serial.println(mensaje);
     
     return mensaje;
+}
+
+void Master::Master_DecodificarMensaje(String mensaje) {
+    Serial.print("Mensaje recibido: ");
+    Serial.println(mensaje);
 }

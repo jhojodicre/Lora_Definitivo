@@ -21,8 +21,9 @@ public:
     int  mensaje;              // Mensaje actual para enviar
     bool Next;                 // Flag para indicar que es momento de transmitir al siguiente nodo
     bool nodeResponde;         // Flag que indica si el nodo responde o no
-    int  Nodo_Proximo;         // Número del próximo nodo a consultar
-    
+    bool nodeNoResponde;       // Flag que indica que el nodo no respondió
+    bool nodeAlerta;           // Flag que indica si el nodo está en alerta
+    String Lora_Rxdata;     // Datos recibidos por Lora
     // ----- CONSTRUCTORES -----
     /**
      * @brief Constructor para modo Master
@@ -109,7 +110,7 @@ public:
      * @param mensaje Contenido del mensaje
      * @return true si el mensaje requiere acción especial
      */
-    bool ProcesarMensaje(int origen, String mensaje);
+    void ProcesarMensaje(String mensaje_rx_lora);
     
     /**
      * @brief Verifica si un nodo está en estado de alerta
@@ -126,6 +127,7 @@ public:
      */
     String GenerarPeticionEspecial(int nodoID, String comando);
 
+    void Master_DecodificarMensaje(String mensaje);
     // ----- VARIABLES PARA LA BASE DE DATOS DE NODOS -----
     String nodo_Number="";      // Número de nodo en formato String
     String Zone_A="";           // Estado de la Zona A (0=Normal, 1=Alerta)
@@ -138,12 +140,23 @@ public:
     bool firstScan;             // Flag para primera ejecución
     bool LED_Azul;              // Control de LED indicador
     int  Nodo_Primero=1;        // ID del primer nodo de la red
+    int  Nodo_Proximo;          // Número del próximo nodo a consultar
     int  Nodo_Ultimo=3;         // ID del último nodo de la red
     int  Nodo_Consultado;       // ID del nodo actualmente consultado
     int  Nodo_Anterior;         // ID del nodo previamente consultado
     int  Nodo_Actual;           // ID del nodo actual en proceso
     int  Nodo_Siguiente;        // ID del siguiente nodo a consultar
     
+
+    String rx_remitente      = "";
+    String rx_destinatario    = "";
+    String rx_mensaje         = "";
+    String rx_funct_mode      = "";
+    String rx_funct_num       = "";
+    String rx_funct_parameter1 = "";
+    String rx_funct_parameter2 = "";
+    String rx_funct_parameter3 = "";
+    String rx_funct_parameter4 = "";
 private:
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {
