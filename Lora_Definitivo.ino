@@ -1,12 +1,8 @@
 //1. librerias.
   //-1.1 Librerias
-    #include <Arduino.h>
     #include "Functions.h"
     #include "General.h"
     #include "Lora.h"
-    #include <PubSubClient.h>
-    #include <WiFi.h>
-    #include <ArduinoJson.h>
     #include <HTTPClient.h>
     #include "NodeWebServer.h"
 
@@ -30,37 +26,6 @@
     bool          flag_F_Nodo_Iniciado=false;
     bool          flag_F_token=false;               // Se habilita caundo el nodo responde por token
     bool          F_updateServer=false;
- 
-  //-3.3 Variables TIME.
-      long        initialTime= 0;
-
-      long        currentTime_1 = 0;
-      long        elapseTime_1 = 0;
-      long        afterTime_1  = 0;
-      long        beforeTime_1 = 0;
-      long        beforeTime_GAP;         // Tiempo transcurrido entre mensajes entrantes para el MASTER.
-      long        currentTime_GAP;
-      long        elapseTime_GAP;
-
-      long        currentTime_2 = 0;
-      long        elapseTime_2 = 0;
-      long        afterTime_2  = 0;
-      long        beforeTime_2 = 0;
-
-      long        chismeTime = 1000;
-      long        baseTime   = 1000;
-      long        cycleTime = 1000;
-      long        tokenTime  = 2000;
-      long        updateTime = 2000;
-      long        masterTime = 10000;
-      float       wakeUpTime = 90.0;
-      long        firstTime;
-      long        tokenLast;
-      long        totalTime;
-      long        waitTime   = 0;
-      uint32_t    remainT1;
-      uint32_t    remainT2;
-      int         fastTime    =   1;
 
   //-3.4 Variables Para Conection WiFi and MQTT.
       const char* mqtt_server = "192.168.1.27";
@@ -112,25 +77,7 @@
         }
       }
     }
-  //-5.2 Interrupciones por Timers.
-    void ISR_temporizador_0(){
-      flag_ISR_temporizador_0=true;
-    }
-    void ISR_temporizador_1(){
-        beforeTime_1 = millis();
-        flag_ISR_temporizador_1=true;
-    }
-    void ISR_temporizador_2(){
-      currentTime_2 = millis();
-      flag_ISR_temporizador_2=true;
-      flag_F_token=true;
-      elapseTime_2=0;
-      flag_F_T2_run=false;
-    }
-    void ISR_temporizador_3(){
-      if(flag_F_Nodo_Iniciado) return;
-      flag_ISR_temporizador_3=true;
-    }
+
 void setup(){
   //S1. Condiciones Iniciales.
   //S2. Class Setup.
@@ -164,11 +111,9 @@ void loop(){
   //L4. Funciones del Protocolo.
       Node.Lora_Protocol();
   //L5. Funciones del Master.
-    if(Node.F_MasterMode){
-      if(Node.F_ServerUpdate){
-        updateServer();
-        Node.F_ServerUpdate=false;
-      }
+    if(Node.F_ServerUpdate){
+      updateServer();
+      Node.F_ServerUpdate=false;
     }
 }
 //5 Master RX Request.
@@ -188,15 +133,7 @@ void loop(){
       Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
     }
-  //-5.3 Master Dummy Simulate.
-    void Master_Dummy_Simulate(){
-      // 1 o se envia a MQTT.
-        Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
-        Node.SerializeObjectToJson(); // Serializa el objeto a JSON
-        // Master_MQTT_Publish(); // Se publica el mensaje en el servidor MQTT.  
-      // 2 o se envia a MongoDB.
-            // sendJsonToMongoDB(); // Envio de Json a MongoDB.
-    }
+
   //-5.4 Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
@@ -205,12 +142,3 @@ void loop(){
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
     }
 
-//10. Miscelanius#include <HTTPClient.h>
-  //https://resource.heltec.cn/download/package_heltec_esp32_index.json
-  // mongodb+srv://jhojodicre:l7emAppTNpcVUTsc@cluster0.wa5aztt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-  // The password for jhojodicre is included in the connection string for your first time setup. 
-  // This password will not be available again after exiting this connect flow.
-  // jhojodicre
-  // password: l7emAppTNpcVUTsc
-  // ip ip (186.52.249.162).
-  // ramita agregada a la rama principal.

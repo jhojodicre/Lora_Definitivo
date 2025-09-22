@@ -23,3 +23,15 @@ private:
 };
 
 #endif // GENERAL_H
+
+    // int origenNodo = rx_remitente - '0'; // Convertir char a int restando el código ASCII de '0'
+
+    //10. Miscelanius#include <HTTPClient.h>
+  //https://resource.heltec.cn/download/package_heltec_esp32_index.json
+  // mongodb+srv://jhojodicre:l7emAppTNpcVUTsc@cluster0.wa5aztt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  // The password for jhojodicre is included in the connection string for your first time setup. 
+  // This password will not be available again after exiting this connect flow.
+  // jhojodicre
+  // password: l7emAppTNpcVUTsc
+  // ip ip (186.52.249.162).
+  // ramita agregada a la rama principal.

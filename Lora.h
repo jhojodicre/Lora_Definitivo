@@ -35,6 +35,11 @@ public:
     void   Lora_Node_Protocol();
     void   Lora_Node_Print_RX();
     void   Lora_Master_Protocol();
+    void   Protocol_ProcesarMensajesRecibidos(); // Nuevo método para procesar mensajes recibidos
+    void   Protocol_UpdateServer();
+    void   Protocol_ConsultarNodoSiguiente();
+    void   Protocol_porImplementar();
+    void   Protocol_ExecuteOrderFromServer();
 
     bool    F_Responder=false;
     bool    F_Recibido=false;

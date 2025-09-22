@@ -13,7 +13,6 @@
 #include <Ticker.h>
 #include <Functions.h>
 #include <ArduinoJson.h>
-#include <PubSubClient.h>
 
 // Turns the 'PRG' button into the power button, long press is off
 #define HELTEC_POWER_BUTTON // must be before "#include <heltec_unofficial.h>"
@@ -95,6 +94,11 @@ void Lora::Lora_Setup(Functions* correr)
     RADIOLIB_OR_HALT(radio.setOutputPower(TRANSMIT_POWER));
     // Start receiving
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
+    
+    // Inicializar el temporizador de Master si estamos en modo Master
+    if (F_MasterMode) {
+        Protocol.Iniciar(); // Esto inicia el temporizador dentro de la clase Master
+    }
 
     // Set the display to show the radio status
     both.println("Radio init");
@@ -140,6 +144,7 @@ void Lora::Lora_RX(){
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
       F_Recibido = true;  // Bandera activada en Lora_RX.
     }
+    
     rx_remitente        = rxdata.charAt(0); // Nodo que envia el mensaje.
     rx_destinatario     = rxdata.charAt(1); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
@@ -353,6 +358,23 @@ void Lora::Lora_Master_Decodificar(){
   // Lora_Master_DB();
   F_ServerUpdate=true;
 }
+void Lora::Lora_Node_Print_RX(){
+  Serial.print("RX: ");
+  Serial.println(String(rx_destinatario));
+  Serial.print("LA: ");
+  Serial.println(String(local_Address));
+  Serial.print("ms: ");
+  Serial.println(String(rx_mensaje));
+  Serial.print("md: ");
+  Serial.println(String(rx_funct_mode));
+  Serial.print("nf: ");
+  Serial.println(String(rx_funct_num));
+  Serial.print("p1: ");
+  Serial.println(String(rx_funct_parameter1));
+  Serial.print("p2: ");
+  Serial.println(String(rx_funct_parameter2));
+}
+
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
     Node_Num_str = String(random(3, 6)); // Random between "3" and "5"
@@ -398,7 +420,7 @@ void Lora::Lora_Master_DB(){
   }
 }
 void Lora::SerializeObjectToJson() {
-  //datos para MQTT
+  
     doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
     doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
     doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
@@ -408,9 +430,8 @@ void Lora::SerializeObjectToJson() {
     doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
     serializeJson(doc, jsonString);
 
-
-    // Serial.print("LORA_JSON String:");
-    // Serial.println(jsonString);
+    Serial.print("LORA_JSON String:");
+    Serial.println(jsonString);
 }
 void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
@@ -425,34 +446,27 @@ void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();
   F_Event_Enable = false;
 }
-void Lora::Lora_Node_Print_RX(){
-  //Nodo Muestra msg Lora_RX
-    Serial.print("RX: ");
-    Serial.println(String(rx_destinatario));
-    Serial.print("LA: ");
-    Serial.println(String(local_Address));
-    Serial.print("ms: ");
-    Serial.println(String(rx_mensaje));
-    Serial.print("md: ");
-    Serial.println(String(rx_funct_mode));
-    Serial.print("nf: ");
-    Serial.println(String(rx_funct_num));
-    Serial.print("p1: ");
-    Serial.println(String(rx_funct_parameter1));
-    Serial.print("p2: ");
-    Serial.println(String(rx_funct_parameter2));
-}
+
 void Lora::Lora_Protocol(){
-  if(F_NodeMode){
+  /**
+   * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
+   * 
+   * Este es el punto de entrada principal para la gestión del protocolo
+   * y se debe llamar regularmente desde el loop principal.
+   */
+  Lora_RX();
+  
+  // En modo Nodo, ejecuta el protocolo para nodos
+  if (F_NodeMode) {
     Lora_Node_Protocol();
   }
-  if(F_MasterMode){
+  // En modo Master, gestiona el ciclo del protocolo
+  if (F_MasterMode) {
     Lora_Master_Protocol();
   }
 }
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
-    Lora_RX();
   //-P.2 Node IO.
     Lora_IO_Zones(); // Se actualizan los estados de las zonas.  // Node.Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
   //-P.3 Nodo Evento en Zonas
@@ -484,33 +498,134 @@ void Lora::Lora_Node_Protocol(){
     }
 }
 void Lora::Lora_Master_Protocol(){
-  // Implementar el protocolo maestro aquí
-  Lora_RX();
-  if(Protocol.Next){
-    if(!Protocol.nodeResponde){
-      Node_Status_str="0";
-      Node_Num_str=nodo_consultado;
-      SerializeObjectToJson();
-      F_ServerUpdate=true;
+   /**
+   * @brief Implementa el protocolo para el modo Master
+   * 
+   * Este método maneja el ciclo completo del protocolo Master:
+   * 1. Revisa si a llegado un Nuevo Mensaje.
+   * 2. Prepara El siguiente nodo a ser consultado.
+   * 3. Actualiza el Servidor.
+   * 4. Ejecuta ordenes desde el Servidor.
+   */
+    // Procesar mensajes recibidos en modo Master usando el método dedicado
+    if (F_Recibido) {
+      Protocol_ProcesarMensajesRecibidos();
     }
-    Protocol.Master_Nodo();
-    Lora_Master_Frame(); // Antes de enviar el mensaje se prepara la trama del maestro.
-    Lora_TX();           // Se envia el mensaje.
-    Protocol.Next=false;
-    Serial.println("Master TXed");
-  }
-//-Master RX
-  if(F_Recibido){
-    Lora_Master_Decodificar(); // Se recibe el mensaje.
-    F_Recibido=false;          // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
-    Serial.print("Lora RX: ");
-    Serial.println(String(rxdata));
-  }
-  //-Master Execute order from Server
+    // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
+    if (Protocol.Next) {
+      Protocol_ConsultarNodoSiguiente();
+    }
+    // Actualizar el status del nodo que no responde
+    if (F_ServerUpdate){
+      Protocol_UpdateServer();
+    }
+    //-Master Execute order from Server
     if(F_Master_Excecute){
-        Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-        Lora_TX();                       // 3. Se envia el mensaje.
-        F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-        Serial.println("Master Executed: testing");
+      Protocol_ExecuteOrderFromServer();
     }
 }
+void Lora::Protocol_ConsultarNodoSiguiente(){
+  Protocol.Master_Nodo();
+  nodo_a_Consultar = String(Protocol.Nodo_Proximo); // Convertir el número de nodo a String
+  Lora_Master_Frame();      // Prepara la trama del maestro
+  Lora_TX();                // Envía el mensaje
+  Protocol.Next = false;    // Resetear la bandera
+}
+void Lora::Protocol_ProcesarMensajesRecibidos() {
+  /**
+   * @brief Procesa mensajes recibidos en modo Master
+   */
+    Serial.println("Procesando mensaje recibido...");
+    // Decodificar el mensaje recibido
+    Protocol.ProcesarMensaje(rxdata);
+    F_ServerUpdate = true; // Indicar que se debe actualizar el servidor    
+    // Reset de la bandera de recepción
+    F_Recibido = false;
+    
+    Serial.print("Lora RX: ");
+    Serial.println(String(rxdata));
+    // Si el mensaje requiere acción especial, tomar medidas adicionales
+    // if (requiereAccionEspecial) {
+    //   Serial.println("¡ACCIÓN ESPECIAL REQUERIDA!");
+    //   // Implementar acciones especiales aquí
+    //   // Ejemplos:
+    //   // - Notificar a un servidor
+    //   // - Activar alguna alerta
+    //   // - Enviar comandos adicionales
+    // }
+}
+void Lora::Protocol_UpdateServer(){
+  /**
+   * @brief Actualiza el estado del nodo en el servidor
+   *
+   * Este método puede ser llamado por los siguientes eventos:
+   * -1 Cuando un Nodo Responde correctamente
+   * -2 Cuando un Nodo no responde a la consulta.
+   * -3 Cuando un Nodo cambia el estado de sus entradas (Zonas) nodo en Alerta.
+   */
+  if(Protocol.nodeResponde){    // Si el nodo respondió correctamente
+    Protocol.nodeResponde = false; // Resetear la bandera para la próxima consulta
+    Node_Status_str = "1"; // Comunicacion ok
+    Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
+    
+    SerializeObjectToJson();// Serializar para enviar al servidor/DB
+    return; // No es necesario actualizar el servidor si el nodo respondió
+  }
+  if(Protocol.nodeNoResponde){  // Si el nodo NO respondió a la consulta
+    Protocol.nodeNoResponde = false; // Resetear la bandera para la próxima consulta
+    Node_Status_str = "0"; // Nodo no responde
+    Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
+    
+    // Poner los estados de las zonas y salidas como ="0" (desconocido)
+    rx_master_lora_3 = "0"; // Estado de la zona A
+    rx_master_lora_4 = "0"; // Estado de la zona B
+    rx_master_lora_5 = "0"; // Estado de la salida 1
+    rx_master_lora_6 = "0"; // Estado de la salida 2
+    rx_master_lora_7 = "0"; // Estado de la fuente
+
+    // Serializar para enviar al servidor/DB
+    SerializeObjectToJson();
+    Serial.print("Nodo ");
+    Serial.print(Protocol.Nodo_Consultado);
+    Serial.println(" no respondió a la consulta anterior");
+    return;
+  }
+  if(Protocol.nodeAlerta){                  // Si el nodo cambió el estado de sus entradas (Zonas)
+    Protocol.nodeAlerta = false;            // Resetear la bandera para la próxima consulta
+    Node_Status_str = "1";                  // Comunicacion ok
+    Node_Num_str    = String(Protocol.Nodo_Actual); // Numero de Nodo consultado
+    SerializeObjectToJson();                // Serializa el objeto a JSON
+    return;
+  }
+  F_ServerUpdate = true;
+}
+void Lora::Protocol_ExecuteOrderFromServer() {
+  /**
+   * @brief Ejecuta órdenes recibidas desde el servidor
+   * 
+   */
+  Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+  Lora_TX();                       // 3. Se envia el mensaje.
+  F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+  Serial.println("Server->Master->Node");
+}
+
+void Lora::Protocol_porImplementar(){
+  /**
+   * @brief Método placeholder para futuras implementaciones del protocolo
+   * 
+   * Este método está reservado para futuras expansiones o modificaciones
+   * del protocolo de comunicación.
+   */
+  // Implementar futuras funcionalidades del protocolo aquí
+    // Ejecutar la gestión periódica del protocolo
+    Protocol.Gestion();
+
+  // Gestionar la base de datos del Master periódicamente
+  static unsigned long ultimaActualizacionDB = 0;
+  if (millis() - ultimaActualizacionDB > 30000) { // Cada 30 segundos
+    Protocol.Master_DB(); // Actualizar/mostrar base de datos de nodos
+    ultimaActualizacionDB = millis();
+  }
+}
+
