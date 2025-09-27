@@ -723,10 +723,6 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
             Serial.println("❌ Error: nodeRef es null");
             return false;
         }
-        if (!masterRef) {
-            Serial.println("❌ Error: masterRef es null");
-            return false;
-        }
         if (!functionsRef) {
             Serial.println("❌ Error: functionsRef es null");
             return false;
@@ -766,9 +762,6 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
 
         nodeRef->nodo_a_Consultar= nodeId;
         nodeRef->Lora_WebMessage(mensaje);
-
-        // También activar bandera para el loop principal
-        nodeRef->F_Master_Excecute = true;
         
         Serial.printf("✅ Mensaje procesado: %s\n", mensaje.c_str());
     } catch (...) {

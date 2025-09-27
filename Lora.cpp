@@ -438,6 +438,7 @@ void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
+    F_Master_Excecute=true; // Flag desactivado en L5.4
 }
 void Lora::Lora_Timer_Enable(int answerTime){
     Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
@@ -529,6 +530,7 @@ void Lora::Protocol_ConsultarNodoSiguiente(){
   nodo_a_Consultar = String(Protocol.Nodo_Proximo); // Convertir el número de nodo a String
   Lora_Master_Frame();      // Prepara la trama del maestro
   Lora_TX();                // Envía el mensaje
+  F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
   Protocol.Next = false;    // Resetear la bandera
 }
 void Lora::Protocol_ProcesarMensajesRecibidos() {
@@ -539,8 +541,8 @@ void Lora::Protocol_ProcesarMensajesRecibidos() {
     // Decodificar el mensaje recibido
     Protocol.ProcesarMensaje(rxdata);
     F_ServerUpdate = true; // Indicar que se debe actualizar el servidor    
-    // Reset de la bandera de recepción
-    F_Recibido = false;
+    
+    F_Recibido = false;// Reset de la bandera de recepción
     
     Serial.print("Lora RX: ");
     Serial.println(String(rxdata));
@@ -567,7 +569,7 @@ void Lora::Protocol_UpdateServer(){
     Protocol.nodeResponde = false; // Resetear la bandera para la próxima consulta
     Node_Status_str = "1"; // Comunicacion ok
     Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
-    
+    Serial.println("Nodo responde timer activo");
     SerializeObjectToJson();// Serializar para enviar al servidor/DB
     return; // No es necesario actualizar el servidor si el nodo respondió
   }
