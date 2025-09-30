@@ -48,6 +48,11 @@ void Functions::Functions_Request(String rxString)
 }
 void Functions::Functions_Run()
 {
+    Serial.print("Ejecutando función Mode: ");
+    Serial.print(function_Mode);
+    Serial.print(" Number: ");
+    Serial.println(function_Number);
+    
     switch (function_Mode)
     {
     case 'A':
@@ -87,6 +92,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'A'
     case 'B':
         switch (function_Number)
         {
@@ -124,6 +130,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'B'
     case 'C':
         switch (function_Number)
         {
@@ -161,6 +168,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'C'
     case 'N':
         switch (function_Number)
         {
@@ -198,6 +206,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'N'
     case 'M':
         switch (function_Number)
         {
@@ -235,6 +244,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'M'
     case 'S':
         switch (function_Number)
         {
@@ -272,6 +282,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'S'
     case 'Z':
         switch (function_Number)
         {
@@ -288,6 +299,7 @@ void Functions::Functions_Run()
             // Handle invalid function_Number
             break;
         }
+        break; // ¡CRÍTICO! Faltaba este break para el case 'Z'
     default:
         // Handle invalid function_Mode
         break;
@@ -405,6 +417,7 @@ void Functions::c0()
 }
 void Functions::c1(String argumento1){
     // Implementación del método c1
+    Serial.printf("c1: ejecutada con argumento %s\n", argumento1.c_str());
     if (function_Parameter1 == "1") {
         digitalWrite(LED_Rojo, LOW);
         Serial.println("LR ON");
@@ -415,6 +428,7 @@ void Functions::c1(String argumento1){
 }
 void Functions::c2(String argumento1)
 {
+    Serial.printf("c2: ejecutada con argumento %s\n", argumento1.c_str());
     // Implementación del método c2
     if (function_Parameter1 == "1") {
         digitalWrite(LED_Azul, LOW);

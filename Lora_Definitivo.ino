@@ -9,7 +9,7 @@
 //3. Variables Globales.
   //-3.1 Variables Interrupciones
     volatile bool flag_ISR_prueba=false;             // Flag: prueba para interrupcion serial.
-    volatile bool falg_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.
+    volatile bool flag_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.
     String        inputString;           // Buffer recepcion Serial.
     String        function_Remote;
     String        function_Enable;
@@ -18,15 +18,14 @@
     bool          flag_ISR_temporizador_2=false;
     bool          flag_ISR_temporizador_3=false;
   //-3.2 Variables Banderas. 
-    bool          flag_F_codified_funtion=false;   // Notifica que la funcion ha sido codificada.
-    bool          F_iniciado=false;              // Habilitar mensaje de F_iniciado por unica vez
+    bool          flag_F_codified_funtion=false;    // Notifica que la funcion ha sido codificada.
+    bool          F_iniciado=false;                 // Habilitar mensaje de F_iniciado por unica vez
     bool          flag_F_depurar=false;
     bool          flag_F_T2_run=false;
     bool          flag_F_T1_run=false;
     bool          flag_F_Nodo_Iniciado=false;
     bool          flag_F_token=false;               // Se habilita caundo el nodo responde por token
     bool          F_updateServer=false;
-
   //-3.4 Variables Para Conection WiFi and MQTT.
       const char* mqtt_server = "192.168.1.27";
     // JSON Variables.
@@ -50,15 +49,15 @@
     char function_Number  = ' ';
     char parameter_1      = ' ';
     char parameter_2      = ' ';
-    // Otras.  
+    // Otras.
       String      codigo="";
       String      info_1="";
       char        incomingFuntion;
 //4. Intancias.
   //-4.1 Clases propias.
-    Functions Correr(true);         // Funciones a Ejecutar
+    Lora      Node(false,5,'1');
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node(true,5,'1');
+    Functions Correr(true);         // Funciones a Ejecutar
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -72,12 +71,11 @@
         // if the incoming_function character is a newline, set a flag so the main loop can
         // do something about it:
         if (inChar == '\n') {
-          falg_ISR_stringComplete = true;
+          flag_ISR_stringComplete = true;
           flag_F_codified_funtion=false;
         }
       }
     }
-
 void setup(){
   //S1. Condiciones Iniciales.
   //S2. Class Setup.
@@ -92,15 +90,14 @@ void loop(){
     }
     //-L1.1Manejo del Web Server
       webServer.handle();
-  
   //L2. Functions Serial RX
     //-L2.1 Decode
-      if(falg_ISR_stringComplete){
+      if(flag_ISR_stringComplete){
         Correr.Functions_Request(inputString);
         flag_F_codified_funtion=true;
         Serial.println(inputString);
         Serial.println("RX_SERIAL: "+inputString);
-        falg_ISR_stringComplete=false;
+        flag_ISR_stringComplete=false;
       }
     //-L2.2 Function Run
       if(flag_F_codified_funtion){
@@ -109,11 +106,10 @@ void loop(){
         flag_F_codified_funtion=false;
       }
   //L4. Funciones del Protocolo.
-      Node.Lora_Protocol();
+    Node.Lora_Protocol();
   //L5. Funciones del Master.
     if(Node.F_ServerUpdate){
       updateServer();
-      Node.F_ServerUpdate=false;
     }
 }
 //5 Master RX Request.
@@ -133,12 +129,11 @@ void loop(){
       Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
       Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
     }
-
   //-5.4 Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
       jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+      Node.F_ServerUpdate=false;
     }
-

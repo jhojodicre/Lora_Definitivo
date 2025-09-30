@@ -52,8 +52,9 @@ Ticker      Timer_ZoneB_Enable;
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
 Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
-  : Protocol(isMaster, NumNodes) // Inicializa el atributo Master correctamente
-{
+  : Protocol(isMaster, NumNodes) {
+    // Inicializa el atributo Master correctamente
+
   F_MasterMode  = isMaster;
   F_NodeMode    = !isMaster;
   local_Address = nodeNumber; // Direccion del nodo local.
@@ -78,7 +79,7 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
       Protocol.Iniciar();
       F_Nodo_Excecute=false;
       nodeInstance = this; // Asignar la instancia actual al puntero global
-}
+ }
 
 void Lora::Lora_Setup(Functions* correr)
 {
@@ -270,15 +271,15 @@ void Lora::Lora_IO_Zones_Force(){
   if(Zone_A_Forzar) Zone_A = Zone_A_Force;
   if(Zone_B_Forzar) Zone_B = Zone_B_Force;
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
-}
+ }
 void Lora::Lora_IO_Zone_A_ACK(){
   Zone_A_ST=false;
   F_Event_Enable = false;
-}
+ }
 void Lora::Lora_IO_Zone_B_ACK(){
   Zone_B_ST=false;
   F_Event_Enable = false;
-}
+ }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
@@ -357,7 +358,7 @@ void Lora::Lora_Master_Decodificar(){
   SerializeObjectToJson(); // Serializa el objeto a JSON
   // Lora_Master_DB();
   F_ServerUpdate=true;
-}
+ }
 void Lora::Lora_Node_Print_RX(){
   Serial.print("RX: ");
   Serial.println(String(rx_destinatario));
@@ -373,7 +374,7 @@ void Lora::Lora_Node_Print_RX(){
   Serial.println(String(rx_funct_parameter1));
   Serial.print("p2: ");
   Serial.println(String(rx_funct_parameter2));
-}
+ }
 
 void Lora::Lora_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
@@ -384,27 +385,27 @@ void Lora::Lora_Dummy_Simulate(){
     Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
     Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
     Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
-}
+ }
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
       nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
   }
-}
+ }
 void Lora::Lora_time_ZoneA_reach(){
   nodeInstance->timer_ZA_En=true;
   if(!(nodeInstance->Zone_A)){
     nodeInstance->Zone_A_ST=true;
     nodeInstance->F_Event_Enable=true;
   }
-}
+ }
 void Lora::Lora_time_ZoneB_reach(){
   nodeInstance->timer_ZB_En=true;
   if(!(nodeInstance->Zone_B)){
     nodeInstance->Zone_B_ST=true;
     nodeInstance->F_Event_Enable=true;
   }
-}
+ }
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
@@ -418,35 +419,34 @@ void Lora::Lora_Master_DB(){
     default:
       break;
   }
-}
+ }
 void Lora::SerializeObjectToJson() {
-  
-    doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
-    doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
-    doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
-    doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
-    doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
-    doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
-    doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
-    serializeJson(doc, jsonString);
+  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
+  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
+  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
+  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
+  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
+  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
+  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
+  serializeJson(doc, jsonString);
 
-    Serial.print("LORA_JSON String:");
-    Serial.println(jsonString);
-}
+  // Serial.print("LORA_JSON String:");
+  // Serial.println(jsonString);
+ }
 void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
     F_Master_Excecute=true; // Flag desactivado en L5.4
-}
+  }
 void Lora::Lora_Timer_Enable(int answerTime){
     Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
-}
+  }
 void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();
   F_Event_Enable = false;
-}
+  }
 
 void Lora::Lora_Protocol(){
   /**
@@ -465,7 +465,7 @@ void Lora::Lora_Protocol(){
   if (F_MasterMode) {
     Lora_Master_Protocol();
   }
-}
+ }
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
@@ -474,6 +474,7 @@ void Lora::Lora_Node_Protocol(){
     if(F_Event_Enable && msg_enviar){
       Serial.println("event");
       while(msg_enviado<2){
+        Lora_Nodo_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
         Lora_TX();
         delay(100);
         ++ msg_enviado;
@@ -488,8 +489,28 @@ void Lora::Lora_Node_Protocol(){
     }
   //-P.5 Nodo Ejecuta Funciones.
     if(F_Nodo_Excecute){
-      correrRef->Functions_Request(rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
-      correrRef->Functions_Run();
+      // Validación de datos antes de ejecutar funciones
+      String command = rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2;
+      Serial.print("Ejecutando comando: ");
+      Serial.println(command);
+      
+      // Verificar que el comando tenga la longitud mínima esperada
+      if(command.length() >= 4 && rx_funct_mode != "" && rx_funct_num != ""){
+        try {
+          correrRef->Functions_Request(command);
+          correrRef->Functions_Run();
+          Serial.println("Comando ejecutado correctamente");
+        } catch (...) {
+          Serial.println("Error al ejecutar comando - evitando reinicio");
+        }
+      } else {
+        Serial.println("Comando inválido - ignorando para evitar reinicio");
+        Serial.print("rx_funct_mode: ");
+        Serial.println(rx_funct_mode);
+        Serial.print("rx_funct_num: ");
+        Serial.println(rx_funct_num);
+      }
+      F_Responder = true;
       F_Nodo_Excecute=false;
     }
   //-P.6 Nodo TX.
@@ -497,7 +518,7 @@ void Lora::Lora_Node_Protocol(){
       Lora_Nodo_Frame();    // Antes de enviar el mensaje se prepara la trama del nodo.
       Lora_TX();            // Se envia el mensaje.
     }
-}
+ }
 void Lora::Lora_Master_Protocol(){
    /**
    * @brief Implementa el protocolo para el modo Master
@@ -505,8 +526,9 @@ void Lora::Lora_Master_Protocol(){
    * Este método maneja el ciclo completo del protocolo Master:
    * 1. Revisa si a llegado un Nuevo Mensaje.
    * 2. Prepara El siguiente nodo a ser consultado.
-   * 3. Actualiza el Servidor.
-   * 4. Ejecuta ordenes desde el Servidor.
+   * 3. Prepara el mensaje del nodo consultado.
+   * 4. Actualiza el Servidor.
+   * 5. Ejecuta ordenes desde el Servidor.
    */
     // Procesar mensajes recibidos en modo Master usando el método dedicado
     if (F_Recibido) {
@@ -517,33 +539,30 @@ void Lora::Lora_Master_Protocol(){
       Protocol_ConsultarNodoSiguiente();
     }
     // Actualizar el status del nodo que no responde
-    if (F_ServerUpdate){
-      Protocol_UpdateServer();
+    if (F_NodeStatus|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
+      Protocol_NodeStatus();
     }
     //-Master Execute order from Server
     if(F_Master_Excecute){
       Protocol_ExecuteOrderFromServer();
     }
-}
+ }
 void Lora::Protocol_ConsultarNodoSiguiente(){
   Protocol.Master_Nodo();
   nodo_a_Consultar = String(Protocol.Nodo_Proximo); // Convertir el número de nodo a String
   Lora_Master_Frame();      // Prepara la trama del maestro
   Lora_TX();                // Envía el mensaje
-  F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
   Protocol.Next = false;    // Resetear la bandera
-}
+ }
 void Lora::Protocol_ProcesarMensajesRecibidos() {
   /**
    * @brief Procesa mensajes recibidos en modo Master
    */
-    Serial.println("Procesando mensaje recibido...");
-    // Decodificar el mensaje recibido
-    Protocol.ProcesarMensaje(rxdata);
-    F_ServerUpdate = true; // Indicar que se debe actualizar el servidor    
     
-    F_Recibido = false;// Reset de la bandera de recepción
-    
+    Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
+    F_NodeStatus = true;                // Indicar que se debe actualizar el status del nodo consultado.
+    F_Recibido = false;                 // Reset de la bandera de recepción
+
     Serial.print("Lora RX: ");
     Serial.println(String(rxdata));
     // Si el mensaje requiere acción especial, tomar medidas adicionales
@@ -555,26 +574,25 @@ void Lora::Protocol_ProcesarMensajesRecibidos() {
     //   // - Activar alguna alerta
     //   // - Enviar comandos adicionales
     // }
-}
-void Lora::Protocol_UpdateServer(){
+ }
+void Lora::Protocol_NodeStatus(){
   /**
-   * @brief Actualiza el estado del nodo en el servidor
+   * @brief Actualiza el estado del nodo consultado y serializa la información a JSON
    *
    * Este método puede ser llamado por los siguientes eventos:
    * -1 Cuando un Nodo Responde correctamente
    * -2 Cuando un Nodo no responde a la consulta.
    * -3 Cuando un Nodo cambia el estado de sus entradas (Zonas) nodo en Alerta.
    */
-  if(Protocol.nodeResponde){    // Si el nodo respondió correctamente
-    Protocol.nodeResponde = false; // Resetear la bandera para la próxima consulta
+  
+  if(Protocol.nodeResponde){        // Si el nodo respondió correctamente
     Node_Status_str = "1"; // Comunicacion ok
     Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
     Serial.println("Nodo responde timer activo");
     SerializeObjectToJson();// Serializar para enviar al servidor/DB
-    return; // No es necesario actualizar el servidor si el nodo respondió
+    Protocol.nodeResponde = false; // Resetear la bandera para la próxima consulta
   }
-  if(Protocol.nodeNoResponde){  // Si el nodo NO respondió a la consulta
-    Protocol.nodeNoResponde = false; // Resetear la bandera para la próxima consulta
+  if(Protocol.nodeNoResponde){      // Si el nodo NO respondió a la consulta
     Node_Status_str = "0"; // Nodo no responde
     Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
     
@@ -584,23 +602,23 @@ void Lora::Protocol_UpdateServer(){
     rx_master_lora_5 = "0"; // Estado de la salida 1
     rx_master_lora_6 = "0"; // Estado de la salida 2
     rx_master_lora_7 = "0"; // Estado de la fuente
-
+    
     // Serializar para enviar al servidor/DB
     SerializeObjectToJson();
     Serial.print("Nodo ");
     Serial.print(Protocol.Nodo_Consultado);
     Serial.println(" no respondió a la consulta anterior");
-    return;
+    Protocol.nodeNoResponde = false; // Resetear la bandera para la próxima consulta
   }
-  if(Protocol.nodeAlerta){                  // Si el nodo cambió el estado de sus entradas (Zonas)
+  if(Protocol.nodeAlerta){          // Si el nodo cambió el estado de sus entradas (Zonas)
     Protocol.nodeAlerta = false;            // Resetear la bandera para la próxima consulta
     Node_Status_str = "1";                  // Comunicacion ok
     Node_Num_str    = String(Protocol.Nodo_Actual); // Numero de Nodo consultado
     SerializeObjectToJson();                // Serializa el objeto a JSON
-    return;
   }
-  F_ServerUpdate = true;
-}
+  F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
+  F_NodeStatus = false;             // Resetear la bandera de actualización del estado del nodo
+ }
 void Lora::Protocol_ExecuteOrderFromServer() {
   /**
    * @brief Ejecuta órdenes recibidas desde el servidor
@@ -610,7 +628,7 @@ void Lora::Protocol_ExecuteOrderFromServer() {
   Lora_TX();                       // 3. Se envia el mensaje.
   F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
   Serial.println("Server->Master->Node");
-}
+ }
 
 void Lora::Protocol_porImplementar(){
   /**

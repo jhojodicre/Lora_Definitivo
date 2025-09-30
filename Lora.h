@@ -36,7 +36,7 @@ public:
     void   Lora_Node_Print_RX();
     void   Lora_Master_Protocol();
     void   Protocol_ProcesarMensajesRecibidos(); // Nuevo método para procesar mensajes recibidos
-    void   Protocol_UpdateServer();
+    void   Protocol_NodeStatus();
     void   Protocol_ConsultarNodoSiguiente();
     void   Protocol_porImplementar();
     void   Protocol_ExecuteOrderFromServer();
@@ -56,6 +56,7 @@ public:
     bool    F_MasterMode=false;
     bool    F_NodeMode=false;
     bool    F_ServerUpdate=false;
+    bool    F_NodeStatus=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
         char    ascii_representation[9];

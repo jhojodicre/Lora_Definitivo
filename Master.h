@@ -19,10 +19,10 @@ public:
     int  nodeNumber;           // Número de nodo o cantidad total de nodos
     int  nodeStatus;           // Estado actual del nodo (0=No responde, 1=Normal, 2=Alerta)
     int  mensaje;              // Mensaje actual para enviar
-    bool Next;                 // Flag para indicar que es momento de transmitir al siguiente nodo
-    bool nodeResponde;         // Flag que indica si el nodo responde o no
-    bool nodeNoResponde;       // Flag que indica que el nodo no respondió
-    bool nodeAlerta;           // Flag que indica si el nodo está en alerta
+    bool Next = false;                 // Flag para indicar que es momento de transmitir al siguiente nodo
+    bool nodeResponde = false;         // Flag que indica si el nodo responde o no
+    bool nodeNoResponde = false;       // Flag que indica que el nodo no respondió
+    bool nodeAlerta = false;           // Flag que indica si el nodo está en alerta
     String Lora_Rxdata;     // Datos recibidos por Lora
     // ----- CONSTRUCTORES -----
     /**
@@ -128,6 +128,11 @@ public:
     String GenerarPeticionEspecial(int nodoID, String comando);
 
     void Master_DecodificarMensaje(String mensaje);
+    
+    /**
+     * @brief Método de debug para mostrar el estado de las banderas
+     */
+    void DebugEstadoBanderas();
     // ----- VARIABLES PARA LA BASE DE DATOS DE NODOS -----
     String nodo_Number="";      // Número de nodo en formato String
     String Zone_A="";           // Estado de la Zona A (0=Normal, 1=Alerta)

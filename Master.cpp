@@ -42,6 +42,7 @@ Master::Master(bool mode_master, int nodo_number) {
     // Inicialización de flags
     Next = false;
     nodeResponde = false;
+    nodeNoResponde = false;  // Inicializar correctamente para evitar valores aleatorios
     firstScan = true;
 }
 
@@ -146,17 +147,24 @@ void Master::Nodo_REQUEST() {
         // Información de depuración
         Serial.print("Consultando nodo: ");
         Serial.println(Nodo_Consultado);
-
+        
+        // Configurar temporizador de timeout DESPUÉS de resetear las banderas
+        timer_No_Response.once_ms(500, [this]() {
+            Serial.println("Timeout: Verificando respuesta del nodo");
+            
+            // Solo marcar como no responde si efectivamente no respondió
+            if (!estadosNodos[Nodo_Consultado].responde) {
+                Serial.print("Nodo ");
+                Serial.print(Nodo_Consultado);
+                Serial.println(" no respondió a tiempo");
+                nodeNoResponde = true;
+            } else {
+                Serial.print("Nodo ");
+                Serial.print(Nodo_Consultado);
+                Serial.println(" respondió correctamente antes del timeout");
+            }
+        });
     }
-    timer_No_Response.once_ms(100, [this]() {
-        // Si el nodo no responde en 100 ms, marcamos que no responde
-        if (!estadosNodos[Nodo_Consultado].responde) {
-            Serial.print("Nodo ");
-            Serial.print(Nodo_Consultado);
-            Serial.println(" no respondió a tiempo");
-        }
-        nodeNoResponde = true;
-    });
 }
 
 /**
@@ -331,6 +339,7 @@ void Master::Master_DB() {
 void Master::ProcesarMensaje(String mensaje_loraRX) {
     // Esta función analiza mensajes recibidos y determina acciones especiales
     // Desglosar el mensaje recibido en los nueve substrings como en la clase Lora
+    timer_No_Response.detach();             // 1. Detener el temporizador de no respuesta
     Lora_Rxdata         = mensaje_loraRX;
     rx_remitente        = Lora_Rxdata.substring(0, 1);
     rx_destinatario     = Lora_Rxdata.substring(1, 2);
@@ -342,13 +351,21 @@ void Master::ProcesarMensaje(String mensaje_loraRX) {
     rx_funct_parameter3 = Lora_Rxdata.substring(7, 8);
     rx_funct_parameter4 = Lora_Rxdata.substring(8, 9);
 
+    Serial.print("Remitente: ");
+    Serial.print(rx_remitente);
+    Serial.print(" | Nodo Consultado: ");
+    Serial.println(Nodo_Consultado);
+
     // Registrar que el nodo ha respondido
     if (rx_remitente.toInt() == Nodo_Consultado) { // Comparar correctamente convirtiendo String a int
+        Serial.println("*** NODO CONSULTADO RESPONDIÓ CORRECTAMENTE ***");
+        nodeResponde = true;
+        nodeNoResponde = false;
+        
         int rx_remitente_int = rx_remitente.toInt();
         estadosNodos[rx_remitente_int].responde = true;
         estadosNodos[rx_remitente_int].ultimaRespuesta = millis();
         estadosNodos[rx_remitente_int].intentos = 0;
-        timer_No_Response.detach(); // Detener el temporizador de no respuesta
 
         // Buscar comandos especiales en el mensaje
         if (rx_mensaje == "A") {
@@ -362,13 +379,20 @@ void Master::ProcesarMensaje(String mensaje_loraRX) {
             Serial.print("Comando de RESET recibido de nodo ");
             Serial.println(rx_remitente);
         }
-        nodeNoResponde = true; // Mensaje requiere acción especial
     }
     else {
-        Serial.print("Mensaje recibido de nodo inesperado: ");
-        Serial.println(rx_remitente);
+        Serial.print("*** MENSAJE DE NODO INESPERADO: ");
+        Serial.print(rx_remitente);
+        Serial.print(" (Se esperaba nodo: ");
+        Serial.print(Nodo_Consultado);
+        Serial.println(") ***");
+        
         Nodo_Actual = rx_remitente.toInt(); // Convertir String a int antes de asignar
         nodeAlerta = true; // Mensaje inesperado, posible alerta
+        
+        // IMPORTANTE: No cambiar nodeResponde/nodeNoResponde aquí
+        // porque este mensaje no es del nodo que estamos consultando
+        // El temporizador seguirá corriendo para el nodo consultado
     }
 }
 
@@ -399,4 +423,15 @@ String Master::GenerarPeticionEspecial(int nodoID, String comando) {
 void Master::Master_DecodificarMensaje(String mensaje) {
     Serial.print("Mensaje recibido: ");
     Serial.println(mensaje);
+}
+
+void Master::DebugEstadoBanderas() {
+    Serial.print("=== DEBUG BANDERAS === Nodo consultado: ");
+    Serial.print(Nodo_Consultado);
+    Serial.print(" | nodeResponde: ");
+    Serial.print(nodeResponde ? "TRUE" : "FALSE");
+    Serial.print(" | nodeNoResponde: ");
+    Serial.print(nodeNoResponde ? "TRUE" : "FALSE");
+    Serial.print(" | nodeAlerta: ");
+    Serial.println(nodeAlerta ? "TRUE" : "FALSE");
 }
