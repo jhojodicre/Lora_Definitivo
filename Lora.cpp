@@ -57,7 +57,7 @@ Ticker      Timer_ZoneB_Error;      // Timer para 9 segundos (error)
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
 Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
-  : Protocol(isMaster, NumNodes) {
+  : Protocol(isMaster, NumNodes){
     // Inicializa el atributo Master correctamente
 
   F_MasterMode  = isMaster;
@@ -85,8 +85,6 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
       // Inicializar estados de zonas
       Zone_A_ST = false;
       Zone_B_ST = false;
-      Zone_A_Extended = false;
-      Zone_B_Extended = false;
       Zone_A_ERR = false;
       Zone_B_ERR = false;
       
@@ -97,6 +95,9 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
 void Lora::Lora_Setup(Functions* correr)
 {
     correrRef = correr;
+    Zone_A_ERR = false;
+    Zone_B_ERR = false;
+
     heltec_setup();
     RADIOLIB_OR_HALT(radio.begin());
     // Set the callback function for received packets
@@ -187,58 +188,50 @@ void Lora::rx(){
   rxFlag = true;
  }
 void Lora::Lora_IO_Zones(){
-  // 1. Lectura de Pulsadores A y B.
+  // 1. ZONE A y ZONE B Push Button Acknowledge.
     Zone_A_ACK    = digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
     Zone_B_ACK    = digitalRead(PB_ZB_in);       // pulsador B.
     Zone_AB_ACK   = digitalRead(PB_ZC_in);       // pulsador C. Pulsador por defecto PRG.
 
-  // 2. Lectura Zona A y Zona B.
+  // 2. ZONE A y ZONE B Read input.
     Zone_A        = digitalRead(Zona_A_in);
     Zone_B        = digitalRead(Zona_B_in);
 
-  // 3. Lectura de Estado de Salidas.
+  // 3. OUTPUT A OUTPUT B Read.
     Rele_1_out_ST = digitalRead(Rele_1_out);
     Rele_2_out_ST = digitalRead(Rele_2_out);
     
   // 3.1 LLamada a la Funcion de Forazado.
       // Lora_IO_Zones_Force();
-  // 4. ________________  
-    bitClear(Zonas_Fallan, Zone_A);     // ZONA A FALLA Reset.
-    bitClear(Zonas_Fallan, Zone_B);     // ZONA B FALLA Reset.
 
-    Zone_A_F_str='.';
-    Zone_B_F_str='.';
-
-    Zone_A_ERR=false;
-    Zone_B_ERR=false;
-  //4 ZONES AB RESET con el pulsador C.
+  // 4  ZONES AB RESET con el pulsador C.
     if(!Zone_AB_ACK){
       bitClear(Zonas, Zone_A);
       bitClear(Zonas, Zone_B);
       bitClear(Zonas_Fallan, Zone_A);
       bitClear(Zonas_Fallan, Zone_B);
-      Zone_A_ERR=false;
-      Zone_B_ERR=false;
-      Zone_A_F_str='.';
-      Zone_B_F_str='.';        
-      Zone_A_ST=false;
-      Zone_B_ST=false;
-      // Resetear nuevas banderas de múltiples niveles
-      Zone_A_Extended=false;
-      Zone_B_Extended=false;
-      Serial.println("Reset completo de todas las zonas - Todas las banderas reiniciadas");
+      Zone_A_ERR = false;
+      Zone_B_ERR = false;
+      Zone_A_F_str = '.';
+      Zone_B_F_str = '.';
+      Zone_A_ST = false;
+      Zone_B_ST = false;
+      Zone_A_Extended = false;
+      Zone_B_Extended = false;
+      timer_ZA_Reached = false;
+      timer_ZB_Reached = false;
       F_Event_Enable = true;
     }
-  // 5. ZONA A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
+  // 5. ZONE A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
     if(!Zone_A_ACK){
       bitClear(Zonas, Zone_A);
       bitClear(Zonas_Fallan, Zone_A);
       Zone_A_ERR=false;
       Zone_A_F_str='.';
       Zone_A_ST=false;
-      // Resetear banderas de múltiples niveles para Zona A
       Zone_A_Extended=false;
-      Serial.println("Reset Zona A - Banderas de múltiples niveles reiniciadas");
+      Zone_B_Extended=false;
+      timer_ZA_Reached=false;
       F_Event_Enable = true;
     }
   // 6. ZONE B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
@@ -248,31 +241,18 @@ void Lora::Lora_IO_Zones(){
       Zone_B_ERR=false;
       Zone_B_F_str='.';        
       Zone_B_ST=false;
-      // Resetear banderas de múltiples niveles para Zona B
+      timer_ZB_Reached=false;
       Zone_B_Extended=false;
-      Serial.println("Reset Zona B - Banderas de múltiples niveles reiniciadas");
-      F_Event_Enable = true;
     }
-  // 7. ZONA A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.
+  // 7. ZONE A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.
     if(!Zone_A){
       if(!timer_ZA_En){
         // Primer timer: 3 segundos para confirmación (Zone_A_ST = true)
         Timer_ZoneA_Enable.once_ms(3000, Lora_time_ZoneA_reach);
-        // Iniciar segundo timer de 6 segundos para detectar error si zona sigue activa
+        // Iniciar segundo timer de 6 segundos para confirmar (Zone_A_ERROR = true)
         Timer_ZoneA_Error.once_ms(6000, Lora_time_ZoneA_error);
         timer_ZA_En=true;
-      }
-    }
-    else {
-      // Si la zona se desactiva, cancelar todos los timers y resetear banderas
-      if(timer_ZA_En) {
-        Timer_ZoneA_Enable.detach();
-        Timer_ZoneA_Error.detach();  // Solo necesitamos estos dos timers
-        timer_ZA_En = false;
-        timer_ZA_Reached = false;
-        Zone_A_ST = false;
-        // Zone_A_ERR se mantiene hasta reset manual para indicar que hubo un error
-        Serial.println("Zona A desactivada - Timers cancelados");
+        Serial.println("ZA_Timers_EN");
       }
     }
   // 8. ZONE B ACTIVA - Sistema de múltiples niveles temporales.
@@ -281,27 +261,15 @@ void Lora::Lora_IO_Zones(){
         // Nivel 1: 3 segundos - Zona confirmada (Zone_B_ST = true)
         Timer_ZoneB_Enable.once_ms(3000, Lora_time_ZoneB_reach);
         // Nivel 2: 6 segundos - Tiempo alcanzado (Zone_B_Extended = true)
-        Timer_ZoneB_Extended.once_ms(6000, Lora_time_ZoneB_extended);
+        Timer_ZoneB_Extended.once_ms(6000, Lora_time_ZoneB_error);
         timer_ZB_En=true;
+        Serial.println("ZB_Timers_EN");
       }
     }
-    else {
-      // Si la zona se desactiva, cancelar todos los timers y resetear banderas
-      if(timer_ZB_En) {
-        Timer_ZoneB_Enable.detach();
-        Timer_ZoneB_Extended.detach();
-        Timer_ZoneB_Error.detach();
-        timer_ZB_En = false;
-        timer_ZB_Reached = false;
-        Zone_B_ST = false;
-        Zone_B_Extended = false;
-        // Note: Zone_B_ERR se mantiene hasta reset manual para indicar que hubo un error
-        Serial.println("Zona B desactivada - Timers cancelados");
-      }
-    }
-  // 9. ZONA A y B FALLAN.
+  // 9. ZONE A y B FALLAN.
     if(!Zone_A && timer_ZA_Reached){
-
+      // bitSet(Zonas_Fallan, Zone_A);
+      // F_Event_Enable = true;
     }
   // 11. Evento en Zonas.
     if(F_Event_Enable){
@@ -314,8 +282,18 @@ void Lora::Lora_IO_Zones(){
     }
   // 12 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
+    if(!Zone_A_ERR){
     Zone_A_str=String(Zone_A_ST, BIN);
-    Zone_B_str=String(Zone_B_ST, BIN);
+    }
+    if(!Zone_B_ERR){
+      Zone_B_str=String(Zone_B_ST, BIN);
+    }
+    if(Zone_A_ERR){
+      Zone_A_str="2";
+    }
+    if(Zone_B_ERR){
+      Zone_B_str="2";
+    }
     //PUSHBUTTON INPUTS
     Zone_A_ACK_str=String(!Zone_A_ACK, BIN);
     Zone_B_ACK_str=String(!Zone_B_ACK, BIN);
@@ -333,10 +311,14 @@ void Lora::Lora_IO_Zones_Force(){
  }
 void Lora::Lora_IO_Zone_A_ACK(){
   Zone_A_ST=false;
+  Zone_A_Extended=false;
+  Zone_A_ERR=false;
   F_Event_Enable = true;
  }
 void Lora::Lora_IO_Zone_B_ACK(){
   Zone_B_ST=false;
+  Zone_B_Extended=false;
+  Zone_B_ERR=false;
   F_Event_Enable = true;
  }
 void Lora::Lora_Nodo_Frame(){
@@ -459,11 +441,11 @@ void Lora::Lora_timerNodo_Answer(){
  }
 void Lora::Lora_time_ZoneA_reach(){
   nodeInstance->timer_ZA_Reached=true;
-  nodeInstance->Timer_ZoneA_En = false; // Reiniciar el flag del timer
   if(!(nodeInstance->Zone_A)){
     // Zona confirmada después de 3 segundos
     nodeInstance->Zone_A_ST=true;
     nodeInstance->F_Event_Enable=true;
+    Serial.println("Zone_A_ST true");
   }
  }
 
@@ -472,16 +454,30 @@ void Lora::Lora_time_ZoneA_error(){
   if(!(nodeInstance->Zone_A)){
     nodeInstance->Zone_A_ERR=true;
     nodeInstance->F_Event_Enable=true;
+    Serial.println("ZA_ERROR true");
+  }else{
+    nodeInstance->timer_ZA_En=false; // Reiniciar el flag del timer
   }
  }
 void Lora::Lora_time_ZoneB_reach(){
   nodeInstance->timer_ZB_Reached=true;
-  nodeInstance->Timer_ZoneB_En = false; // Reiniciar el flag del timer
   if(!(nodeInstance->Zone_B)){
+    // Zona confirmada después de 3 segundos
     nodeInstance->Zone_B_ST=true;
     nodeInstance->F_Event_Enable=true;
+    Serial.println("Zone_B_ST true");
   }
  }
+void Lora::Lora_time_ZoneB_error(){
+  // Si después de 3 segundos más la zona sigue activa, activar bandera de error
+  if(!(nodeInstance->Zone_B)){
+    nodeInstance->Zone_B_ERR=true;
+    nodeInstance->F_Event_Enable=true;
+    Serial.println("ZB_ERROR true");
+  }else{
+    nodeInstance->timer_ZB_En=false; // Reiniciar el flag del timer
+ }
+}
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
@@ -545,7 +541,7 @@ void Lora::Lora_Protocol(){
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
-    // Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    Lora_IO_Zones(); // Se actualizan los estados de las zonas.
     // Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
   //-P.3 Nodo Evento en Zonas
     if(F_Event_Enable && msg_enviar){

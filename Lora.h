@@ -12,7 +12,6 @@ public:
     void   Lora_Setup(class Functions* correr);
     void   Lora_TX();
     void   Lora_RX();
-    static void rx();
     void   Lora_IO_Zones();
     void   Lora_Nodo_Frame();
     void   Lora_Nodo_Decodificar();
@@ -20,16 +19,20 @@ public:
     void   Lora_Master_Frame();
     void   Lora_Master_Decodificar();
     void   Lora_Dummy_Simulate();
-    static  void   Lora_timerNodo_Answer();
     void   Lora_Master_DB();
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
     void   Lora_IO_Zones_Force();
     void   Lora_IO_Zone_A_ACK();
     void   Lora_IO_Zone_B_ACK();
+    
+    static void    rx();
+    static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
     static void   Lora_time_ZoneA_error();
+    static void   Lora_time_ZoneB_error();
+
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
     void   Lora_Protocol();
@@ -48,12 +51,19 @@ public:
     bool    F_Master_Excecute=false;
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
+
     bool    F_Event_Enable=false;
     bool    timer_ZA_En=false;
     bool    timer_ZA_Reached=false;
     bool    timer_ZB_En=false;
     bool    timer_ZB_Reached=false;
     bool    Timer_Nodo_Answer_F=false;      // flag que indica que el timer de responder esta activo.
+    
+    bool    Zone_A_Extended = false;
+    bool    Zone_B_Extended = false;
+
+
+
     bool    F_No_Responder=false;
     bool    F_Node_Atiende=false;
     bool    F_MasterMode=false;
@@ -185,8 +195,8 @@ private:
         bool    Zone_B_ST;
 
     // Zonas en Error
-        bool    Zone_A_ERR;
-        bool    Zone_B_ERR;
+        bool    Zone_A_ERR = false;
+        bool    Zone_B_ERR = false;
 
         int     Zonas;
         int     Zonas_Fallan;
