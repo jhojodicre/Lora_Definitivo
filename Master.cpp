@@ -67,7 +67,7 @@ void Master::Iniciar() {
     // En modo Master, inicia el temporizador de consulta periódica
     if (Mode) {
         Serial.println("Iniciando protocolo Master");
-        timer_master.attach(5, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+        timer_master.attach(1, timer_master_ISR); // Llama a la función de temporizador cada 1 segundo
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -143,13 +143,14 @@ void Master::Nodo_REQUEST() {
         
         // Registrar que estamos consultando este nodo
         estadosNodos[Nodo_Consultado].intentos++;
+        estadosNodos[Nodo_Consultado].responde = false; // Resetear bandera de respuesta
         
         // Información de depuración
         Serial.print("Consultando nodo: ");
         Serial.println(Nodo_Consultado);
         
         // Configurar temporizador de timeout DESPUÉS de resetear las banderas
-        timer_No_Response.once_ms(500, [this]() {
+        timer_No_Response.once_ms(400, [this]() {
             Serial.println("Timeout: Verificando respuesta del nodo");
             
             // Solo marcar como no responde si efectivamente no respondió

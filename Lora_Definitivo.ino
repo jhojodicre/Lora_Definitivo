@@ -55,9 +55,9 @@
       char        incomingFuntion;
 //4. Intancias.
   //-4.1 Clases propias.
-    Lora      Node(false,5,'1');
-    General   General(false);       // Configuraciones Generales del Nodo.
     Functions Correr(true);         // Funciones a Ejecutar
+    General   General(false);       // Configuraciones Generales del Nodo.
+    Lora      Node(false,5,'3');
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -96,6 +96,8 @@ void loop(){
         Correr.Functions_Request(inputString);
         flag_F_codified_funtion=true;
         Serial.println(inputString);
+        Serial.print("Nodo: ");
+        Serial.println(Node.local_Address);
         Serial.println("RX_SERIAL: "+inputString);
         flag_ISR_stringComplete=false;
       }

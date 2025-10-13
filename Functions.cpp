@@ -415,6 +415,7 @@ void Functions::c0()
 {
     // Implementación del método c0
 }
+// Activo o Desactiva la salida Rele out 1.
 void Functions::c1(String argumento1){
     // Implementación del método c1
     Serial.printf("c1: ejecutada con argumento %s\n", argumento1.c_str());
@@ -426,6 +427,7 @@ void Functions::c1(String argumento1){
         Serial.println("LR OFF");
     }
 }
+// Activo o Desactiva la salida Rele out 2.
 void Functions::c2(String argumento1)
 {
     Serial.printf("c2: ejecutada con argumento %s\n", argumento1.c_str());
@@ -445,11 +447,13 @@ void Functions::c3(String argumento1)
         digitalWrite(LED_Verde, HIGH);
     }
 }
+// Acknowledge de Zona A
 void Functions::c4()
 {
     // Implementación del método c4
     nodeRef->Lora_IO_Zone_A_ACK();
 }
+// Acknowledge de Zona B
 void Functions::c5()
 {
     // Implementación del método c5
@@ -463,6 +467,7 @@ void Functions::c7(String argumento1)
 {
     // Implementación del método c7
 }
+// Apaga o Enciende el LED ROJO de la placa
 void Functions::c8(String argumento1)
 {
     // Implementación del método c8
