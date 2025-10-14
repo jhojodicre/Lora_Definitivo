@@ -206,45 +206,19 @@ void Lora::Lora_IO_Zones(){
 
   // 4  ZONES AB RESET con el pulsador C.
     if(!Zone_AB_ACK){
-      bitClear(Zonas, Zone_A);
-      bitClear(Zonas, Zone_B);
-      bitClear(Zonas_Fallan, Zone_A);
-      bitClear(Zonas_Fallan, Zone_B);
-      Zone_A_ERR = false;
-      Zone_B_ERR = false;
-      Zone_A_F_str = '.';
-      Zone_B_F_str = '.';
-      Zone_A_ST = false;
-      Zone_B_ST = false;
-      Zone_A_Extended = false;
-      Zone_B_Extended = false;
-      timer_ZA_Reached = false;
-      timer_ZB_Reached = false;
-      F_Event_Enable = true;
+      Lora_IO_Zone_A_ACK();
+      Lora_IO_Zone_B_ACK();
     }
-  // 5. ZONE A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
+  // 5. ZONE  A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
     if(!Zone_A_ACK){
-      bitClear(Zonas, Zone_A);
-      bitClear(Zonas_Fallan, Zone_A);
-      Zone_A_ERR=false;
-      Zone_A_F_str='.';
-      Zone_A_ST=false;
-      Zone_A_Extended=false;
-      Zone_B_Extended=false;
-      timer_ZA_Reached=false;
-      F_Event_Enable = true;
+      Lora_IO_Zone_A_ACK();
     }
-  // 6. ZONE B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
+  // 6. ZONE  B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
     if(!Zone_B_ACK){
-      bitClear(Zonas, Zone_B);
-      bitClear(Zonas_Fallan, Zone_B);
-      Zone_B_ERR=false;
-      Zone_B_F_str='.';        
-      Zone_B_ST=false;
-      timer_ZB_Reached=false;
-      Zone_B_Extended=false;
+      Lora_IO_Zone_B_ACK();
+
     }
-  // 7. ZONE A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.
+  // 7. ZONE  A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.
     if(!Zone_A){
       if(!timer_ZA_En){
         // Primer timer: 3 segundos para confirmación (Zone_A_ST = true)
@@ -255,7 +229,7 @@ void Lora::Lora_IO_Zones(){
         Serial.println("ZA_Timers_EN");
       }
     }
-  // 8. ZONE B ACTIVA - Sistema de múltiples niveles temporales.
+  // 8. ZONE  B ACTIVA - Sistema de múltiples niveles temporales.
     if(!Zone_B){
       if(!timer_ZB_En){
         // Nivel 1: 3 segundos - Zona confirmada (Zone_B_ST = true)
@@ -266,7 +240,7 @@ void Lora::Lora_IO_Zones(){
         Serial.println("ZB_Timers_EN");
       }
     }
-  // 9. ZONE A y B FALLAN.
+  // 9. ZONE  A y B FALLAN.
     if(!Zone_A && timer_ZA_Reached){
       // bitSet(Zonas_Fallan, Zone_A);
       // F_Event_Enable = true;
@@ -311,15 +285,28 @@ void Lora::Lora_IO_Zones_Force(){
  }
 void Lora::Lora_IO_Zone_A_ACK(){
   Zone_A_ST=false;
-  Zone_A_Extended=false;
   Zone_A_ERR=false;
+  Zone_A_Extended=false;
+  Zone_B_Extended=false;
+  timer_ZA_Reached=false;
+  timer_ZA_En=false;
   F_Event_Enable = true;
+  Zone_A_F_str='.';
+  // Implementacion Futura.
+  bitClear(Zonas, Zone_A);
+  bitClear(Zonas_Fallan, Zone_A);
  }
 void Lora::Lora_IO_Zone_B_ACK(){
   Zone_B_ST=false;
-  Zone_B_Extended=false;
   Zone_B_ERR=false;
+  timer_ZB_Reached=false;
+  timer_ZB_En=false;
+  Zone_B_Extended=false;
   F_Event_Enable = true;
+  Zone_B_F_str='.';
+  // Implementacion Futura.
+  bitClear(Zonas, Zone_B);
+  bitClear(Zonas_Fallan, Zone_B);
  }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
@@ -455,8 +442,6 @@ void Lora::Lora_time_ZoneA_error(){
     nodeInstance->Zone_A_ERR=true;
     nodeInstance->F_Event_Enable=true;
     Serial.println("ZA_ERROR true");
-  }else{
-    nodeInstance->timer_ZA_En=false; // Reiniciar el flag del timer
   }
  }
 void Lora::Lora_time_ZoneB_reach(){
@@ -474,9 +459,7 @@ void Lora::Lora_time_ZoneB_error(){
     nodeInstance->Zone_B_ERR=true;
     nodeInstance->F_Event_Enable=true;
     Serial.println("ZB_ERROR true");
-  }else{
-    nodeInstance->timer_ZB_En=false; // Reiniciar el flag del timer
- }
+  }
 }
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
