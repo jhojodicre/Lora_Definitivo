@@ -123,7 +123,7 @@ void Lora::Lora_Setup(Functions* correr)
     both.printf("TX power: %i dBm\n", TRANSMIT_POWER);
  }
 void Lora::Lora_TX(){
-    // both.printf("TX [%s] ", String(mensaje).c_str());
+  // both.printf("TX [%s] ", String(mensaje).c_str());
     both.printf("TX [%s] ", txdata.c_str());
     radio.clearDio1Action();
     heltec_led(50); // 50% brightness is plenty for this LED
@@ -308,6 +308,22 @@ void Lora::Lora_IO_Zone_B_ACK(){
   bitClear(Zonas, Zone_B);
   bitClear(Zonas_Fallan, Zone_B);
  }
+void Lora::Lora_Dummy_Simulate(){
+  // 1. Simulacion de Paquete.
+    // Node_Num_str = String(random(3, 6)); // Random between "3" and "5"
+    // Node_Status_str = String(random(0, 2)); // Random between "0" and "1"
+    Node_Status_str = "1";
+    // Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
+    Zone_A_str = "0";
+    // Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
+    Zone_B_str = "0";
+    // Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
+    Fuente_in_str = "0";
+    Rele_2_out_str = "0";
+    // Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
+    Rele_1_out_str = "0";
+    // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
+ }
 void Lora::Lora_Nodo_Frame(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
@@ -351,6 +367,22 @@ void Lora::Lora_Nodo_Decodificar(){
 void Lora::Lora_Node_Print(String z_executed){
   both.printf(z_executed.c_str());
   }
+void Lora::Lora_Node_Print_RX(){
+  Serial.print("RX: ");
+  Serial.println(String(rx_destinatario));
+  Serial.print("LA: ");
+  Serial.println(String(local_Address));
+  Serial.print("ms: ");
+  Serial.println(String(rx_mensaje));
+  Serial.print("md: ");
+  Serial.println(String(rx_funct_mode));
+  Serial.print("nf: ");
+  Serial.println(String(rx_funct_num));
+  Serial.print("p1: ");
+  Serial.println(String(rx_funct_parameter1));
+  Serial.print("p2: ");
+  Serial.println(String(rx_funct_parameter2));
+ }
 void Lora::Lora_Master_Frame(){
   //0. Funcion Llamada desde L5.2
   //1. Preparamos paquete para enviar
@@ -387,39 +419,9 @@ void Lora::Lora_Master_Decodificar(){
   // Lora_Master_DB();
   F_ServerUpdate=true;
  }
-void Lora::Lora_Node_Print_RX(){
-  Serial.print("RX: ");
-  Serial.println(String(rx_destinatario));
-  Serial.print("LA: ");
-  Serial.println(String(local_Address));
-  Serial.print("ms: ");
-  Serial.println(String(rx_mensaje));
-  Serial.print("md: ");
-  Serial.println(String(rx_funct_mode));
-  Serial.print("nf: ");
-  Serial.println(String(rx_funct_num));
-  Serial.print("p1: ");
-  Serial.println(String(rx_funct_parameter1));
-  Serial.print("p2: ");
-  Serial.println(String(rx_funct_parameter2));
- }
 
-void Lora::Lora_Dummy_Simulate(){
-  // 1. Simulacion de Paquete.
-    // Node_Num_str = String(random(3, 6)); // Random between "3" and "5"
-    // Node_Status_str = String(random(0, 2)); // Random between "0" and "1"
-    Node_Status_str = "1";
-    // Zone_A_str = String(random(0, 2));    // Random between "0" and "1"
-    Zone_A_str = "0";
-    // Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
-    Zone_B_str = "0";
-    // Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
-    Fuente_in_str = "0";
-    Rele_2_out_str = "0";
-    // Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
-    Rele_1_out_str = "0";
-    // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
- }
+
+
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
@@ -460,7 +462,16 @@ void Lora::Lora_time_ZoneB_error(){
     nodeInstance->F_Event_Enable=true;
     Serial.println("ZB_ERROR true");
   }
-}
+ }
+void Lora::Lora_Timer_Enable(int answerTime){
+    Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
+  }
+void Lora::Lora_Event_Disable(){
+  Timer_Nodo_Answer.detach();
+  F_Event_Enable = false;
+  }
+
+
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
     case '1':
@@ -494,13 +505,6 @@ void Lora::Lora_WebMessage(String mensaje) {
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
     F_Master_Excecute=true; // Flag desactivado en L5.4
-  }
-void Lora::Lora_Timer_Enable(int answerTime){
-    Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
-  }
-void Lora::Lora_Event_Disable(){
-  Timer_Nodo_Answer.detach();
-  F_Event_Enable = false;
   }
 
 void Lora::Lora_Protocol(){
