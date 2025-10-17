@@ -66,8 +66,9 @@ Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, Stri
 void Master::Iniciar() {
     // En modo Master, inicia el temporizador de consulta periódica
     if (Mode) {
-        Serial.println("Iniciando protocolo Master");
-        timer_master.attach(1, timer_master_ISR); // Llama a la función de temporizador cada 1 segundo
+    Serial.println("Iniciando protocolo Master");
+    // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
+    timer_master.attach_ms(5000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");

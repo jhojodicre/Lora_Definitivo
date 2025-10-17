@@ -26,22 +26,23 @@
 
 // Frequency in MHz. Keep the decimal point to designate float.
 // Check your own rules and regulations to see what is legal where you are.
-#define FREQUENCY 866.3 // for Europe
+// #define FREQUENCY 866.3 // for Europe
+#define FREQUENCY 915.0 // for Europe
 // #define FREQUENCY           905.2       // for US
 
 
 // Allowed values are 7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125.0, 250.0 and 500.0 kHz.
-#define BANDWIDTH 250.0 // Bandwidth in kHz. Higher means more data throughput, but also more noise.
+#define BANDWIDTH 125.0 // 250.0 (by the fault) Bandwidth in kHz. Higher means more data throughput, but also more noise.
 
 
 // meaning (in nutshell) longer range and more robust against interference.
-#define SPREADING_FACTOR 9 // Number from 5 to 12. Higher means slower but higher "processor gain",
+#define SPREADING_FACTOR 12 // Number from 5 to 12. Higher means slower but higher "processor gain",
 
 
 // set anywhere between -9 dBm (0.125 mW) to 22 dBm (158 mW). Note that the maximum ERP
 // (which is what your antenna maximally radiates) on the EU ISM band is 25 mW, and that
 // transmissting without an antenna can damage your hardware.
-#define TRANSMIT_POWER 0 // Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be increased for longer range. 
+#define TRANSMIT_POWER 1 // Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be increased for longer range. 
 volatile    bool rxFlag = false;
 
 //Instancias
@@ -122,12 +123,20 @@ void Lora::Lora_Setup(Functions* correr)
     both.printf("Spreading Factor: %i\n", SPREADING_FACTOR);
     both.printf("TX power: %i dBm\n", TRANSMIT_POWER);
  }
+
 void Lora::Lora_TX(){
   // both.printf("TX [%s] ", String(mensaje).c_str());
     both.printf("TX [%s] ", txdata.c_str());
     radio.clearDio1Action();
+
+    unsigned long txStartTime = millis();
+
     heltec_led(50); // 50% brightness is plenty for this LED
     RADIOLIB(radio.transmit(txdata.c_str()));
+
+    unsigned long txEndTime = millis();
+
+    // both.printf("%lu ms\n", txEndTime - txStartTime);
     heltec_led(0);
     if (_radiolib_status == RADIOLIB_ERR_NONE)
     {
@@ -143,7 +152,7 @@ void Lora::Lora_TX(){
     nodo_consultado=nodo_a_Consultar.charAt(0);
     F_Node_Atiende=false;    // Flag desactivado en Lora_Nodo_Decodificar.
     Protocol.nodeResponde=F_Node_Atiende;
- }
+}
 void Lora::Lora_RX(){
     // If a packet was received, display it and the RSSI and SNR
     if (rxFlag)
@@ -348,6 +357,14 @@ void Lora::Lora_Nodo_Frame(){
     tx_nodo_lora_7          =Fuente_in_str;           // Estado de la Fuente
     tx_nodo_lora_8          =Tipo_de_Mensaje;
 
+    // 3. Contador de mensajes enviados.
+    String counterStr = String(Node_Counter, DEC);
+    while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
+
+    tx_nodo_lora_5 = counterStr.substring(0, 1); // primer dígito
+    tx_nodo_lora_6 = counterStr.substring(1, 2); // segundo dígito
+    tx_nodo_lora_7 = counterStr.substring(2, 3); // tercer dígito
+    tx_nodo_lora_8 = counterStr.substring(3, 4); // cuarto dígito
   // 2. Armamos el paquete a enviar.
     txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 + tx_nodo_lora_8);
  }
@@ -362,6 +379,7 @@ void Lora::Lora_Nodo_Decodificar(){
       F_Responder=true;
       F_Node_Atiende=true;
       Protocol.nodeResponde=F_Node_Atiende;
+      Lora_Node_Counter();
     }
   }
 void Lora::Lora_Node_Print(String z_executed){
@@ -390,7 +408,8 @@ void Lora::Lora_Master_Frame(){
     tx_destinatario     = nodo_a_Consultar;                // Direccion del nodo local.
     tx_mensaje          = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
 
-
+    String counterStr = String(Master_Counter, DEC);
+    tx_mensaje = counterStr; // Contador de mensajes enviados.
   //2. Armamos el mensaje para enviar.
     txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
   //3. Borramos Variables de envio.
@@ -528,8 +547,9 @@ void Lora::Lora_Protocol(){
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
-    Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    // Lora_IO_Zones(); // Se actualizan los estados de las zonas.
     // Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+   
   //-P.3 Nodo Evento en Zonas
     if(F_Event_Enable && msg_enviar){
       Serial.println("event");
@@ -597,8 +617,9 @@ void Lora::Lora_Master_Protocol(){
     // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
     if (Protocol.Next) {
       Protocol_ConsultarNodoSiguiente();
+      Lora_Master_Counter();
     }
-    // Actualizar el status del nodo que no responde
+    // Actualizar el status del Nodo Consultado si respondio o no, o si esta en Alerta
     if (F_NodeStatus|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
       Protocol_NodeStatus();
     }
@@ -708,4 +729,9 @@ void Lora::Protocol_porImplementar(){
     ultimaActualizacionDB = millis();
   }
 }
-
+void Lora::Lora_Node_Counter(){
+    ++Node_Counter;
+ }
+ void Lora::Lora_Master_Counter(){
+    ++Master_Counter;
+ }

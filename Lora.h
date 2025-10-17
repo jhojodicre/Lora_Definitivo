@@ -33,6 +33,8 @@ public:
     static void   Lora_time_ZoneA_error();
     static void   Lora_time_ZoneB_error();
 
+    void   Lora_Node_Counter();
+    void   Lora_Master_Counter();
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
     void   Lora_Protocol();
@@ -204,6 +206,8 @@ private:
     // Protocolo
         bool        msg_enviar=false;
         int         msg_enviado=0;
+        uint16_t    Node_Counter = 0;
+        uint16_t    Master_Counter = 0;
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time;
