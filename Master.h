@@ -49,7 +49,6 @@ public:
      */
     void Iniciar();
     
-    void Master_Calibration_End();
     /**
      * @brief Configura parámetros del protocolo
      */

@@ -172,7 +172,7 @@ void Lora::Lora_Configure(int numero_de_configuracion){
 
 void Lora::Lora_TX(){
   // both.printf("TX [%s] ", String(mensaje).c_str());
-    both.printf("TX [%s] ", txdata.c_str());
+    // both.printf("TX [%s] ", txdata.c_str());
     radio.clearDio1Action();
 
     unsigned long txStartTime = millis();
@@ -186,7 +186,7 @@ void Lora::Lora_TX(){
     heltec_led(0);
     if (_radiolib_status == RADIOLIB_ERR_NONE)
     {
-        both.printf("OK (%i ms)\n");
+        both.printf("📻 TX: %s\n", txdata.c_str());
     }
     else
     {
@@ -207,7 +207,7 @@ void Lora::Lora_RX(){
       radio.readData(rxdata);
       if (_radiolib_status == RADIOLIB_ERR_NONE)
       {
-        both.printf("RX [%s]\n", rxdata.c_str());
+        both.printf("📻 RX: [%s]\n", rxdata.c_str());
         // both.printf("  RSSI: %.2f dBm\n", radio.getRSSI());
         // both.printf("  SNR: %.2f dB\n", radio.getSNR());
 
@@ -656,6 +656,8 @@ void Lora::SerializeObjectToJson() {
   // Serial.println(jsonString);
  }
 void Lora::Lora_WebMessage(String mensaje) {
+    Serial.print("Lora WebMessage: ");
+    Serial.println(mensaje);
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
@@ -744,13 +746,13 @@ void Lora::Protocol_ExecuteOrderFromServer() {
     Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
     Lora_TX();                       // 3. Se envia el mensaje.
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-    Serial.println("Server->Master->Node");
+    Serial.println("🚀Server->Master->Node");
   }
   if(tx_funct_mode == "M"){
     correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
     correrRef->Functions_Run();
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-    Serial.println("Server->Master");
+    Serial.println("🚀Server->Master");
   }
  }
 void Lora::Lora_Master_Counter(){
@@ -783,11 +785,11 @@ void Lora::Survey_MeasureNodeSignal() {
   if(validSamples >= 10) {
     if (avgRSSI > -70) {
       // Nodo cercano - configuración rápida
-      Serial.println("Nodo " + Node_to_Calibrate + " configurado para ALTA VELOCIDAD");
+      Serial.println("Nodo " + Node_to_Calibrate + " configurado ⚙🛠para ALTA VELOCIDAD");
     }
     else if (avgRSSI > -90) {
         // Nodo medio - configuración balanceada
-        Serial.println("Nodo " + Node_to_Calibrate + " configurado para VELOCIDAD MEDIA");
+        Serial.println("Nodo " + Node_to_Calibrate + " configurado ⚙🛠VELOCIDAD MEDIA");
     }
     else {
         // Nodo lejano - configuración robusta

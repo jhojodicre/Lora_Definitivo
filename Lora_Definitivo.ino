@@ -114,24 +114,9 @@ void loop(){
       updateServer();
     }
 }
-//5 Master RX Request.
-  //-5.1 Master RX Request.
-    void Master_RX_Request(){
-      // Node.nodo_a_Consultar=String(Master.Nodo_Proximo);
-      Node.tx_funct_mode=Correr.function_Mode; // Tipo de funcion a ejecutar.
-      Node.tx_funct_num=Correr.function_Number; // Numero de funcion a ejecutar.
-      Node.tx_funct_parameter1=Correr.x1; // Parametro 1 de la Funcion.
-      Node.tx_funct_parameter2=Correr.x2; // Parametro 2 de la Funcion.
-    }
-  //-5.2 Master RX Request 2.
-    void Master_RX_Request_2(){
-      Node.nodo_a_Consultar=Nodo_a_Pedir;
-      Node.tx_funct_mode=function_Mode; // Tipo de funcion a ejecutar.
-      Node.tx_funct_num=function_Number; // Numero de funcion a ejecutar.
-      Node.tx_funct_parameter1=parameter_1; // Parametro 1 de la Funcion.
-      Node.tx_funct_parameter2=parameter_2; // Parametro 2 de la Funcion.
-    }
-  //-5.4 Update Server.
+//A 📎 Funciones Ausiliares
+//A1 Master RX Request.
+  //-1.1  Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
       jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos

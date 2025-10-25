@@ -763,7 +763,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
         nodeRef->nodo_a_Consultar= nodeId;
         nodeRef->Lora_WebMessage(mensaje);
         
-        Serial.printf("✅ Mensaje procesado: %s\n", mensaje.c_str());
+        Serial.printf("📲📡 Mensaje procesado: %s\n", mensaje.c_str());
     } catch (...) {
         Serial.println("❌ Error: Excepción al procesar mensaje");
         return false;
