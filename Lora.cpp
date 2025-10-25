@@ -89,40 +89,86 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber)
       Zone_A_ERR = false;
       Zone_B_ERR = false;
       
-      Protocol.Iniciar();
       F_Nodo_Excecute=false;
       nodeInstance = this; // Asignar la instancia actual al puntero global
  }
 void Lora::Lora_Setup(Functions* correr)
 {
     correrRef = correr;
-    Zone_A_ERR = false;
-    Zone_B_ERR = false;
 
-    heltec_setup();
-    RADIOLIB_OR_HALT(radio.begin());
-    // Set the callback function for received packets
-    radio.setDio1Action(rx);
-    // Set radio parameters
-    RADIOLIB_OR_HALT(radio.setFrequency(FREQUENCY));
-    RADIOLIB_OR_HALT(radio.setBandwidth(BANDWIDTH));
-    RADIOLIB_OR_HALT(radio.setSpreadingFactor(SPREADING_FACTOR));
-    RADIOLIB_OR_HALT(radio.setOutputPower(TRANSMIT_POWER));
-    // Start receiving
-    RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
+    Lora_Configure(1); // Configuración por defecto
     
     // Inicializar el temporizador de Master si estamos en modo Master
     if (F_MasterMode) {
         Protocol.Iniciar(); // Esto inicia el temporizador dentro de la clase Master
     }
-
-    // Set the display to show the radio status
-    both.println("Radio init");
-    both.printf("Frequency: %.2f MHz\n", FREQUENCY);
-    both.printf("Bandwidth: %.1f kHz\n", BANDWIDTH);
-    both.printf("Spreading Factor: %i\n", SPREADING_FACTOR);
-    both.printf("TX power: %i dBm\n", TRANSMIT_POWER);
  }
+void Lora::Lora_Configure(int numero_de_configuracion){
+  // Configuracion inicial de Lora con selección automática según distancia
+  heltec_setup();
+  RADIOLIB_OR_HALT(radio.begin());
+  
+  // Set the callback function for received packets
+  radio.setDio1Action(rx);
+  
+  // Selección de configuración según parámetro de distancia
+  switch(numero_de_configuracion) {
+    case 1: // NODO CERCANO - Alta velocidad, baja latencia
+      frequency = 915.0;
+      bandwidth = 500.0;        // Máximo ancho de banda
+      spreading_factor = 7;     // SF mínimo para velocidad
+      transmit_power = 2;       // Potencia baja para ahorro energía
+      config_name = "CERCANO (Alta Velocidad)";
+      break;
+      
+    case 2: // NODO MEDIO - Configuración balanceada
+      frequency = 915.2;        // Frecuencia ligeramente diferente
+      bandwidth = 250.0;        // Ancho de banda medio
+      spreading_factor = 9;     // SF medio
+      transmit_power = 10;      // Potencia media
+      config_name = "MEDIO (Balanceado)";
+      break;
+      
+    case 3: // NODO LEJANO - Máximo alcance, robustez
+      frequency = 915.4;        // Frecuencia diferente para evitar interferencias
+      bandwidth = 125.0;        // Ancho de banda mínimo
+      spreading_factor = 12;    // SF máximo para alcance
+      transmit_power = 20;      // Potencia máxima
+      config_name = "LEJANO (Máximo Alcance)";
+      break;
+      
+    case 4: // CONFIGURACIÓN PERSONALIZADA - Para pruebas
+      frequency = 915.6;
+      bandwidth = 125.0;
+      spreading_factor = 10;
+      transmit_power = 15;
+      config_name = "PERSONALIZADO";
+      break;
+      
+    default: // CONFIGURACIÓN POR DEFECTO (caso 0 o inválido)
+      frequency = FREQUENCY;
+      bandwidth = BANDWIDTH;
+      spreading_factor = SPREADING_FACTOR;
+      transmit_power = TRANSMIT_POWER;
+      config_name = "POR DEFECTO";
+      break;
+  }
+  
+  // Aplicar configuración seleccionada
+  RADIOLIB_OR_HALT(radio.setFrequency(frequency));
+  RADIOLIB_OR_HALT(radio.setBandwidth(bandwidth));
+  RADIOLIB_OR_HALT(radio.setSpreadingFactor(spreading_factor));
+  RADIOLIB_OR_HALT(radio.setOutputPower(transmit_power));
+  RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF)); // Start receiving
+  
+  // Mostrar configuración aplicada
+  both.println("Radio init - " + config_name);
+  both.printf("Frequency: %.2f MHz\n", frequency);
+  both.printf("Bandwidth: %.1f kHz\n", bandwidth);
+  both.printf("Spreading Factor: %i\n", spreading_factor);
+  both.printf("TX power: %i dBm\n", transmit_power);
+  both.printf("Configuracion: %i (%s)\n", numero_de_configuracion, config_name.c_str());
+}
 
 void Lora::Lora_TX(){
   // both.printf("TX [%s] ", String(mensaje).c_str());
@@ -164,6 +210,9 @@ void Lora::Lora_RX(){
         both.printf("RX [%s]\n", rxdata.c_str());
         // both.printf("  RSSI: %.2f dBm\n", radio.getRSSI());
         // both.printf("  SNR: %.2f dB\n", radio.getSNR());
+
+        SNR = String(radio.getSNR()).toFloat();
+        RSSI = String(radio.getRSSI()).toFloat();
       }
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
       F_Recibido = true;  // Bandera activada en Lora_RX.
@@ -196,6 +245,8 @@ void Lora::Lora_RX(){
 void Lora::rx(){
   rxFlag = true;
  }
+
+
 void Lora::Lora_IO_Zones(){
   // 1. ZONE A y ZONE B Push Button Acknowledge.
     Zone_A_ACK    = digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
@@ -317,7 +368,7 @@ void Lora::Lora_IO_Zone_B_ACK(){
   bitClear(Zonas, Zone_B);
   bitClear(Zonas_Fallan, Zone_B);
  }
-void Lora::Lora_Dummy_Simulate(){
+void Lora::Lora_IO_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
     // Node_Num_str = String(random(3, 6)); // Random between "3" and "5"
     // Node_Status_str = String(random(0, 2)); // Random between "0" and "1"
@@ -333,130 +384,6 @@ void Lora::Lora_Dummy_Simulate(){
     Rele_1_out_str = "0";
     // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
  }
-void Lora::Lora_Nodo_Frame(){
-  // 0. Function Llamada desde Lora_Nodo_Decodificar.
-  // 1. Preparamos paquete para enviar
-    //Estados de Entradas.
-    // bitWrite(nodo_local,0, );
-    bitWrite(nodo_local,0, Zone_A_ST);
-    bitWrite(nodo_local,1, Zone_B_ERR);
-    bitWrite(nodo_local,2, Zone_B_ST);
-    bitWrite(nodo_local,3, Zone_A_ERR);
-    bitWrite(nodo_local,4, false);
-    bitWrite(nodo_local,5, false);
-    bitWrite(nodo_local,6, true);
-    bitWrite(nodo_local,7, false);
-    nodo_status=char(nodo_local);
-
-    tx_nodo_lora_1          =String(local_Address);   // Direccion del nodo local.
-    tx_nodo_lora_2          =String(Master_Address);  // Direccion del maestro.
-    tx_nodo_lora_3          =Zone_A_str;              // Estado de la zona A      
-    tx_nodo_lora_4          =Zone_B_str;              // Estado de la zona B
-    tx_nodo_lora_5          =Rele_1_out_str;          // Estado de la Salida 1
-    tx_nodo_lora_6          =Rele_2_out_str;          // Estado de la Salida 2
-    tx_nodo_lora_7          =Fuente_in_str;           // Estado de la Fuente
-    tx_nodo_lora_8          =Tipo_de_Mensaje;
-
-    // 3. Contador de mensajes enviados.
-    String counterStr = String(Node_Counter, DEC);
-    while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
-
-    tx_nodo_lora_5 = counterStr.substring(0, 1); // primer dígito
-    tx_nodo_lora_6 = counterStr.substring(1, 2); // segundo dígito
-    tx_nodo_lora_7 = counterStr.substring(2, 3); // tercer dígito
-    tx_nodo_lora_8 = counterStr.substring(3, 4); // cuarto dígito
-  // 2. Armamos el paquete a enviar.
-    txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 + tx_nodo_lora_8);
- }
-void Lora::Lora_Nodo_Decodificar(){
-  // 1. Preparamos mensaje para enviar.
-    if(rx_destinatario==local_Address){
-      Serial.println("Nodo_Atiende");
-      if(rx_funct_mode!="0"){
-        Serial.println("Peticion escuchada");
-        F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
-      }
-      F_Responder=true;
-      F_Node_Atiende=true;
-      Protocol.nodeResponde=F_Node_Atiende;
-      Lora_Node_Counter();
-    }
-  }
-void Lora::Lora_Node_Print(String z_executed){
-  both.printf(z_executed.c_str());
-  }
-void Lora::Lora_Node_Print_RX(){
-  Serial.print("RX: ");
-  Serial.println(String(rx_destinatario));
-  Serial.print("LA: ");
-  Serial.println(String(local_Address));
-  Serial.print("ms: ");
-  Serial.println(String(rx_mensaje));
-  Serial.print("md: ");
-  Serial.println(String(rx_funct_mode));
-  Serial.print("nf: ");
-  Serial.println(String(rx_funct_num));
-  Serial.print("p1: ");
-  Serial.println(String(rx_funct_parameter1));
-  Serial.print("p2: ");
-  Serial.println(String(rx_funct_parameter2));
- }
-void Lora::Lora_Master_Frame(){
-  //0. Funcion Llamada desde L5.2
-  //1. Preparamos paquete para enviar
-    tx_remitente        = Master_Address;                  // Direccion del maestro.
-    tx_destinatario     = nodo_a_Consultar;                // Direccion del nodo local.
-    tx_mensaje          = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-
-    String counterStr = String(Master_Counter, DEC);
-    tx_mensaje = counterStr; // Contador de mensajes enviados.
-  //2. Armamos el mensaje para enviar.
-    txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
-  //3. Borramos Variables de envio.
-    nodo_consultado = tx_destinatario.charAt(0);
-    tx_remitente=' ';
-    tx_destinatario=' ';
-    tx_mensaje=' ';
-    tx_funct_mode=' ';
-    tx_funct_num=' ';
-    tx_funct_parameter1=' ';
-    tx_funct_parameter2=' ';
-  }
-void Lora::Lora_Master_Decodificar(){
-  if(rx_remitente==nodo_consultado){
-    Node_Status = true; // UPDATE FLAG Comunicacion Ok
-    Node_Status_str = "1"; // Comunicacion ok
-  }
-  else{
-    if(rx_master_lora_8=="U"){
-      txdata=(Master_Address + rx_remitente + "0" + "N" + "3" + "0" + "0" + "A");
-      Lora_TX();
-    }
-  }
-  Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
-  SerializeObjectToJson(); // Serializa el objeto a JSON
-  // Lora_Master_DB();
-  F_ServerUpdate=true;
- }
-
-
-
-void Lora::Lora_timerNodo_Answer(){
-  // 1. Timer para enviar el mensaje al maestro.
-    if (nodeInstance) {
-      nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
-  }
- }
-void Lora::Lora_time_ZoneA_reach(){
-  nodeInstance->timer_ZA_Reached=true;
-  if(!(nodeInstance->Zone_A)){
-    // Zona confirmada después de 3 segundos
-    nodeInstance->Zone_A_ST=true;
-    nodeInstance->F_Event_Enable=true;
-    Serial.println("Zone_A_ST true");
-  }
- }
-
 void Lora::Lora_time_ZoneA_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error
   if(!(nodeInstance->Zone_A)){
@@ -482,68 +409,21 @@ void Lora::Lora_time_ZoneB_error(){
     Serial.println("ZB_ERROR true");
   }
  }
-void Lora::Lora_Timer_Enable(int answerTime){
-    Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
+void Lora::Lora_time_ZoneA_reach(){
+  nodeInstance->timer_ZA_Reached=true;
+  if(!(nodeInstance->Zone_A)){
+    // Zona confirmada después de 3 segundos
+    nodeInstance->Zone_A_ST=true;
+    nodeInstance->F_Event_Enable=true;
+    Serial.println("Zone_A_ST true");
   }
+ }
 void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();
   F_Event_Enable = false;
   }
 
 
-void Lora::Lora_Master_DB(){
-  switch (rx_remitente){
-    case '1':
-      nodo_DB = jsonString; // Serializa el objeto a JSON
-      // nodo_DB = "{\"comm\":\"" + String(rx_remitente) +\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
-      break;
-    case '2':
-      nodo_DB = jsonString; // Serializa el objeto a JSON
-
-      break;
-    default:
-      break;
-  }
- }
-void Lora::SerializeObjectToJson() {
-  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
-  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
-  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
-  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
-  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
-  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
-  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
-  serializeJson(doc, jsonString);
-
-  // Serial.print("LORA_JSON String:");
-  // Serial.println(jsonString);
- }
-void Lora::Lora_WebMessage(String mensaje) {
-    tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
-    tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
-    tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
-    tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
-    F_Master_Excecute=true; // Flag desactivado en L5.4
-  }
-
-void Lora::Lora_Protocol(){
-  /**
-   * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
-   * 
-   * Este es el punto de entrada principal para la gestión del protocolo
-   * y se debe llamar regularmente desde el loop principal.
-   */
-  Lora_RX();
-  
-  // En modo Nodo, ejecuta el protocolo para nodos
-  if (F_NodeMode) {
-    Lora_Node_Protocol();
-  }
-  // En modo Master, gestiona el ciclo del protocolo
-  if (F_MasterMode) {
-    Lora_Master_Protocol();
-  }
- }
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
@@ -599,6 +479,91 @@ void Lora::Lora_Node_Protocol(){
       Lora_TX();            // Se envia el mensaje.
     }
  }
+void Lora::Lora_Nodo_Frame(){
+  // 0. Function Llamada desde Lora_Nodo_Decodificar.
+  // 1. Preparamos paquete para enviar
+    //Estados de Entradas.
+    // bitWrite(nodo_local,0, );
+    bitWrite(nodo_local,0, Zone_A_ST);
+    bitWrite(nodo_local,1, Zone_B_ERR);
+    bitWrite(nodo_local,2, Zone_B_ST);
+    bitWrite(nodo_local,3, Zone_A_ERR);
+    bitWrite(nodo_local,4, false);
+    bitWrite(nodo_local,5, false);
+    bitWrite(nodo_local,6, true);
+    bitWrite(nodo_local,7, false);
+    nodo_status=char(nodo_local);
+
+    tx_nodo_lora_1          =String(local_Address);   // Direccion del nodo local.
+    tx_nodo_lora_2          =String(Master_Address);  // Direccion del maestro.
+    tx_nodo_lora_3          =Zone_A_str;              // Estado de la zona A      
+    tx_nodo_lora_4          =Zone_B_str;              // Estado de la zona B
+    tx_nodo_lora_5          =Rele_1_out_str;          // Estado de la Salida 1
+    tx_nodo_lora_6          =Rele_2_out_str;          // Estado de la Salida 2
+    tx_nodo_lora_7          =Fuente_in_str;           // Estado de la Fuente
+    tx_nodo_lora_8          =Tipo_de_Mensaje;
+
+
+
+    tx_nodo_lora_5 = counterStr.substring(0, 1); // primer dígito
+    tx_nodo_lora_6 = counterStr.substring(1, 2); // segundo dígito
+    tx_nodo_lora_7 = counterStr.substring(2, 3); // tercer dígito
+    tx_nodo_lora_8 = counterStr.substring(3, 4); // cuarto dígito
+  // 2. Armamos el paquete a enviar.
+    txdata = String(  tx_nodo_lora_1 + tx_nodo_lora_2 + tx_nodo_lora_3 + tx_nodo_lora_4 + tx_nodo_lora_5 + tx_nodo_lora_6 + tx_nodo_lora_7 + tx_nodo_lora_8);
+ }
+void Lora::Lora_Nodo_Decodificar(){
+  // 1. Preparamos mensaje para enviar.
+    if(rx_destinatario==local_Address){
+      Serial.println("Nodo_Atiende");
+      if(rx_funct_mode!="0"){
+        Serial.println("Peticion escuchada");
+        F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
+      }
+      if(rx_funct_mode=="M"){
+        // 3. Contador de mensajes enviados.
+        String counterStr = String(Node_Counter, DEC);
+        while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
+      }
+      F_Responder=true;
+      F_Node_Atiende=true;
+      Protocol.nodeResponde=F_Node_Atiende;
+      Lora_Node_Counter();
+    }
+  }
+void Lora::Lora_Node_Print(String z_executed){
+  both.printf(z_executed.c_str());
+  }
+void Lora::Lora_Node_Print_RX(){
+  Serial.print("RX: ");
+  Serial.println(String(rx_destinatario));
+  Serial.print("LA: ");
+  Serial.println(String(local_Address));
+  Serial.print("ms: ");
+  Serial.println(String(rx_mensaje));
+  Serial.print("md: ");
+  Serial.println(String(rx_funct_mode));
+  Serial.print("nf: ");
+  Serial.println(String(rx_funct_num));
+  Serial.print("p1: ");
+  Serial.println(String(rx_funct_parameter1));
+  Serial.print("p2: ");
+  Serial.println(String(rx_funct_parameter2));
+ }
+void Lora::Lora_timerNodo_Answer(){
+  // 1. Timer para enviar el mensaje al maestro.
+    if (nodeInstance) {
+      nodeInstance->F_Responder = true; // Acceder a la variable de instancia a través del puntero global
+  }
+ }
+void Lora::Lora_Timer_Enable(int answerTime){
+    Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
+  }
+void Lora::Lora_Node_Counter(){
+    ++Node_Counter;
+ }
+
+
 void Lora::Lora_Master_Protocol(){
    /**
    * @brief Implementa el protocolo para el modo Master
@@ -617,7 +582,6 @@ void Lora::Lora_Master_Protocol(){
     // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
     if (Protocol.Next) {
       Protocol_ConsultarNodoSiguiente();
-      Lora_Master_Counter();
     }
     // Actualizar el status del Nodo Consultado si respondio o no, o si esta en Alerta
     if (F_NodeStatus|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
@@ -628,9 +592,80 @@ void Lora::Lora_Master_Protocol(){
       Protocol_ExecuteOrderFromServer();
     }
  }
+void Lora::Lora_Master_Frame(){
+  //0. Funcion Llamada desde L5.2
+  //1. Preparamos paquete para enviar
+    tx_remitente        = Master_Address;                  // Direccion del maestro.
+    tx_destinatario     = nodo_a_Consultar;                // Direccion del nodo local.
+
+
+
+  //2. Armamos el mensaje para enviar.
+    txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+  //3. Borramos Variables de envio.
+    nodo_consultado = tx_destinatario.charAt(0);
+    tx_remitente=' ';
+    tx_destinatario=' ';
+    tx_mensaje=' ';
+    tx_funct_mode=' ';
+    tx_funct_num=' ';
+    tx_funct_parameter1=' ';
+    tx_funct_parameter2=' ';
+  }
+void Lora::Lora_Master_Decodificar(){
+  if(rx_remitente==nodo_consultado){
+    Node_Status = true; // UPDATE FLAG Comunicacion Ok
+    Node_Status_str = "1"; // Comunicacion ok
+  }
+  else{
+    if(rx_master_lora_8=="U"){
+      txdata=(Master_Address + rx_remitente + "0" + "N" + "3" + "0" + "0" + "A");
+      Lora_TX();
+    }
+  }
+  Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
+  SerializeObjectToJson(); // Serializa el objeto a JSON
+  // Lora_Master_DB();
+  F_ServerUpdate=true;
+ }
+void Lora::Lora_Master_DB(){
+  switch (rx_remitente){
+    case '1':
+      nodo_DB = jsonString; // Serializa el objeto a JSON
+      // nodo_DB = "{\"comm\":\"" + String(rx_remitente) +\"node\":\"" + String(rx_remitente) + "\",\"zoneA\":\"" + String(rx_ST_ZA_DB) + "\",\"zonaB\":\"" + String(rx_ST_ZB_DB) + "\",\"output1\":\"" + Rele_1_out_str +"\",\"output2\":\"" + Rele_2_out_str +"\",\"fuente\":\"" + String(rx_ST_FT_DB) + "\"}";
+      break;
+    case '2':
+      nodo_DB = jsonString; // Serializa el objeto a JSON
+
+      break;
+    default:
+      break;
+  }
+ }
+void Lora::SerializeObjectToJson() {
+  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
+  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
+  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
+  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
+  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
+  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
+  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
+  serializeJson(doc, jsonString);
+
+  // Serial.print("LORA_JSON String:");
+  // Serial.println(jsonString);
+ }
+void Lora::Lora_WebMessage(String mensaje) {
+    tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
+    tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
+    tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
+    tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
+    F_Master_Excecute=true; // Flag desactivado en L5.4
+  }
 void Lora::Protocol_ConsultarNodoSiguiente(){
   Protocol.Master_Nodo();
   nodo_a_Consultar = String(Protocol.Nodo_Proximo); // Convertir el número de nodo a String
+  tx_mensaje       = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
   Lora_Master_Frame();      // Prepara la trama del maestro
   Lora_TX();                // Envía el mensaje
   Protocol.Next = false;    // Resetear la bandera
@@ -705,12 +740,69 @@ void Lora::Protocol_ExecuteOrderFromServer() {
    * @brief Ejecuta órdenes recibidas desde el servidor
    * 
    */
-  Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-  Lora_TX();                       // 3. Se envia el mensaje.
-  F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-  Serial.println("Server->Master->Node");
+  if(tx_funct_mode == "N"){
+    Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+    Lora_TX();                       // 3. Se envia el mensaje.
+    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+    Serial.println("Server->Master->Node");
+  }
+  if(tx_funct_mode == "M"){
+    correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
+    correrRef->Functions_Run();
+    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+    Serial.println("Server->Master");
+  }
+ }
+void Lora::Lora_Master_Counter(){
+    ++Master_Counter;
+    counterStr = String(Master_Counter, DEC);
+    tx_mensaje = counterStr; // Contador de mensajes enviados.
  }
 
+
+void Lora::Protocol_Master_Calibration(){
+  if(F_Recibido){
+    Survey_MeasureNodeSignal();
+  }
+  if(F_Señal_Medida){
+    F_Señal_Medida=false;
+    F_ServerUpdate=true;
+  }
+  if(Protocol.NextSurvey){
+    Survey_Calibration_Node();
+  }
+  if(F_Node_Calibrated){
+    Survey_FinishCalibration();
+  }
+
+}
+void Lora::Survey_MeasureNodeSignal() {
+  totalRSSI += RSSI;
+  validSamples = totalRSSI / validSamples;
+  F_Señal_Medida = true;
+  if(validSamples >= 10) {
+    if (avgRSSI > -70) {
+      // Nodo cercano - configuración rápida
+      Serial.println("Nodo " + Node_to_Calibrate + " configurado para ALTA VELOCIDAD");
+    }
+    else if (avgRSSI > -90) {
+        // Nodo medio - configuración balanceada
+        Serial.println("Nodo " + Node_to_Calibrate + " configurado para VELOCIDAD MEDIA");
+    }
+    else {
+        // Nodo lejano - configuración robusta
+        Serial.println("Nodo " + Node_to_Calibrate + " configurado para MÁXIMO ALCANCE");
+    }
+  }
+}
+void Lora::Survey_Calibration_Node(){
+  nodo_a_Consultar = Node_to_Calibrate; // Convertir el número de nodo a String
+  Lora_Master_Counter();
+  Lora_Nodo_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
+  Lora_TX();
+  Protocol.NextSurvey = false;    // Resetear la bandera
+  validSamples++;
+}
 void Lora::Protocol_porImplementar(){
   /**
    * @brief Método placeholder para futuras implementaciones del protocolo
@@ -729,9 +821,34 @@ void Lora::Protocol_porImplementar(){
     ultimaActualizacionDB = millis();
   }
 }
-void Lora::Lora_Node_Counter(){
-    ++Node_Counter;
+void Lora::Survey_FinishCalibration(){
+  Protocol.Master_Calibration_End();
+  F_Node_Calibrated=true;
  }
- void Lora::Lora_Master_Counter(){
-    ++Master_Counter;
+
+
+void Lora::Lora_Protocol(){
+  /**
+   * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
+   * 
+   * Este es el punto de entrada principal para la gestión del protocolo
+   * y se debe llamar regularmente desde el loop principal.
+   */
+  Lora_RX();
+  
+  // En Modo Nodo, ejecuta el protocolo para nodos
+  if (F_NodeMode) {
+    Lora_Node_Protocol();
+  }
+  // En Modo Master, gestiona el ciclo del protocolo
+  if (F_MasterMode && !F_MasterCalibration) {
+    Lora_Master_Protocol();
+  }
+  // En Modo Master en Calibracion
+  if(F_MasterCalibration){
+    if(!Protocol.F_Calibration_EN){
+      Protocol.Master_Calibration_Init();
+    }
+    Protocol_Master_Calibration();
+  }
  }

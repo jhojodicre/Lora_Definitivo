@@ -5,6 +5,7 @@
 // Temporizadores para la gestión del protocolo
 Ticker timer_master;        // Temporizador principal para consulta de nodos
 Ticker timer_No_Response;   // Temporizador para timeout de respuesta de nodos
+Ticker timer_Survey;       // Temporizador para la encuesta de nodos
 
 // Puntero global al objeto Master para uso en funciones estáticas
 Master* masterInstance = nullptr;
@@ -68,7 +69,7 @@ void Master::Iniciar() {
     if (Mode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(5000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    timer_master.attach_ms(1000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -409,6 +410,25 @@ bool Master::NodoEnAlerta(int nodoID) {
     return false;
 }
 
+
+void Master::Master_Calibration_Init() {
+    F_Calibration_EN = true;
+    timer_master.detach(); // Detener el temporizador principal del Master
+    Serial.println("Iniciando protocolo de calibración Master");
+    // Configurar temporizador para encuesta de nodos cada 5 segundos
+    timer_Survey.attach_ms(5000, [this]() {
+        Serial.println("Encuesta periódica de nodos para calibración");
+        this->NextSurvey = true; // Activar bandera para consultar siguiente nodo
+    });
+}
+
+void Master::Master_Calibration_End() {
+    F_Calibration_EN = false;
+    timer_Survey.detach(); // Detener el temporizador de encuesta
+    Serial.println("Finalizando protocolo de calibración Master");
+    // Reiniciar el temporizador principal del Master
+    timer_master.attach_ms(1000, timer_master_ISR);
+}
 /**
  * @brief Genera mensaje para petición especial a un nodo
  */

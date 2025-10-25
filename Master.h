@@ -20,9 +20,11 @@ public:
     int  nodeStatus;           // Estado actual del nodo (0=No responde, 1=Normal, 2=Alerta)
     int  mensaje;              // Mensaje actual para enviar
     bool Next = false;                 // Flag para indicar que es momento de transmitir al siguiente nodo
+    bool NextSurvey = false;           // Flag para indicar que es momento de transmitir al siguiente nodo en la encuesta
     bool nodeResponde = false;         // Flag que indica si el nodo responde o no
     bool nodeNoResponde = false;       // Flag que indica que el nodo no respondió
     bool nodeAlerta = false;           // Flag que indica si el nodo está en alerta
+    bool F_Calibration_EN = false;      // Flag que indica si la calibración está habilitada
     String Lora_Rxdata;     // Datos recibidos por Lora
     // ----- CONSTRUCTORES -----
     /**
@@ -47,6 +49,7 @@ public:
      */
     void Iniciar();
     
+    void Master_Calibration_End();
     /**
      * @brief Configura parámetros del protocolo
      */
@@ -57,6 +60,11 @@ public:
      */
     void Gestion();
     
+    /**
+     * @brief Inicializa el protocolo de calibración Master
+     */
+    void Master_Calibration_Init();
+
     // ----- MÉTODOS DE GESTIÓN DE SECUENCIA DE NODOS -----
     /**
      * @brief Determina el siguiente nodo a consultar

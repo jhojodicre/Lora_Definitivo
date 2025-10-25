@@ -12,40 +12,78 @@ public:
     void   Lora_Setup(class Functions* correr);
     void   Lora_TX();
     void   Lora_RX();
-    void   Lora_IO_Zones();
-    void   Lora_Nodo_Frame();
-    void   Lora_Nodo_Decodificar();
-    void   Lora_Node_Print(String z_executed);
-    void   Lora_Master_Frame();
-    void   Lora_Master_Decodificar();
-    void   Lora_Dummy_Simulate();
-    void   Lora_Master_DB();
-    void   SerializeObjectToJson();
-    void   Lora_WebMessage(String mensaje);
+    
+    // Configuración LoRa según distancia:
+    // 0 = Por defecto (configuración actual)
+    // 1 = Nodo CERCANO (SF7, BW500, TX2) - Alta velocidad
+    // 2 = Nodo MEDIO (SF9, BW250, TX10) - Balanceado  
+    // 3 = Nodo LEJANO (SF12, BW125, TX20) - Máximo alcance
+    // 4 = Personalizado (para pruebas)
+    void   Lora_Configure(int numero_de_configuracion);
+    static void    rx();
+
+    void   Lora_IO_Zones();   
+    void   Lora_IO_Dummy_Simulate();
     void   Lora_IO_Zones_Force();
     void   Lora_IO_Zone_A_ACK();
     void   Lora_IO_Zone_B_ACK();
     
-    static void    rx();
+
+    void   Lora_Protocol();
+    void   Lora_Node_Counter();
+    void   Lora_Timer_Enable(int answerTime);
+    void   Lora_Event_Disable();
+    void   Lora_Nodo_Frame();
+    void   Lora_Nodo_Decodificar();
+    void   Lora_Node_Print(String z_executed);
+    void   Lora_Node_Protocol();
+    void   Lora_Node_Print_RX();
+
+
     static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
     static void   Lora_time_ZoneA_error();
     static void   Lora_time_ZoneB_error();
 
-    void   Lora_Node_Counter();
-    void   Lora_Master_Counter();
-    void   Lora_Timer_Enable(int answerTime);
-    void   Lora_Event_Disable();
-    void   Lora_Protocol();
-    void   Lora_Node_Protocol();
-    void   Lora_Node_Print_RX();
+
+    void   Lora_Master_Frame();
+    void   Lora_Master_Decodificar();
+    void   Lora_Master_DB();
+    void   SerializeObjectToJson();
+    void   Lora_WebMessage(String mensaje);
     void   Lora_Master_Protocol();
+    void   Lora_Master_Counter();
     void   Protocol_ProcesarMensajesRecibidos(); // Nuevo método para procesar mensajes recibidos
     void   Protocol_NodeStatus();
     void   Protocol_ConsultarNodoSiguiente();
     void   Protocol_porImplementar();
     void   Protocol_ExecuteOrderFromServer();
+
+    void   Protocol_Master_Calibration();
+    void   Protocol_Calibration_Node();
+    void   Survey_Calibration_Node();
+    void   Survey_MeasureNodeSignal();
+    void   Survey_FinishCalibration();
+
+
+    float  RSSI         = 0;
+    float  SNR          = 0;
+    float  avgRSSI      = 0.1; 
+    float  avgSNR       = 0.1;
+    float  totalRSSI    = 0;
+    float  totalSNR     = 0;
+    int    validSamples = 0;
+    bool   F_Señal_Medida = false;
+    bool   F_Node_Calibrated = false;
+
+  // Variables para configuración según distancia
+    float   frequency        = 0;
+    float   bandwidth        = 0;
+    int     spreading_factor = 0;
+    int     transmit_power   = 0;
+    String  config_name      = "";
+
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
@@ -70,6 +108,7 @@ public:
     bool    F_Node_Atiende=false;
     bool    F_MasterMode=false;
     bool    F_NodeMode=false;
+    bool    F_MasterCalibration=false;
     bool    F_ServerUpdate=false;
     bool    F_NodeStatus=false;
     // byte    Master_Address=0xFF; // Direccion del maestro.
@@ -86,6 +125,7 @@ public:
         String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
         String  nodo_DB=" ";
         int     Num_Nodos=1;            // Numero de nodos en el sistema.
+        String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
     //Variables para la recepcion de mensaje.
         char    rx_remitente;           // Nodo que envia el mensaje.
         char    rx_destinatario;        // Nodo que recibe el mensaje.
@@ -208,6 +248,7 @@ private:
         int         msg_enviado=0;
         uint16_t    Node_Counter = 0;
         uint16_t    Master_Counter = 0;
+        String      counterStr = "0";
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time;

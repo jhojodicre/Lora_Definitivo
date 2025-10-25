@@ -354,7 +354,6 @@ void Functions::a5()
 {
     // Implementación del método a5
 }
-
 void Functions::a6()
 {
     // Implementación del método a6
@@ -438,6 +437,7 @@ void Functions::c2(String argumento1)
         digitalWrite(LED_Azul, HIGH);
     }
 }
+// Habilitada para activar o desactivar una salida digital
 void Functions::c3(String argumento1)
 {
     // Implementación del método c3
@@ -485,22 +485,22 @@ void Functions::n0()
 {
     // Implementación del método n0
 }
+// Reinicia el Módulo ESP32
 void Functions::n1()
 {
     // Implementación del método n1
     ESP.restart();
-    
-
 }
+// Configuracion de Frecuencia y Señal de Radio Lora.
 void Functions::n2()
 {
-    // Implementación del método n2
+    nodeRef->Lora_Configure(x1);
 }
+// Deshabilita Eventos y Timers
 void Functions::n3()
 {
     // Implementación del método n3
     nodeRef->Lora_Event_Disable();
-
 }
 void Functions::n4()
 {
@@ -518,62 +518,63 @@ void Functions::n7()
 {
     // Implementación del método n7
 }
-
 void Functions::n8()
 {
     // Implementación del método n8
 }
-
 void Functions::n9()
 {
     // Implementación del método n9
 }
-
 void Functions::m0()
 {
     // Implementación del método m0
 }
-
+// Habilitamos el Modo Master Calibration
 void Functions::m1()
 {
-    // Implementación del método m1
+    /* Configuramos el modo Master Calibration según el valor de x1
+    para esta function el parametro 1 es activar el modo calibracion
+    y el parametro 2 es el nodo a calibrar
+    */
+    if (x1 == 0) {
+        nodeRef->F_MasterCalibration = false;
+        nodeRef->Survey_FinishCalibration();
+        Serial.println("Master Calibration deshabilitado");
+    } else if (x1 == 1) {
+        Serial.println("Master Calibration habilitado");
+        nodeRef->Node_to_Calibrate=function_Parameter2;
+        nodeRef->F_MasterCalibration=true;
+    }
 }
-
 void Functions::m2()
 {
     // Implementación del método m2
 }
-
 void Functions::m3()
 {
     // Implementación del método m3
 }
-
 void Functions::m4()
 {
     // Implementación del método m4
 }
-
 void Functions::m5()
 {
     // Implementación del método m5
 }
-
 void Functions::m6()
 {
     // Implementación del método m6
 }
-
 void Functions::m7()
 {
     // Implementación del método m7
 }
-
 void Functions::m8()
 {
     // Implementación del método m8
 }
-
 void Functions::m9()
 {
     // Implementación del método m9
@@ -582,47 +583,38 @@ void Functions::s0()
 {
     // Implementación del método s0
 }
-
 void Functions::s1()
 {
     // Implementación del método s1
 }
-
 void Functions::s2()
 {
     // Implementación del método s2
 }
-
 void Functions::s3()
 {
     // Implementación del método s3
 }
-
 void Functions::s4()
 {
     // Implementación del método s4
 }
-
 void Functions::s5()
 {
     // Implementación del método s5
 }
-
 void Functions::s6()
 {
     // Implementación del método s6
 }
-
 void Functions::s7()
 {
     // Implementación del método s7
 }
-
 void Functions::s8()
 {
     // Implementación del método s8
 }
-
 void Functions::s9()
 {
     // Implementación del método s9
@@ -635,7 +627,6 @@ void Functions::z0()
     F_Correr_Dale=true;
     // Ejemplo: Apaga todos los LEDs
 }
-
 void Functions::z1()
 {
     // Implementación del método z1
@@ -643,7 +634,6 @@ void Functions::z1()
     function_Exct = "z1";
     F_Correr_Dale=true;
 }
-
 void Functions::z2()
 {
     // Implementación del método z2
