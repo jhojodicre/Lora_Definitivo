@@ -25,6 +25,7 @@ public:
     bool nodeNoResponde = false;       // Flag que indica que el nodo no respondió
     bool nodeAlerta = false;           // Flag que indica si el nodo está en alerta
     bool F_Calibration_EN = false;      // Flag que indica si la calibración está habilitada
+    bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     // ----- CONSTRUCTORES -----
     /**
@@ -63,6 +64,7 @@ public:
      * @brief Inicializa el protocolo de calibración Master
      */
     void Master_Calibration_Init();
+    void Master_Calibration_End();
 
     // ----- MÉTODOS DE GESTIÓN DE SECUENCIA DE NODOS -----
     /**

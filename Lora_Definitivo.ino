@@ -112,6 +112,7 @@ void loop(){
   //L5. Funciones del Master.
     if(Node.F_ServerUpdate){
       updateServer();
+      Node.F_ServerUpdate = false;
     }
 }
 //A 📎 Funciones Ausiliares
@@ -122,5 +123,4 @@ void loop(){
       jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
-      Node.F_ServerUpdate=false;
     }

@@ -445,7 +445,6 @@ void Lora::Lora_Node_Protocol(){
   //-P.4 Nodo RX.
     if(F_Recibido){
       Lora_Nodo_Decodificar();        // Se recibe el mensaje.
-      F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
     }
   //-P.5 Nodo Ejecuta Funciones.
     if(F_Nodo_Excecute){
@@ -530,6 +529,7 @@ void Lora::Lora_Nodo_Decodificar(){
       Protocol.nodeResponde=F_Node_Atiende;
       Lora_Node_Counter();
     }
+    F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
   }
 void Lora::Lora_Node_Print(String z_executed){
   both.printf(z_executed.c_str());
@@ -575,19 +575,19 @@ void Lora::Lora_Master_Protocol(){
    * 4. Actualiza el Servidor.
    * 5. Ejecuta ordenes desde el Servidor.
    */
+    // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
+    if (Protocol.Next) {
+      Protocol_ConsultarNodoSiguiente();
+    }  
     // Procesar mensajes recibidos en modo Master usando el método dedicado
     if (F_Recibido) {
       Protocol_ProcesarMensajesRecibidos();
     }
-    // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
-    if (Protocol.Next) {
-      Protocol_ConsultarNodoSiguiente();
+    // Actualizar el status del Nodo Consultado si respondio o no, o si esta en Alerta y Luego actualizar el Servidor
+    if (F_NodeStatusUpdate|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
+      Protocol_NodeStatusUpdate();
     }
-    // Actualizar el status del Nodo Consultado si respondio o no, o si esta en Alerta
-    if (F_NodeStatus|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
-      Protocol_NodeStatus();
-    }
-    //-Master Execute order from Server
+    // Ejecutar ordenes recibidas desde el Servidor Web
     if(F_Master_Excecute){
       Protocol_ExecuteOrderFromServer();
     }
@@ -626,7 +626,6 @@ void Lora::Lora_Master_Decodificar(){
   Node_Num_str = String(rx_remitente); // Numero de Nodo consultado.
   SerializeObjectToJson(); // Serializa el objeto a JSON
   // Lora_Master_DB();
-  F_ServerUpdate=true;
  }
 void Lora::Lora_Master_DB(){
   switch (rx_remitente){
@@ -678,7 +677,7 @@ void Lora::Protocol_ProcesarMensajesRecibidos() {
    */
     
     Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
-    F_NodeStatus = true;                // Indicar que se debe actualizar el status del nodo consultado.
+    F_NodeStatusUpdate = true;                // Indicar que se debe actualizar el status del nodo consultado.
     F_Recibido = false;                 // Reset de la bandera de recepción
 
     Serial.print("Lora RX: ");
@@ -693,7 +692,7 @@ void Lora::Protocol_ProcesarMensajesRecibidos() {
     //   // - Enviar comandos adicionales
     // }
  }
-void Lora::Protocol_NodeStatus(){
+void Lora::Protocol_NodeStatusUpdate(){
   /**
    * @brief Actualiza el estado del nodo consultado y serializa la información a JSON
    *
@@ -703,12 +702,12 @@ void Lora::Protocol_NodeStatus(){
    * -3 Cuando un Nodo cambia el estado de sus entradas (Zonas) nodo en Alerta.
    */
   
-  if(Protocol.nodeResponde){        // Si el nodo respondió correctamente
-    Node_Status_str = "1"; // Comunicacion ok
+  if(Protocol.nodeResponde){                            // Si el nodo respondió correctamente
+    Node_Status_str = "1";                              // Comunicacion ok
     Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
     Serial.println("Nodo responde timer activo");
-    SerializeObjectToJson();// Serializar para enviar al servidor/DB
-    Protocol.nodeResponde = false; // Resetear la bandera para la próxima consulta
+    SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
+    Protocol.nodeResponde = false;                      // Resetear la bandera para la próxima consulta
   }
   if(Protocol.nodeNoResponde){      // Si el nodo NO respondió a la consulta
     Node_Status_str = "0"; // Nodo no responde
@@ -735,14 +734,14 @@ void Lora::Protocol_NodeStatus(){
     SerializeObjectToJson();                // Serializa el objeto a JSON
   }
   F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
-  F_NodeStatus = false;             // Resetear la bandera de actualización del estado del nodo
+  F_NodeStatusUpdate = false;             // Resetear la bandera de actualización del estado del nodo
  }
 void Lora::Protocol_ExecuteOrderFromServer() {
   /**
    * @brief Ejecuta órdenes recibidas desde el servidor
    * 
    */
-  if(tx_funct_mode == "N"){
+  if(tx_funct_mode != "M"){
     Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
     Lora_TX();                       // 3. Se envia el mensaje.
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
@@ -763,47 +762,46 @@ void Lora::Lora_Master_Counter(){
 
 
 void Lora::Protocol_Master_Calibration(){
-  if(F_Recibido){
-    Survey_MeasureNodeSignal();
-  }
-  if(F_Señal_Medida){
-    F_Señal_Medida=false;
-    F_ServerUpdate=true;
-  }
   if(Protocol.NextSurvey){
     Survey_Calibration_Node();
+  }
+  if(F_Recibido){
+    Protocol_ProcesarMensajesRecibidos();
+    Survey_MeasureNodeSignal();
+  }
+  if (F_NodeStatusUpdate|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
+    Protocol_NodeStatusUpdate();
   }
   if(F_Node_Calibrated){
     Survey_FinishCalibration();
   }
-
+}
+void Lora::Survey_Calibration_Node(){
+  // nodo_a_Consultar = Node_to_Calibrate; // Convertir el número de nodo a String
+  Lora_Master_Counter();
+  Lora_Master_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
+  Lora_TX();
+  Protocol.NextSurvey = false;    // Resetear la bandera
 }
 void Lora::Survey_MeasureNodeSignal() {
   totalRSSI += RSSI;
-  validSamples = totalRSSI / validSamples;
-  F_Señal_Medida = true;
-  if(validSamples >= 10) {
+  validSamples = totalRSSI / Master_Counter;
+  // F_Señal_Medida = true;
+  if(Master_Counter >= 10) {
+    F_Node_Calibrated = true;
     if (avgRSSI > -70) {
       // Nodo cercano - configuración rápida
-      Serial.println("Nodo " + Node_to_Calibrate + " configurado ⚙🛠para ALTA VELOCIDAD");
+      Serial.println("⚙🛠 Nodo " + Node_to_Calibrate + " configurado para ALTA VELOCIDAD");
     }
     else if (avgRSSI > -90) {
         // Nodo medio - configuración balanceada
-        Serial.println("Nodo " + Node_to_Calibrate + " configurado ⚙🛠VELOCIDAD MEDIA");
+        Serial.println("⚙🛠 Nodo " + Node_to_Calibrate + " configurado para VELOCIDAD MEDIA");
     }
     else {
         // Nodo lejano - configuración robusta
-        Serial.println("Nodo " + Node_to_Calibrate + " configurado para MÁXIMO ALCANCE");
+        Serial.println("⚙🛠 Nodo " + Node_to_Calibrate + " configurado para MÁXIMO ALCANCE");
     }
   }
-}
-void Lora::Survey_Calibration_Node(){
-  nodo_a_Consultar = Node_to_Calibrate; // Convertir el número de nodo a String
-  Lora_Master_Counter();
-  Lora_Nodo_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
-  Lora_TX();
-  Protocol.NextSurvey = false;    // Resetear la bandera
-  validSamples++;
 }
 void Lora::Protocol_porImplementar(){
   /**
@@ -825,7 +823,8 @@ void Lora::Protocol_porImplementar(){
 }
 void Lora::Survey_FinishCalibration(){
   Protocol.Master_Calibration_End();
-  F_Node_Calibrated=true;
+  F_Node_Calibrated=false;
+  F_MasterCalibration=false;
  }
 
 
@@ -848,7 +847,8 @@ void Lora::Lora_Protocol(){
   }
   // En Modo Master en Calibracion
   if(F_MasterCalibration){
-    if(!Protocol.F_Calibration_EN){
+    if(!Protocol.F_Calibration_EN && !Protocol.F_Calibration_Complete){
+      Serial.println("🚀  Iniciando calibración del Master");
       Protocol.Master_Calibration_Init();
     }
     Protocol_Master_Calibration();

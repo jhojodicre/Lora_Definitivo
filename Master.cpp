@@ -361,7 +361,7 @@ void Master::ProcesarMensaje(String mensaje_loraRX) {
 
     // Registrar que el nodo ha respondido
     if (rx_remitente.toInt() == Nodo_Consultado) { // Comparar correctamente convirtiendo String a int
-        Serial.println("*** NODO CONSULTADO RESPONDIÓ CORRECTAMENTE ***");
+        // Serial.println("*** NODO CONSULTADO RESPONDIÓ CORRECTAMENTE ***");
         nodeResponde = true;
         nodeNoResponde = false;
         
@@ -413,7 +413,9 @@ bool Master::NodoEnAlerta(int nodoID) {
 
 void Master::Master_Calibration_Init() {
     F_Calibration_EN = true;
-    timer_master.detach(); // Detener el temporizador principal del Master
+    F_Calibration_Complete = false;
+    timer_master.detach();              // Detener el temporizador principal del Master
+    timer_No_Response.detach();         // Detener el temporizador de no respuesta
     Serial.println("Iniciando protocolo de calibración Master");
     // Configurar temporizador para encuesta de nodos cada 5 segundos
     timer_Survey.attach_ms(5000, [this]() {
@@ -424,6 +426,7 @@ void Master::Master_Calibration_Init() {
 
 void Master::Master_Calibration_End() {
     F_Calibration_EN = false;
+    F_Calibration_Complete = true;
     timer_Survey.detach(); // Detener el temporizador de encuesta
     Serial.println("Finalizando protocolo de calibración Master");
     // Reiniciar el temporizador principal del Master

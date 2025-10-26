@@ -761,6 +761,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
         // functionsRef->Functions_Run();
 
         nodeRef->nodo_a_Consultar= nodeId;
+        nodeRef->Node_to_Calibrate= nodeId;
         nodeRef->Lora_WebMessage(mensaje);
         
         Serial.printf("📲📡 Mensaje procesado: %s\n", mensaje.c_str());
