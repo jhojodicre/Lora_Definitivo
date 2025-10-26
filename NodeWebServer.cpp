@@ -601,7 +601,7 @@ void LoRaWebServer::manejarMensajeRecibido() {
 
     // Obtener el cuerpo de la solicitud
     String cuerpoJSON = server->arg("plain");
-    Serial.println("📝 JSON recibido: " + cuerpoJSON);
+    // Serial.println("📝 JSON recibido: " + cuerpoJSON);
 
     // Parsear el JSON recibido
     DynamicJsonDocument documento(1024);
@@ -1130,7 +1130,7 @@ void LoRaWebServer::handleGetStatus() {
 
 bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
 
-  Serial.println("\n🌐 ENVIANDO DATOS AL SERVIDOR EXTERNO...");
+  Serial.print("\n🌐 TX SERVIDOR EXTERNO...");
   
   // Verificar conexión WiFi
   if (WiFi.status() != WL_CONNECTED) {
@@ -1139,7 +1139,7 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   }
   
   // Construir URL completa
-  Serial.println("🎯 URL destino: " + String(apiEndpoint));
+//   Serial.println("🎯 URL destino: " + String(apiEndpoint));
 
   // Configurar conexión HTTP
   http.begin(apiEndpoint);
@@ -1147,7 +1147,7 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   http.addHeader("User-Agent", "ESP32-Master/1.0");
   http.setTimeout(timeoutHTTP);
 
-  Serial.println("📦 JSON enviando " + JsonString);
+//   Serial.println("📦 JSON enviando " + JsonString);
 
   // Realizar petición POST
   httpResponseCode = http.POST(JsonString);
@@ -1155,11 +1155,11 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   // Procesar respuesta
   if (httpResponseCode > 0) {
     respuesta = http.getString();
-    Serial.println("📥 Código respuesta: " + String(httpResponseCode));
-    Serial.println("📄 Respuesta servidor: " + respuesta);
+    // Serial.print("📥 Código respuesta: " + String(httpResponseCode));
+    // Serial.println("📄 Respuesta servidor: " + respuesta);
     
     if (httpResponseCode == 200 || httpResponseCode == 201) {
-      Serial.println("✅ Datos enviados exitosamente al servidor externo");
+      Serial.println("🌐 RX : ✅");
       http.end();
       return true;
     } else {

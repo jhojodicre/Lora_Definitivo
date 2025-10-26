@@ -543,8 +543,8 @@ void Functions::m1()
         Serial.println("Master Calibration deshabilitado");
     } else if (x1 == 1) {
         Serial.println("Master Calibration habilitado");
-        nodeRef->Node_to_Calibrate=function_Parameter2;
-        nodeRef->F_MasterCalibration=true;
+        // nodeRef->Node_to_Calibrate=function_Parameter2;
+        nodeRef->StartCalibration(".");
     }
 }
 void Functions::m2()

@@ -148,8 +148,8 @@ void Master::Nodo_REQUEST() {
         estadosNodos[Nodo_Consultado].responde = false; // Resetear bandera de respuesta
         
         // Información de depuración
-        Serial.print("Consultando nodo: ");
-        Serial.println(Nodo_Consultado);
+        // Serial.print("Consultando nodo: ");
+        // Serial.println(Nodo_Consultado);
         
         // Configurar temporizador de timeout DESPUÉS de resetear las banderas
         timer_No_Response.once_ms(400, [this]() {
@@ -162,9 +162,9 @@ void Master::Nodo_REQUEST() {
                 Serial.println(" no respondió a tiempo");
                 nodeNoResponde = true;
             } else {
-                Serial.print("Nodo ");
-                Serial.print(Nodo_Consultado);
-                Serial.println(" respondió correctamente antes del timeout");
+                // Serial.print("Nodo ");
+                // Serial.print(Nodo_Consultado);
+                // Serial.println(" respondió correctamente antes del timeout");
             }
         });
     }
@@ -192,8 +192,8 @@ void Master::Master_Nodo() {
     Master_Mensaje();
     
     // Registramos el intento de comunicación
-    Serial.print("Master consulta a nodo: ");
-    Serial.println(Nodo_Consultado);
+    // Serial.print("Master consulta a nodo: ");
+    // Serial.println(Nodo_Consultado);
 }
 
 /**
@@ -419,7 +419,6 @@ void Master::Master_Calibration_Init() {
     Serial.println("Iniciando protocolo de calibración Master");
     // Configurar temporizador para encuesta de nodos cada 5 segundos
     timer_Survey.attach_ms(5000, [this]() {
-        Serial.println("Encuesta periódica de nodos para calibración");
         this->NextSurvey = true; // Activar bandera para consultar siguiente nodo
     });
 }

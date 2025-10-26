@@ -1,0 +1,179 @@
+/*
+ * ✅ GUÍA DE USO DEL MODO CALIBRACIÓN - Master LoRa
+ * 
+ * Esta guía explica cómo usar correctamente el modo calibración del Master
+ * y cómo solucionar errores comunes.
+ */
+
+// ============================================================================
+// 🚨 PROBLEMAS CORREGIDOS EN EL MODO CALIBRACIÓN
+// ============================================================================
+
+/*
+PROBLEMA 1: Variable no definida 'Node_to_Calibrate'
+- CAUSA: Variable no declarada en el scope
+- SOLUCIÓN: Usar 'nodo_a_Consultar' que ya existe
+
+PROBLEMA 2: Lógica incorrecta en Survey_MeasureNodeSignal()
+- CAUSA: validSamples = totalRSSI / Master_Counter (división incorrecta)
+- SOLUCIÓN: validSamples++ para contar muestras correctamente
+
+PROBLEMA 3: Variables no inicializadas
+- CAUSA: totalRSSI, validSamples no se resetean entre calibraciones
+- SOLUCIÓN: Inicialización explícita en StartCalibration()
+
+PROBLEMA 4: Falta manejo de errores
+- CAUSA: No validar estado antes de calibrar
+- SOLUCIÓN: Verificar F_MasterMode y F_MasterCalibration
+*/
+
+// ============================================================================
+// ✅ CÓMO USAR EL MODO CALIBRACIÓN CORRECTAMENTE
+// ============================================================================
+
+void ejemploUsoCalibración() {
+    
+    // 🟢 MÉTODO 1: Uso manual desde código
+    Serial.println("=== INICIANDO CALIBRACIÓN MANUAL ===");
+    
+    // Verificar que estamos en modo Master
+    if (Node.F_MasterMode) {
+        // Iniciar calibración del nodo 1
+        Node.StartCalibration("1");
+        
+        // El sistema automáticamente:
+        // 1. Configura las variables
+        // 2. Inicia el timer de survey
+        // 3. Envía 10 mensajes al nodo
+        // 4. Mide RSSI de cada respuesta
+        // 5. Calcula promedio y recomienda configuración
+        // 6. Finaliza automáticamente
+    }
+    
+    // 🟢 MÉTODO 2: Uso desde servidor web
+    Serial.println("=== CALIBRACIÓN VIA WEB ===");
+    
+    // Enviar comando web para iniciar calibración:
+    // POST /control con command: "CAL1" (calibrar nodo 1)
+    // El servidor procesará y llamará a StartCalibration()
+    
+    // 🟢 MÉTODO 3: Verificar estado de calibración
+    if (Node.IsCalibrationActive()) {
+        Serial.println("📊 Calibración en progreso...");
+    } else {
+        Serial.println("✅ Calibración completa o inactiva");
+    }
+    
+    // 🟢 MÉTODO 4: Detener calibración manualmente
+    if (Node.IsCalibrationActive()) {
+        Node.StopCalibration();
+        Serial.println("🛑 Calibración detenida manualmente");
+    }
+}
+
+// ============================================================================
+// 📊 FLUJO COMPLETO DEL MODO CALIBRACIÓN
+// ============================================================================
+
+/*
+PASO 1: Activación
+- Node.StartCalibration("1") o comando web
+- F_MasterCalibration = true
+- Variables inicializadas
+
+PASO 2: Timer Survey (cada 5 segundos)
+- Protocol.NextSurvey = true
+- Survey_Calibration_Node() envía mensaje
+- Incrementa Master_Counter
+
+PASO 3: Recepción de respuesta
+- F_Recibido = true
+- Survey_MeasureNodeSignal() procesa RSSI
+- totalRSSI += RSSI
+- validSamples++
+
+PASO 4: Finalización automática
+- Cuando validSamples >= 10
+- Calcula avgRSSI = totalRSSI / validSamples
+- Recomienda configuración según RSSI
+- F_Node_Calibrated = true
+- Survey_FinishCalibration()
+
+PASO 5: Retorno al modo normal
+- F_MasterCalibration = false
+- Variables reseteadas
+- Timer normal del Master reinicia
+*/
+
+// ============================================================================
+// 🔧 COMANDOS PARA PRUEBAS Y DEBUG
+// ============================================================================
+
+void comandosDebugCalibración() {
+    // Verificar variables antes de calibrar
+    Serial.printf("Master Mode: %s\n", Node.F_MasterMode ? "true" : "false");
+    Serial.printf("Calibration Active: %s\n", Node.F_MasterCalibration ? "true" : "false");
+    Serial.printf("Node to Query: %s\n", Node.nodo_a_Consultar.c_str());
+    
+    // Durante calibración, mostrar progreso
+    Serial.printf("Samples: %d/10\n", Node.validSamples);
+    Serial.printf("Total RSSI: %.1f\n", Node.totalRSSI);
+    Serial.printf("Avg RSSI: %.1f dBm\n", Node.avgRSSI);
+    Serial.printf("Counter: %d\n", Node.Master_Counter);
+    
+    // Flags de estado
+    Serial.printf("NextSurvey: %s\n", Node.Protocol.NextSurvey ? "true" : "false");
+    Serial.printf("F_Recibido: %s\n", Node.F_Recibido ? "true" : "false");
+    Serial.printf("F_Node_Calibrated: %s\n", Node.F_Node_Calibrated ? "true" : "false");
+}
+
+// ============================================================================
+// ⚠️ ERRORES COMUNES Y SOLUCIONES
+// ============================================================================
+
+/*
+ERROR: "Calibración no inicia"
+CAUSA: F_MasterMode = false
+SOLUCIÓN: Verificar que el dispositivo esté en modo Master
+
+ERROR: "Nodo no responde durante calibración"
+CAUSA: nodo_a_Consultar incorrecto o nodo apagado
+SOLUCIÓN: Verificar que el nodo existe y está activo
+
+ERROR: "Calibración se cuelga"
+CAUSA: F_Recibido no se activa (problema de recepción)
+SOLUCIÓN: Verificar configuración de radio y antena
+
+ERROR: "Variables incorrectas"
+CAUSA: No se resetean entre calibraciones
+SOLUCIÓN: Llamar StartCalibration() antes de cada nueva calibración
+
+ERROR: "Timer no funciona"
+CAUSA: Timer del Master interfiere con timer de Survey
+SOLUCIÓN: Los timers se gestionan automáticamente en Master_Calibration_Init/End
+*/
+
+// ============================================================================
+// 🚀 COMANDOS SERIE PARA PRUEBAS
+// ============================================================================
+
+/*
+Para probar desde Serial Monitor:
+
+1. Iniciar calibración:
+   CAL1  (calibrar nodo 1)
+   CAL2  (calibrar nodo 2)
+   CAL3  (calibrar nodo 3)
+
+2. Detener calibración:
+   STOP
+
+3. Ver estado:
+   STAT
+
+4. Modo Master normal:
+   MAST
+
+5. Debug completo:
+   DEBUG
+*/

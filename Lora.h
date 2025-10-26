@@ -55,6 +55,11 @@ public:
     void   Lora_Master_Protocol();
     void   Lora_Master_Counter();
     void   Protocol_ProcesarMensajesRecibidos(); // Nuevo método para procesar mensajes recibidos
+    
+    // ✅ MÉTODOS DE CALIBRACIÓN
+    void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
+    void   StopCalibration();                               // Detener calibración
+    bool   IsCalibrationActive();                           // Verificar si calibración está activa
     void   Protocol_NodeStatusUpdate();
     void   Protocol_ConsultarNodoSiguiente();
     void   Protocol_porImplementar();
