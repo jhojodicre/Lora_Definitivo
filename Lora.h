@@ -58,7 +58,6 @@ public:
     
     // ✅ MÉTODOS DE CALIBRACIÓN
     void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
-    void   StopCalibration();                               // Detener calibración
     bool   IsCalibrationActive();                           // Verificar si calibración está activa
     void   Protocol_NodeStatusUpdate();
     void   Protocol_ConsultarNodoSiguiente();
@@ -81,7 +80,8 @@ public:
     int    validSamples = 0;
     bool   F_Señal_Medida = false;
     bool   F_Node_Calibrated = false;
-
+    int    Node_Configuration_Radio = 0; // Configuración actual del nodo
+    
   // Variables para configuración según distancia
     float   frequency        = 0;
     float   bandwidth        = 0;

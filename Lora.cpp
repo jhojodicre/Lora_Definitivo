@@ -591,25 +591,24 @@ void Lora::Lora_Master_Protocol(){
     if(F_Master_Excecute){
       Protocol_ExecuteOrderFromServer();
       F_Master_Excecute = false;
-          
-          // Imprimir estado actual del Master
-          Serial.println("=== ESTADO ACTUAL DEL MASTER ===");
-          if (F_MasterCalibration) {
-          Serial.printf("🔬 MODO: CALIBRACIÓN ACTIVA\n");
-          Serial.printf("📡 Nodo calibrando: %s\n", nodo_a_Consultar.c_str());
-          Serial.printf("📊 Muestras tomadas: %d/10\n", validSamples);
-          if (validSamples > 0) {
-            Serial.printf("📶 RSSI promedio parcial: %.1f dBm\n", totalRSSI / validSamples);
-          }
-          Serial.printf("🔢 Contador Master: %d\n", Master_Counter);
-          } else {
-          Serial.printf("🎯 MODO: MASTER NORMAL\n");
-          Serial.printf("📡 Nodo consultado: %c\n", Protocol.Nodo_Consultado);
-          Serial.printf("📈 Próximo nodo: %c\n", Protocol.Nodo_Proximo);
-          Serial.printf("🔢 Total nodos: %d\n", Num_Nodos);
-          Serial.printf("⏱️ Tiempo ciclo: %d ms\n", Protocol.tiempo_ms_timer);
-          }
-          Serial.println("================================");
+        
+      // Imprimir estado actual del Master
+      Serial.println("=== ESTADO ACTUAL DEL MASTER ===");
+      if (F_MasterCalibration) {
+      Serial.printf("🔬 MODO: CALIBRACIÓN ACTIVA\n");
+      Serial.printf("📡 Nodo calibrando: %s\n", nodo_a_Consultar.c_str());
+      Serial.printf("📊 Muestras tomadas: %d/10\n", validSamples);
+      if (validSamples > 0) {
+        Serial.printf("📶 RSSI promedio parcial: %.1f dBm\n", totalRSSI / validSamples);
+      }
+      Serial.printf("🔢 Contador Master: %d\n", Master_Counter);
+      } else {
+      Serial.printf("🎯 MODO: MASTER NORMAL\n");
+      Serial.printf("📡 Nodo consultado: %c\n", Protocol.Nodo_Consultado);
+      Serial.printf("📈 Próximo nodo: %c\n", Protocol.Nodo_Proximo);
+      Serial.printf("🔢 Total nodos: %d\n", Num_Nodos);
+      }
+      Serial.println("================================");
     }
  }
 void Lora::Lora_Master_Frame(){
@@ -830,13 +829,6 @@ void Lora::Survey_Calibration_Node(){
   Serial.printf("📊 Survey enviado - Contador: %d\n", Master_Counter);
 }
 void Lora::Survey_MeasureNodeSignal() {
-  // ✅ CORREGIDO: Inicializar variables si es necesario
-  if (Master_Counter == 1) {
-    totalRSSI = 0;
-    validSamples = 0;
-    Serial.println("🔄 Iniciando medición de señal - Reset de variables");
-  }
-  
   totalRSSI += RSSI;
   validSamples++;
   
@@ -882,6 +874,12 @@ void Lora::Survey_FinishCalibration(){
   
   Serial.println("✅ Calibración finalizada - Variables reseteadas");
   Serial.println("🔄 Retornando al modo Master normal");
+  Serial.println("F_MasterCalibration: " + String(F_MasterCalibration));
+  Serial.println("F_Node_Calibrated: " + String(F_Node_Calibrated));
+  Serial.println("F_Master_Mode: " + String(F_MasterMode));
+  Serial.println("F_Node_Mode: " + String(Protocol.F_Calibration_Complete));
+  Serial.println("F_Node_Calibrated: " + String(Protocol.F_Calibration_EN));
+
 }
 
 // ✅ NUEVAS FUNCIONES DE CONTROL DE CALIBRACIÓN
@@ -909,15 +907,6 @@ void Lora::StartCalibration(String nodeToCalibrate) {
   Master_Counter    = 0;
   F_Node_Calibrated = false;
 }
-void Lora::StopCalibration() {
-  if (!F_MasterCalibration) {
-    Serial.println("⚠️ Advertencia: No hay calibración activa");
-    return;
-  }
-  
-  Serial.println("🛑 Deteniendo calibración manualmente");
-  Survey_FinishCalibration();
-}
 bool Lora::IsCalibrationActive() {
   return F_MasterCalibration;
 }
@@ -934,11 +923,11 @@ void Lora::Lora_Protocol(){
   if (F_NodeMode) {
     Lora_Node_Protocol();
   }
-  // En Modo Master, gestiona el ciclo del protocolo
+  // En Modo Master Standby, gestiona el ciclo del protocolo
   if (F_MasterMode && !F_MasterCalibration) {
     Lora_Master_Protocol();
   }
-  // En Modo Master en Calibracion
+  // En Modo Master Calibracion
   if(F_MasterCalibration){
     Protocol_Master_Calibration();
   }

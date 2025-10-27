@@ -414,6 +414,8 @@ bool Master::NodoEnAlerta(int nodoID) {
 void Master::Master_Calibration_Init() {
     F_Calibration_EN = true;
     F_Calibration_Complete = false;
+
+    
     timer_master.detach();              // Detener el temporizador principal del Master
     timer_No_Response.detach();         // Detener el temporizador de no respuesta
     Serial.println("Iniciando protocolo de calibración Master");
