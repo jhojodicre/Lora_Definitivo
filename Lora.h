@@ -4,6 +4,7 @@
 #include <Ticker.h>
 #include <ArduinoJson.h>
 #include <Master.h>
+#include <Preferences.h>  // ✅ Para memoria no volátil en ESP32
 class Lora {
 public:
     Master      Protocol;
@@ -69,6 +70,14 @@ public:
     void   Survey_Calibration_Node();
     void   Survey_MeasureNodeSignal();
     void   Survey_FinishCalibration();
+    void   DebugCalibrationState();
+    
+    // ✅ GESTIÓN DE CONFIGURACIÓN PERSISTENTE
+    void   SaveRadioConfigToNVS(int config);              // Guardar configuración en memoria no volátil
+    int    LoadRadioConfigFromNVS();                      // Cargar configuración desde memoria no volátil  
+    void   ClearRadioConfigNVS();                         // Limpiar configuración guardada
+    bool   HasStoredRadioConfig();                        // Verificar si hay configuración guardada
+    void   SetRadioConfigFromMaster(int config);          // Establecer configuración desde Master
 
 
     float  RSSI         = 0;
@@ -81,7 +90,12 @@ public:
     bool   F_Señal_Medida = false;
     bool   F_Node_Calibrated = false;
     int    Node_Configuration_Radio = 0; // Configuración actual del nodo
-    
+
+  // ✅ GESTIÓN DE MEMORIA NO VOLÁTIL
+    Preferences preferences;                    // Objeto para manejar NVS
+    static const char* NVS_NAMESPACE;          // Namespace para configuración
+    static const char* NVS_RADIO_CONFIG_KEY;   // Key para configuración de radio
+
   // Variables para configuración según distancia
     float   frequency        = 0;
     float   bandwidth        = 0;
@@ -131,6 +145,8 @@ public:
         String  nodo_DB=" ";
         int     Num_Nodos=1;            // Numero de nodos en el sistema.
         String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
+        String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
+        String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
     //Variables para la recepcion de mensaje.
         char    rx_remitente;           // Nodo que envia el mensaje.
         char    rx_destinatario;        // Nodo que recibe el mensaje.

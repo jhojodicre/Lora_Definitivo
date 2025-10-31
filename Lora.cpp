@@ -45,6 +45,10 @@
 #define TRANSMIT_POWER 1 // Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be increased for longer range. 
 volatile    bool rxFlag = false;
 
+// ✅ CONSTANTES PARA MEMORIA NO VOLÁTIL
+const char* Lora::NVS_NAMESPACE = "lora_config";
+const char* Lora::NVS_RADIO_CONFIG_KEY = "radio_config";
+
 //Instancias
 Functions   Update (false);
 Ticker      Timer_Nodo_Answer;
@@ -96,7 +100,9 @@ void Lora::Lora_Setup(Functions* correr)
 {
     correrRef = correr;
 
-    Lora_Configure(1); // Configuración por defecto
+    // ✅ USAR CONFIGURACIÓN GUARDADA O POR DEFECTO
+    // -1 = Usar configuración guardada si existe, si no usar por defecto (0)
+    Lora_Configure(-1);
     
     // Inicializar el temporizador de Master si estamos en modo Master
     if (F_MasterMode) {
@@ -104,6 +110,29 @@ void Lora::Lora_Setup(Functions* correr)
     }
  }
 void Lora::Lora_Configure(int numero_de_configuracion){
+  // ✅ VERIFICAR CONFIGURACIÓN GUARDADA EN MEMORIA NO VOLÁTIL
+  int stored_config = LoadRadioConfigFromNVS();
+  
+  // Si se pasa -1, usar configuración guardada; si no hay guardada, usar por defecto
+  if (numero_de_configuracion == -1) {
+    if (stored_config != -1) {
+      numero_de_configuracion = stored_config;
+      Serial.printf("📄 Usando configuración guardada en NVS: %d\n", stored_config);
+    } else {
+      numero_de_configuracion = 0; // Por defecto
+      Serial.println("🔧 No hay configuración guardada, usando por defecto");
+    }
+  } else {
+    // Si se especifica una configuración nueva, guardarla
+    if (numero_de_configuracion != 0) {
+      SaveRadioConfigToNVS(numero_de_configuracion);
+      Serial.printf("💾 Nueva configuración guardada en NVS: %d\n", numero_de_configuracion);
+    }
+  }
+  
+  // Actualizar variable de estado
+  Node_Configuration_Radio = numero_de_configuracion;
+  
   // Configuracion inicial de Lora con selección automática según distancia
   heltec_setup();
   RADIOLIB_OR_HALT(radio.begin());
@@ -122,7 +151,7 @@ void Lora::Lora_Configure(int numero_de_configuracion){
       break;
       
     case 2: // NODO MEDIO - Configuración balanceada
-      frequency = 915.2;        // Frecuencia ligeramente diferente
+      frequency = 915.0;        // Frecuencia ligeramente diferente
       bandwidth = 250.0;        // Ancho de banda medio
       spreading_factor = 9;     // SF medio
       transmit_power = 10;      // Potencia media
@@ -130,7 +159,7 @@ void Lora::Lora_Configure(int numero_de_configuracion){
       break;
       
     case 3: // NODO LEJANO - Máximo alcance, robustez
-      frequency = 915.4;        // Frecuencia diferente para evitar interferencias
+      frequency = 915.0;        // Frecuencia diferente para evitar interferencias
       bandwidth = 125.0;        // Ancho de banda mínimo
       spreading_factor = 12;    // SF máximo para alcance
       transmit_power = 20;      // Potencia máxima
@@ -138,7 +167,7 @@ void Lora::Lora_Configure(int numero_de_configuracion){
       break;
       
     case 4: // CONFIGURACIÓN PERSONALIZADA - Para pruebas
-      frequency = 915.6;
+      frequency = 915.0;
       bandwidth = 125.0;
       spreading_factor = 10;
       transmit_power = 15;
@@ -676,11 +705,17 @@ void Lora::SerializeObjectToJson() {
 void Lora::Lora_WebMessage(String mensaje) {
     Serial.print("Lora WebMessage: ");
     Serial.println(mensaje);
+    Device_King = mensaje.charAt(0);          // Dispositivo Rey o Master.
+    Device_Number = mensaje.charAt(1);        // Numero de Dispositivo a ejecutar la funcion.
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
     F_Master_Excecute=true; // Flag desactivado en L5.4
+    Serial.println("function Mode: " + tx_funct_mode);
+    Serial.println("function Num: " + tx_funct_num);
+    Serial.println("function Param1: " + tx_funct_parameter1);
+    Serial.println("function Param2: " + tx_funct_parameter2);
   }
 void Lora::Protocol_ConsultarNodoSiguiente(){
   Protocol.Master_Nodo();
@@ -760,13 +795,13 @@ void Lora::Protocol_ExecuteOrderFromServer() {
    * @brief Ejecuta órdenes recibidas desde el servidor
    * 
    */
-  if(tx_funct_mode != "M"){
+  if(Device_King == "N"){
     Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
     Lora_TX();                       // 3. Se envia el mensaje.
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
     Serial.println("🚀Server->Master->Node");
   }
-  if(tx_funct_mode == "M"){
+  if(Device_King == "M"){
     correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
     correrRef->Functions_Run();
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
@@ -932,3 +967,81 @@ void Lora::Lora_Protocol(){
     Protocol_Master_Calibration();
   }
  }
+
+// ============================================================================
+// ✅ FUNCIONES DE GESTIÓN DE CONFIGURACIÓN PERSISTENTE
+// ============================================================================
+
+void Lora::SaveRadioConfigToNVS(int config) {
+  preferences.begin(NVS_NAMESPACE, false); // false = modo escritura
+  
+  size_t bytesWritten = preferences.putInt(NVS_RADIO_CONFIG_KEY, config);
+  
+  if (bytesWritten > 0) {
+    Serial.printf("💾 Configuración guardada en NVS: %d\n", config);
+  } else {
+    Serial.println("❌ Error al guardar configuración en NVS");
+  }
+  
+  preferences.end();
+}
+int Lora::LoadRadioConfigFromNVS() {
+  preferences.begin(NVS_NAMESPACE, true); // true = modo solo lectura
+  
+  // Obtener valor, -1 como valor por defecto si no existe
+  int config = preferences.getInt(NVS_RADIO_CONFIG_KEY, -1);
+  
+  preferences.end();
+  
+  if (config != -1) {
+    Serial.printf("📄 Configuración cargada desde NVS: %d\n", config);
+  } else {
+    Serial.println("📄 No hay configuración guardada en NVS");
+  }
+  
+  return config;
+}
+void Lora::ClearRadioConfigNVS() {
+  preferences.begin(NVS_NAMESPACE, false); // false = modo escritura
+  
+  bool success = preferences.remove(NVS_RADIO_CONFIG_KEY);
+  
+  if (success) {
+    Serial.println("🗑️ Configuración borrada de NVS");
+  } else {
+    Serial.println("❌ Error al borrar configuración de NVS");
+  }
+  
+  preferences.end();
+}
+bool Lora::HasStoredRadioConfig() {
+  preferences.begin(NVS_NAMESPACE, true); // true = modo solo lectura
+  
+  bool hasKey = preferences.isKey(NVS_RADIO_CONFIG_KEY);
+  
+  preferences.end();
+  
+  return hasKey;
+}
+void Lora::SetRadioConfigFromMaster(int config) {
+  Serial.printf("📡 Master solicita cambio de configuración a: %d\n", config);
+  
+  // Validar rango de configuración
+  if (config < 0 || config > 4) {
+    Serial.printf("❌ Configuración inválida: %d (debe ser 0-4)\n", config);
+    return;
+  }
+  
+  // Guardar nueva configuración
+  SaveRadioConfigToNVS(config);
+  
+  // Aplicar inmediatamente la nueva configuración
+  Serial.println("🔄 Aplicando nueva configuración de radio...");
+  Lora_Configure(config);
+  
+  // Confirmar cambio
+  Serial.printf("✅ Configuración cambiada a: %d y guardada en memoria\n", config);
+  
+  // Opcional: Enviar confirmación al Master
+  // tx_mensaje = "CFG_OK_" + String(config);
+}

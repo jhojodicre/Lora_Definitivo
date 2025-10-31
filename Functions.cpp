@@ -547,9 +547,11 @@ void Functions::m1()
         nodeRef->StartCalibration(".");
     }
 }
+// COnfiguracion de La velocidad del Radio.
 void Functions::m2()
 {
     // Implementación del método m2
+    nodeRef->Lora_Configure(x1);
 }
 void Functions::m3()
 {
