@@ -16,9 +16,9 @@ General::General(bool ready)
   digitalWrite(LED_2, HIGH);     // Led 2 OFF.
   digitalWrite(LED_3, HIGH);     // Led 3 OFF.
   // 3. Configuracion de Perifericos:
-  //-3.1 Comunicacion Serial:
-  Serial.begin(115200);
-  delay(10);
+  //-3.1 Comunicacion Serial: (Movido a setup() principal)
+  // Serial.begin(115200);  // Comentado - se hace en setup()
+  // delay(10);
 
   //-3.2 Interrupciones Habilitadas.
   //****************************
@@ -53,7 +53,11 @@ void General::Gestion()
 // 1. Funciones de Logic interna del Micro.
 void General::Welcome()
 {
-  Serial.println("LORA SECURE");
+  Serial.println("=== 📡 LORA SECURE NETWORK ===");
+  Serial.println("🔹 Sistema de comunicación LoRa");
+  Serial.println("🔹 Versión: 2.0");
+  Serial.println("🔹 ESP32-S3 + SX1262");
+  Serial.println("===============================");
 }
 void General::Led_Monitor(int repeticiones)
 {

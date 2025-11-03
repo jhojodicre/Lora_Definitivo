@@ -26,6 +26,10 @@
     bool          flag_F_Nodo_Iniciado=false;
     bool          flag_F_token=false;               // Se habilita caundo el nodo responde por token
     bool          F_updateServer=false;
+    
+    // Variables para debug y monitoreo
+    unsigned long last_status_time = 0;
+    unsigned long status_interval = 30000; // Mostrar estado cada 30 segundos
   //-3.4 Variables Para Conection WiFi and MQTT.
       const char* mqtt_server = "192.168.1.27";
     // JSON Variables.
@@ -78,15 +82,31 @@
     }
 void setup(){
   //S1. Condiciones Iniciales.
+    Serial.begin(115200);
+    delay(1000);  // Esperar que termine el boot del ROM
+    Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
+    Serial.printf("📍 Nodo: %c\n", Node.local_Address);
+    Serial.println("✅ Puerto serie iniciado a 115200 baudios");
+    
   //S2. Class Setup.
+    Serial.println("📡 Iniciando configuración LoRa...");
     Node.Lora_Setup(&Correr);
+    Serial.println("⚙️ Iniciando funciones del sistema...");
     Correr.Function_begin(&Node);
+    Serial.println("🌐 Iniciando servidor web...");
     webServer.begin(&Node, &Correr);
+    Serial.println("✅ Sistema iniciado correctamente!");
+    Serial.println("=====================================\n");
 }
 void loop(){
   //L1. Function Start
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
+      Serial.println("💡 Sistema en funcionamiento - esperando comandos...");
+      Serial.println("📝 Comandos disponibles por serie:");
+      Serial.println("   - CFG0-4: Cambiar configuración radio");
+      Serial.println("   - CFGSTATUS: Ver estado configuración");
+      Serial.println("   - Otros comandos según protocolo\n");
     }
     //-L1.1Manejo del Web Server
       webServer.handle();
@@ -114,6 +134,14 @@ void loop(){
       updateServer();
       Node.F_ServerUpdate = false;
     }
+    
+  //L6. Monitoreo del sistema (cada 30 segundos)
+    // if(millis() - last_status_time > status_interval) {
+    //   Serial.println("💓 Sistema funcionando correctamente...");
+    //   Serial.printf("📡 Nodo: %c | Config: %d | Tiempo activo: %lu s\n", 
+    //                 Node.local_Address, Node.Node_Configuration_Radio, millis()/1000);
+    //   last_status_time = millis();
+    // }
 }
 //A 📎 Funciones Ausiliares
 //A1 Master RX Request.
