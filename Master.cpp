@@ -152,7 +152,7 @@ void Master::Nodo_REQUEST() {
         // Serial.println(Nodo_Consultado);
         
         // Configurar temporizador de timeout DESPUÉS de resetear las banderas
-        timer_No_Response.once_ms(400, [this]() {
+        timer_No_Response.once_ms(timeout_NoResponse, [this]() {
             Serial.println("Timeout: Verificando respuesta del nodo");
             
             // Solo marcar como no responde si efectivamente no respondió

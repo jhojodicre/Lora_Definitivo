@@ -27,6 +27,8 @@ public:
     bool F_Calibration_EN = false;      // Flag que indica si la calibración está habilitada
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
+
+    int  timeout_NoResponse = 700; // Tiempo de espera para considerar que un nodo no responde (ms)
     // ----- CONSTRUCTORES -----
     /**
      * @brief Constructor para modo Master

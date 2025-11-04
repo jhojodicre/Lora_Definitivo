@@ -140,46 +140,47 @@ void Lora::Lora_Configure(int numero_de_configuracion){
   // Set the callback function for received packets
   radio.setDio1Action(rx);
   
-  // Selección de configuración según parámetro de distancia
+  // ✅ CONFIGURACIÓN COMPATIBLE - Solo varía potencia TX según distancia
+  // TODOS los dispositivos mantienen los mismos parámetros de modulación
   switch(numero_de_configuracion) {
-    case 1: // NODO CERCANO - Alta velocidad, baja latencia
-      frequency = 915.0;
-      bandwidth = 500.0;        // Máximo ancho de banda
-      spreading_factor = 7;     // SF mínimo para velocidad
-      transmit_power = 2;       // Potencia baja para ahorro energía
-      config_name = "CERCANO (Alta Velocidad)";
+    case 1: // NODO CERCANO - Potencia baja para ahorro energético
+      frequency = FREQUENCY;           // 915.0 MHz (IGUAL PARA TODOS)
+      bandwidth = BANDWIDTH;           // 125.0 kHz (IGUAL PARA TODOS)
+      spreading_factor = SPREADING_FACTOR; // SF 12 (IGUAL PARA TODOS)
+      transmit_power = 5;              // 🔹 SOLO CAMBIA LA POTENCIA
+      config_name = "CERCANO (5 dBm)";
       break;
       
-    case 2: // NODO MEDIO - Configuración balanceada
-      frequency = 915.0;        // Frecuencia ligeramente diferente
-      bandwidth = 250.0;        // Ancho de banda medio
-      spreading_factor = 9;     // SF medio
-      transmit_power = 10;      // Potencia media
-      config_name = "MEDIO (Balanceado)";
+    case 2: // NODO MEDIO - Potencia media
+      frequency = FREQUENCY;           // 915.0 MHz (IGUAL PARA TODOS)
+      bandwidth = BANDWIDTH;           // 125.0 kHz (IGUAL PARA TODOS)
+      spreading_factor = SPREADING_FACTOR; // SF 12 (IGUAL PARA TODOS)
+      transmit_power = 10;             // 🔹 SOLO CAMBIA LA POTENCIA
+      config_name = "MEDIO (10 dBm)";
       break;
       
-    case 3: // NODO LEJANO - Máximo alcance, robustez
-      frequency = 915.0;        // Frecuencia diferente para evitar interferencias
-      bandwidth = 125.0;        // Ancho de banda mínimo
-      spreading_factor = 12;    // SF máximo para alcance
-      transmit_power = 20;      // Potencia máxima
-      config_name = "LEJANO (Máximo Alcance)";
+    case 3: // NODO LEJANO - Potencia alta para máximo alcance
+      frequency = FREQUENCY;           // 915.0 MHz (IGUAL PARA TODOS)
+      bandwidth = BANDWIDTH;           // 125.0 kHz (IGUAL PARA TODOS)
+      spreading_factor = SPREADING_FACTOR; // SF 12 (IGUAL PARA TODOS)
+      transmit_power = 20;             // 🔹 SOLO CAMBIA LA POTENCIA
+      config_name = "LEJANO (20 dBm)";
       break;
       
-    case 4: // CONFIGURACIÓN PERSONALIZADA - Para pruebas
-      frequency = 915.0;
-      bandwidth = 125.0;
-      spreading_factor = 10;
-      transmit_power = 15;
-      config_name = "PERSONALIZADO";
+    case 4: // CONFIGURACIÓN PERSONALIZADA
+      frequency = FREQUENCY;           // 915.0 MHz (IGUAL PARA TODOS)
+      bandwidth = BANDWIDTH;           // 125.0 kHz (IGUAL PARA TODOS)
+      spreading_factor = SPREADING_FACTOR; // SF 12 (IGUAL PARA TODOS)
+      transmit_power = 15;             // 🔹 SOLO CAMBIA LA POTENCIA
+      config_name = "PERSONALIZADO (15 dBm)";
       break;
       
     default: // CONFIGURACIÓN POR DEFECTO (caso 0 o inválido)
-      frequency = FREQUENCY;
-      bandwidth = BANDWIDTH;
-      spreading_factor = SPREADING_FACTOR;
-      transmit_power = TRANSMIT_POWER;
-      config_name = "POR DEFECTO";
+      frequency = FREQUENCY;           // 915.0 MHz
+      bandwidth = BANDWIDTH;           // 125.0 kHz
+      spreading_factor = SPREADING_FACTOR; // SF 12
+      transmit_power = TRANSMIT_POWER; // 1 dBm
+      config_name = "POR DEFECTO (1 dBm)";
       break;
   }
   
@@ -705,17 +706,11 @@ void Lora::SerializeObjectToJson() {
 void Lora::Lora_WebMessage(String mensaje) {
     Serial.print("Lora WebMessage: ");
     Serial.println(mensaje);
-    Device_King = mensaje.charAt(0);          // Dispositivo Rey o Master.
-    Device_Number = mensaje.charAt(1);        // Numero de Dispositivo a ejecutar la funcion.
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
     F_Master_Excecute=true; // Flag desactivado en L5.4
-    Serial.println("function Mode: " + tx_funct_mode);
-    Serial.println("function Num: " + tx_funct_num);
-    Serial.println("function Param1: " + tx_funct_parameter1);
-    Serial.println("function Param2: " + tx_funct_parameter2);
   }
 void Lora::Protocol_ConsultarNodoSiguiente(){
   Protocol.Master_Nodo();
@@ -795,13 +790,13 @@ void Lora::Protocol_ExecuteOrderFromServer() {
    * @brief Ejecuta órdenes recibidas desde el servidor
    * 
    */
-  if(Device_King == "N"){
+  if(tx_funct_mode != "M"){
     Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
     Lora_TX();                       // 3. Se envia el mensaje.
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
     Serial.println("🚀Server->Master->Node");
   }
-  if(Device_King == "M"){
+  if(tx_funct_mode == "M"){
     correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
     correrRef->Functions_Run();
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
