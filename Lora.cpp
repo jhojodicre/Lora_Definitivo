@@ -453,7 +453,6 @@ void Lora::Lora_Event_Disable(){
   F_Event_Enable = false;
   }
 
-
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
@@ -706,11 +705,17 @@ void Lora::SerializeObjectToJson() {
 void Lora::Lora_WebMessage(String mensaje) {
     Serial.print("Lora WebMessage: ");
     Serial.println(mensaje);
+    Device_King = mensaje.charAt(0);          // Dispositivo Rey o Master.
+    Device_Number = mensaje.charAt(1);        // Numero de Dispositivo a ejecutar la funcion.
     tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
     tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
     tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
     tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
     F_Master_Excecute=true; // Flag desactivado en L5.4
+    Serial.println("function Mode: " + tx_funct_mode);
+    Serial.println("function Num: " + tx_funct_num);
+    Serial.println("function Param1: " + tx_funct_parameter1);
+    Serial.println("function Param2: " + tx_funct_parameter2);
   }
 void Lora::Protocol_ConsultarNodoSiguiente(){
   Protocol.Master_Nodo();
@@ -790,13 +795,13 @@ void Lora::Protocol_ExecuteOrderFromServer() {
    * @brief Ejecuta órdenes recibidas desde el servidor
    * 
    */
-  if(tx_funct_mode != "M"){
+  if(Device_King != "M"){
     Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
     Lora_TX();                       // 3. Se envia el mensaje.
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
     Serial.println("🚀Server->Master->Node");
   }
-  if(tx_funct_mode == "M"){
+  if(Device_King== "M"){
     correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
     correrRef->Functions_Run();
     F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
@@ -963,9 +968,7 @@ void Lora::Lora_Protocol(){
   }
  }
 
-// ============================================================================
-// ✅ FUNCIONES DE GESTIÓN DE CONFIGURACIÓN PERSISTENTE
-// ============================================================================
+
 
 void Lora::SaveRadioConfigToNVS(int config) {
   preferences.begin(NVS_NAMESPACE, false); // false = modo escritura
