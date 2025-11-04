@@ -276,7 +276,9 @@ void Lora::rx(){
   rxFlag = true;
  }
 
-
+void Lora::Lora_Status_RadioConfig(){
+  
+}
 void Lora::Lora_IO_Zones(){
   // 1. ZONE A y ZONE B Push Button Acknowledge.
     Zone_A_ACK    = digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in

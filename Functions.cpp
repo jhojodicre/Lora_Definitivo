@@ -581,6 +581,8 @@ void Functions::m9()
 {
     // Implementación del método m9
 }
+// ▶ Funciones de Estado de Configuracion de Nodos
+// 🔹
 void Functions::s0()
 {
     // Implementación del método s0

@@ -7,5 +7,6 @@
         "*.ino": "objective-cpp",
         "*.cpp": "cpp",
         "wifi.h": "c"
-    }
+    },
+    "editor.minimap.autohide": "mouseover"
 }
