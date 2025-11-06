@@ -114,6 +114,15 @@ public:
                         String output1, String output2, String fuente);
     void manejarForzarZonas();       // POST /api/force-zones
     bool enviarDatosAlServidorExterno(String JsonString);
+    
+    // ✅ NUEVOS MÉTODOS PARA SISTEMA DE ESTADO
+    void handleGetRadioStatus();           // GET /api/status/radio
+    void handleGetSystemStatus();          // GET /api/status/system  
+    void handleGetNodeStatus();            // GET /api/status/node
+    void handleGetMasterStatus();          // GET /api/status/master
+    void handleGetCommunicationStatus();   // GET /api/status/communication
+    void handleGetAllStatus();             // GET /api/status/all
+    void handleStatusQuery();              // GET /api/status?type=radio|system|node|master|all
 
 };
 

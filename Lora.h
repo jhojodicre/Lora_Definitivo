@@ -47,6 +47,15 @@ public:
     static void   Lora_time_ZoneA_error();
     static void   Lora_time_ZoneB_error();
 
+    // ✅ SISTEMA DE ESTADO Y CONSULTAS
+    void   Lora_Status_RadioConfig();                     // Estado de configuración de radio
+    void   Lora_Status_SystemInfo();                      // Información general del sistema  
+    void   Lora_Status_NodeSpecific();                    // Estado específico del nodo
+    void   Lora_Status_MasterSpecific();                  // Estado específico del Master
+    void   Lora_Status_CommunicationStats();              // Estadísticas de comunicación
+    String Lora_GetStatus(String type = "all");           // Método unificado para obtener estado
+    void   Lora_UpdateAllStatus();                        // Actualizar todos los estados
+
 
     void   Lora_Master_Frame();
     void   Lora_Master_Decodificar();
@@ -172,6 +181,11 @@ public:
         String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
 
         String    jsonString;
+        
+        // ✅ NUEVAS VARIABLES PARA SISTEMA DE ESTADO
+        String    radioStatusJSON;          // JSON con estado completo del radio
+        String    systemStatusJSON;         // JSON con estado general del sistema
+        String    nodeStatusJSON;           // JSON con estado específico del nodo
 
         String    tx_nodo_lora_1;
         String    tx_nodo_lora_2;

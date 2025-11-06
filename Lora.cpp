@@ -277,7 +277,252 @@ void Lora::rx(){
  }
 
 void Lora::Lora_Status_RadioConfig(){
+  // ✅ GENERAR JSON CON ESTADO COMPLETO DE RADIO
+  StaticJsonDocument<512> statusDoc;
   
+  // === 📡 CONFIGURACIÓN DE RADIO ===
+  statusDoc["radio"]["frequency"] = frequency;
+  statusDoc["radio"]["bandwidth"] = bandwidth;
+  statusDoc["radio"]["spreading_factor"] = spreading_factor;
+  statusDoc["radio"]["transmit_power"] = transmit_power;
+  statusDoc["radio"]["config_id"] = Node_Configuration_Radio;
+  statusDoc["radio"]["config_name"] = config_name;
+  
+  // === 📊 ESTADO DE COMUNICACIÓN ===
+  statusDoc["communication"]["rssi"] = RSSI;
+  statusDoc["communication"]["snr"] = SNR;
+  statusDoc["communication"]["last_rx"] = millis(); // Timestamp último mensaje
+  
+  // === 🔧 INFORMACIÓN DEL DISPOSITIVO ===
+  statusDoc["device"]["type"] = F_MasterMode ? "MASTER" : "NODE";
+  statusDoc["device"]["address"] = String(local_Address);
+  statusDoc["device"]["uptime"] = millis() / 1000; // Segundos de funcionamiento
+  statusDoc["device"]["free_heap"] = ESP.getFreeHeap();
+  
+  // === ⚙️ CONFIGURACIÓN PERSISTENTE ===
+  statusDoc["storage"]["has_stored_config"] = HasStoredRadioConfig();
+  if (HasStoredRadioConfig()) {
+    statusDoc["storage"]["stored_config"] = LoadRadioConfigFromNVS();
+  }
+  
+  // === 🎯 ESTADO ESPECÍFICO DEL MASTER ===
+  if (F_MasterMode) {
+    statusDoc["master"]["total_nodes"] = Num_Nodos;
+    statusDoc["master"]["current_node"] = String(Protocol.Nodo_Consultado);
+    statusDoc["master"]["next_node"] = String(Protocol.Nodo_Proximo);
+    statusDoc["master"]["calibration_active"] = F_MasterCalibration;
+    statusDoc["master"]["master_address"] = Master_Address;
+  }
+  
+  // === 📍 ESTADO ESPECÍFICO DEL NODO ===
+  if (F_NodeMode) {
+    statusDoc["node"]["zone_a_status"] = Zone_A_ST;
+    statusDoc["node"]["zone_b_status"] = Zone_B_ST;
+    statusDoc["node"]["zone_a_error"] = Zone_A_ERR;
+    statusDoc["node"]["zone_b_error"] = Zone_B_ERR;
+    statusDoc["node"]["relay_1"] = Rele_1_out_ST;
+    statusDoc["node"]["relay_2"] = Rele_2_out_ST;
+    statusDoc["node"]["event_enabled"] = F_Event_Enable;
+  }
+  
+  // === 📝 SERIALIZAR A STRING GLOBAL ===
+  serializeJson(statusDoc, radioStatusJSON);
+  
+  // === 🖥️ MOSTRAR EN SERIAL PARA DEBUG ===
+  Serial.println("=== 📊 ESTADO DEL SISTEMA ===");
+  serializeJsonPretty(statusDoc, Serial);
+  Serial.println("\n==============================");
+}
+
+void Lora::Lora_Status_SystemInfo(){
+  // ✅ INFORMACIÓN GENERAL DEL SISTEMA
+  StaticJsonDocument<256> sysDoc;
+  
+  sysDoc["timestamp"] = millis();
+  sysDoc["uptime_seconds"] = millis() / 1000;
+  sysDoc["free_heap"] = ESP.getFreeHeap();
+  sysDoc["chip_model"] = ESP.getChipModel();
+  sysDoc["chip_revision"] = ESP.getChipRevision();
+  sysDoc["cpu_freq_mhz"] = ESP.getCpuFreqMHz();
+  sysDoc["flash_size"] = ESP.getFlashChipSize();
+  sysDoc["sketch_size"] = ESP.getSketchSize();
+  sysDoc["free_sketch_space"] = ESP.getFreeSketchSpace();
+  
+  serializeJson(sysDoc, systemStatusJSON);
+}
+
+void Lora::Lora_Status_NodeSpecific(){
+  // ✅ ESTADO ESPECÍFICO DEL NODO
+  StaticJsonDocument<512> nodeDoc;
+  
+  // === 🔌 ENTRADAS DIGITALES ===
+  nodeDoc["inputs"]["zone_a"] = Zone_A;
+  nodeDoc["inputs"]["zone_b"] = Zone_B;
+  nodeDoc["inputs"]["zone_a_ack"] = Zone_A_ACK;
+  nodeDoc["inputs"]["zone_b_ack"] = Zone_B_ACK;
+  nodeDoc["inputs"]["zone_ab_ack"] = Zone_AB_ACK;
+  
+  // === 📊 ESTADOS DE ZONAS ===
+  nodeDoc["zones"]["zone_a_status"] = Zone_A_ST;
+  nodeDoc["zones"]["zone_b_status"] = Zone_B_ST;
+  nodeDoc["zones"]["zone_a_error"] = Zone_A_ERR;
+  nodeDoc["zones"]["zone_b_error"] = Zone_B_ERR;
+  nodeDoc["zones"]["zone_a_extended"] = Zone_A_Extended;
+  nodeDoc["zones"]["zone_b_extended"] = Zone_B_Extended;
+  
+  // === 🔌 SALIDAS ===
+  nodeDoc["outputs"]["relay_1"] = Rele_1_out_ST;
+  nodeDoc["outputs"]["relay_2"] = Rele_2_out_ST;
+  
+  // === ⏰ TIMERS ===
+  nodeDoc["timers"]["za_enabled"] = timer_ZA_En;
+  nodeDoc["timers"]["za_reached"] = timer_ZA_Reached;
+  nodeDoc["timers"]["zb_enabled"] = timer_ZB_En;
+  nodeDoc["timers"]["zb_reached"] = timer_ZB_Reached;
+  
+  // === 📡 EVENTOS ===
+  nodeDoc["events"]["event_enabled"] = F_Event_Enable;
+  nodeDoc["events"]["responder_flag"] = F_Responder;
+  nodeDoc["events"]["execute_flag"] = F_Nodo_Excecute;
+  
+  // === 📈 CONTADORES ===
+  nodeDoc["counters"]["node_counter"] = Node_Counter;
+  nodeDoc["counters"]["message_type"] = Tipo_de_Mensaje;
+  
+  serializeJson(nodeDoc, nodeStatusJSON);
+}
+
+void Lora::Lora_Status_MasterSpecific(){
+  // ✅ ESTADO ESPECÍFICO DEL MASTER
+  if (!F_MasterMode) return;
+  
+  StaticJsonDocument<512> masterDoc;
+  
+  // === 🎯 CONFIGURACIÓN MASTER ===
+  masterDoc["config"]["total_nodes"] = Num_Nodos;
+  masterDoc["config"]["master_address"] = Master_Address;
+  masterDoc["config"]["local_address"] = String(local_Address);
+  
+  // === 📡 ESTADO DE CONSULTA ===
+  masterDoc["polling"]["current_node"] = String(Protocol.Nodo_Consultado);
+  masterDoc["polling"]["next_node"] = String(Protocol.Nodo_Proximo);
+  masterDoc["polling"]["node_to_query"] = nodo_a_Consultar;
+  masterDoc["polling"]["query_active"] = Protocol.Next;
+  
+  // === 🔬 CALIBRACIÓN ===
+  masterDoc["calibration"]["active"] = F_MasterCalibration;
+  masterDoc["calibration"]["node_calibrating"] = Node_to_Calibrate;
+  masterDoc["calibration"]["samples_taken"] = validSamples;
+  masterDoc["calibration"]["avg_rssi"] = avgRSSI;
+  masterDoc["calibration"]["total_rssi"] = totalRSSI;
+  
+  // === 📊 ESTADÍSTICAS ===
+  masterDoc["stats"]["master_counter"] = Master_Counter;
+  masterDoc["stats"]["node_responds"] = Protocol.nodeResponde;
+  masterDoc["stats"]["node_no_response"] = Protocol.nodeNoResponde;
+  masterDoc["stats"]["node_alert"] = Protocol.nodeAlerta;
+  
+  // === 🌐 SERVIDOR ===
+  masterDoc["server"]["update_pending"] = F_ServerUpdate;
+  masterDoc["server"]["execute_pending"] = F_Master_Excecute;
+  
+  serializeJson(masterDoc, systemStatusJSON); // Usar systemStatusJSON para Master
+}
+
+void Lora::Lora_Status_CommunicationStats(){
+  // ✅ ESTADÍSTICAS DE COMUNICACIÓN
+  StaticJsonDocument<256> commDoc;
+  
+  // === 📡 CALIDAD DE SEÑAL ===
+  commDoc["signal"]["rssi"] = RSSI;
+  commDoc["signal"]["snr"] = SNR;
+  commDoc["signal"]["avg_rssi"] = avgRSSI;
+  
+  // === 📊 CONTADORES ===
+  if (F_MasterMode) {
+    commDoc["counters"]["master_counter"] = Master_Counter;
+    commDoc["counters"]["total_nodes"] = Num_Nodos;
+  } else {
+    commDoc["counters"]["node_counter"] = Node_Counter;
+    commDoc["counters"]["local_address"] = String(local_Address);
+  }
+  
+  // === 🔄 ESTADO DE COMUNICACIÓN ===
+  commDoc["status"]["received_flag"] = F_Recibido;
+  commDoc["status"]["respond_flag"] = F_Responder;
+  commDoc["status"]["last_update"] = millis();
+  
+  String commJSON;
+  serializeJson(commDoc, commJSON);
+  // Añadir a radioStatusJSON para comunicación
+  radioStatusJSON = commJSON;
+}
+
+String Lora::Lora_GetStatus(String type){
+  // ✅ MÉTODO UNIFICADO PARA OBTENER DIFERENTES TIPOS DE ESTADO
+  StaticJsonDocument<1024> unifiedDoc;
+  
+  if (type == "all" || type == "radio") {
+    Lora_Status_RadioConfig();
+    StaticJsonDocument<512> radioDoc;
+    deserializeJson(radioDoc, radioStatusJSON);
+    unifiedDoc["radio_status"] = radioDoc;
+  }
+  
+  if (type == "all" || type == "system") {
+    Lora_Status_SystemInfo();
+    StaticJsonDocument<256> sysDoc;
+    deserializeJson(sysDoc, systemStatusJSON);
+    unifiedDoc["system_info"] = sysDoc;
+  }
+  
+  if (type == "all" || type == "node") {
+    if (F_NodeMode) {
+      Lora_Status_NodeSpecific();
+      StaticJsonDocument<512> nodeDoc;
+      deserializeJson(nodeDoc, nodeStatusJSON);
+      unifiedDoc["node_status"] = nodeDoc;
+    }
+  }
+  
+  if (type == "all" || type == "master") {
+    if (F_MasterMode) {
+      Lora_Status_MasterSpecific();
+      StaticJsonDocument<512> masterDoc;
+      deserializeJson(masterDoc, systemStatusJSON);
+      unifiedDoc["master_status"] = masterDoc;
+    }
+  }
+  
+  if (type == "all" || type == "communication") {
+    Lora_Status_CommunicationStats();
+    StaticJsonDocument<256> commDoc;
+    deserializeJson(commDoc, radioStatusJSON);
+    unifiedDoc["communication_stats"] = commDoc;
+  }
+  
+  // === 📝 SERIALIZAR RESULTADO ===
+  String result;
+  serializeJson(unifiedDoc, result);
+  return result;
+}
+
+void Lora::Lora_UpdateAllStatus(){
+  // ✅ ACTUALIZAR TODOS LOS ESTADOS
+  Lora_Status_RadioConfig();
+  Lora_Status_SystemInfo();
+  
+  if (F_NodeMode) {
+    Lora_Status_NodeSpecific();
+  }
+  
+  if (F_MasterMode) {
+    Lora_Status_MasterSpecific();
+  }
+  
+  Lora_Status_CommunicationStats();
+  
+  Serial.println("✅ Todos los estados actualizados");
 }
 void Lora::Lora_IO_Zones(){
   // 1. ZONE A y ZONE B Push Button Acknowledge.
@@ -458,8 +703,8 @@ void Lora::Lora_Event_Disable(){
 void Lora::Lora_Node_Protocol(){
   //-P.1 LORA RX
   //-P.2 Node IO.
-    // Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-    // Lora_Dummy_Simulate(); // Se simulan las señales de entrada.
+    Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    // Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
    
   //-P.3 Nodo Evento en Zonas
     if(F_Event_Enable && msg_enviar){
@@ -546,19 +791,22 @@ void Lora::Lora_Nodo_Decodificar(){
   // 1. Preparamos mensaje para enviar.
     if(rx_destinatario==local_Address){
       Serial.println("Nodo_Atiende");
-      if(rx_funct_mode!="0"){
+      if(rx_funct_mode=="E"){
         Serial.println("Peticion escuchada");
         F_Nodo_Excecute=true;  //Flag Desactivado en L-4.3
       }
       if(rx_funct_mode=="M"){
+      }
+      if(rx_funct_mode=="A"){
         // 3. Contador de mensajes enviados.
         String counterStr = String(Node_Counter, DEC);
         while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
+        Lora_Node_Counter();
       }
+
       F_Responder=true;
       F_Node_Atiende=true;
       Protocol.nodeResponde=F_Node_Atiende;
-      Lora_Node_Counter();
     }
     F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
   }

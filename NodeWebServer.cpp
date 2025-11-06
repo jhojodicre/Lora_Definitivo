@@ -634,7 +634,62 @@ void LoRaWebServer::manejarMensajeRecibido() {
     }
 
 }
+// Procesar Mensaje
+bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
+    // ✅ VALIDACIÓN ROBUSTA: Verificar todas las referencias
+        if (!nodeRef) {
+            Serial.println("❌ Error: nodeRef es null");
+            return false;
+        }
+        if (!functionsRef) {
+            Serial.println("❌ Error: functionsRef es null");
+            return false;
+        }
+    
+    // ✅ VALIDACIÓN: Verificar que los objetos tienen memoria válida
+        if (nodeId.length() == 0) {
+            Serial.println("❌ Error: nodeId vacío");
+            return false;
+        }
+        
+        if (mensaje.length() == 0) {
+            Serial.println("❌ Error: mensaje vacío");
+            return false;
+        }
+        
+        // Validar nodo
+        if (nodeId != String(nodeRef->local_Address)) {
+            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), nodeRef->local_Address);
+            // No retornar false, procesar de todas formas
+        }
+    
+    // Procesar mensaje de forma segura
+    try {
+        // ✅ SEGURIDAD: Usar functionsRef en lugar de acceso directo
+        String comando = mensaje;
+        if (comando.length() < 6) {
+            // Rellenar comando a 6 caracteres
+            while (comando.length() < 6) {
+                comando += "0";
+            }
+        }
+        
+        // Procesar con Functions que es más seguro
+        // functionsRef->Functions_Request(comando);
+        // functionsRef->Functions_Run();
 
+        nodeRef->nodo_a_Consultar= nodeId;
+        nodeRef->Node_to_Calibrate= nodeId;
+        nodeRef->Lora_WebMessage(mensaje);
+        
+        Serial.printf("📲📡 Mensaje procesado: %s\n", mensaje.c_str());
+    } catch (...) {
+        Serial.println("❌ Error: Excepción al procesar mensaje");
+        return false;
+    }
+    
+    return true; // ✅ CORREGIDO: Agregar return true
+}
 // MANEJADOR: ESTADO DEL NODO
 void LoRaWebServer::manejarEstadoNodo() {
   Serial.println("📊 Solicitud GET /api/status - Estado del nodo");
@@ -714,63 +769,6 @@ void LoRaWebServer::manejarDatoNodoIndividual() {
         enviarErrorJSON("Error completo al procesar el nodo " + nodoId);
         Serial.println("❌ Error completo procesando nodo " + nodoId);
     }
-}
-
-// Procesar Mensaje
-bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
-    // ✅ VALIDACIÓN ROBUSTA: Verificar todas las referencias
-        if (!nodeRef) {
-            Serial.println("❌ Error: nodeRef es null");
-            return false;
-        }
-        if (!functionsRef) {
-            Serial.println("❌ Error: functionsRef es null");
-            return false;
-        }
-    
-    // ✅ VALIDACIÓN: Verificar que los objetos tienen memoria válida
-        if (nodeId.length() == 0) {
-            Serial.println("❌ Error: nodeId vacío");
-            return false;
-        }
-        
-        if (mensaje.length() == 0) {
-            Serial.println("❌ Error: mensaje vacío");
-            return false;
-        }
-        
-        // Validar nodo
-        if (nodeId != String(nodeRef->local_Address)) {
-            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), nodeRef->local_Address);
-            // No retornar false, procesar de todas formas
-        }
-    
-    // Procesar mensaje de forma segura
-    try {
-        // ✅ SEGURIDAD: Usar functionsRef en lugar de acceso directo
-        String comando = mensaje;
-        if (comando.length() < 6) {
-            // Rellenar comando a 6 caracteres
-            while (comando.length() < 6) {
-                comando += "0";
-            }
-        }
-        
-        // Procesar con Functions que es más seguro
-        // functionsRef->Functions_Request(comando);
-        // functionsRef->Functions_Run();
-
-        nodeRef->nodo_a_Consultar= nodeId;
-        nodeRef->Node_to_Calibrate= nodeId;
-        nodeRef->Lora_WebMessage(mensaje);
-        
-        Serial.printf("📲📡 Mensaje procesado: %s\n", mensaje.c_str());
-    } catch (...) {
-        Serial.println("❌ Error: Excepción al procesar mensaje");
-        return false;
-    }
-    
-    return true; // ✅ CORREGIDO: Agregar return true
 }
 
 // ✅ NUEVO: Endpoint de prueba del sistema
