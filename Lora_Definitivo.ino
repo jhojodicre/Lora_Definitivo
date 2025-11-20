@@ -5,6 +5,7 @@
     #include "Lora.h"
     #include <HTTPClient.h>
     #include "NodeWebServer.h"
+    #include <BluetoothSerial.h>  // ✅ Librería Bluetooth para ESP32
 
 //3. Variables Globales.
   //-3.1 Variables Interrupciones
@@ -61,9 +62,10 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node(true,5,'1');
+    Lora      Node(false,5,'1');
   //-4.2 Clases de Protocolos.
-    LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
+    LoRaWebServer webServer(80);    // Servidor Web
+    BluetoothSerial SerialBT;       // ✅ Instancia Bluetooth Serial
 //5. Funciones ISR.
   //-5.1 Serial Function.
     void serialEvent (){
@@ -88,7 +90,11 @@ void setup(){
     Serial.printf("📍 Nodo: %c\n", Node.local_Address);
     Serial.println("✅ Puerto serie iniciado a 115200 baudios");
     
-  //S2. Class Setup.
+  //S2. Iniciar Bluetooth.
+    SerialBT.begin("ESP32_LoRa_Node"); // Nombre del dispositivo Bluetooth
+    Serial.println("📱 Bluetooth iniciado - Nombre: ESP32_LoRa_Node");
+    
+  //S3. Class Setup.
     Serial.println("📡 Iniciando configuración LoRa...");
     Node.Lora_Setup(&Correr);
     Serial.println("⚙️ Iniciando funciones del sistema...");
@@ -108,40 +114,21 @@ void loop(){
       Serial.println("   - CFGSTATUS: Ver estado configuración");
       Serial.println("   - Otros comandos según protocolo\n");
     }
-    //-L1.1Manejo del Web Server
-      webServer.handle();
-  //L2. Functions Serial RX
-    //-L2.1 Decode
-      if(flag_ISR_stringComplete){
-        Correr.Functions_Request(inputString);
-        flag_F_codified_funtion=true;
-        Serial.println(inputString);
-        Serial.print("Nodo: ");
-        Serial.println(Node.local_Address);
-        Serial.println("RX_SERIAL: "+inputString);
-        flag_ISR_stringComplete=false;
-      }
-    //-L2.2 Function Run
-      if(flag_F_codified_funtion){
-        // Correr.Functions_Run();
-        inputString="";
-        flag_F_codified_funtion=false;
-      }
-  //L4. Funciones del Protocolo.
-    Node.Lora_Protocol();
-  //L5. Funciones del Master.
-    if(Node.F_ServerUpdate){
-      updateServer();
-      Node.F_ServerUpdate = false;
-    }
     
-  //L6. Monitoreo del sistema (cada 30 segundos)
-    // if(millis() - last_status_time > status_interval) {
-    //   Serial.println("💓 Sistema funcionando correctamente...");
-    //   Serial.printf("📡 Nodo: %c | Config: %d | Tiempo activo: %lu s\n", 
-    //                 Node.local_Address, Node.Node_Configuration_Radio, millis()/1000);
-    //   last_status_time = millis();
-    // }
+  //L2. Bluetooth Serial Handler
+    // Leer comandos desde Bluetooth y redirigir a Serial para procesamiento
+    if (SerialBT.available()) {
+      String btCommand = SerialBT.readStringUntil('\n');
+      btCommand.trim();
+      if (btCommand.length() > 0) {
+        Serial.println("📱 BT RX: " + btCommand);
+        SerialBT.println("📱 Comando recibido: " + btCommand);
+        // Procesar comando como si viniera del Serial normal
+        inputString = btCommand + "\n";
+        flag_ISR_stringComplete = true;
+      }
+    }
+
 }
 //A 📎 Funciones Ausiliares
 //A1 Master RX Request.
