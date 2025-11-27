@@ -29,8 +29,8 @@ public:
     void   Lora_IO_Zone_A_ACK();
     void   Lora_IO_Zone_B_ACK();
     
-
     void   Lora_Protocol();
+    
     void   Lora_Node_Counter();
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
@@ -39,8 +39,6 @@ public:
     void   Lora_Node_Print(String z_executed);
     void   Lora_Node_Protocol();
     void   Lora_Node_Print_RX();
-
-
     static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
@@ -57,20 +55,18 @@ public:
     void   Lora_UpdateAllStatus();                        // Actualizar todos los estados
 
 
-    void   Lora_Master_Frame();
+
     void   Lora_Master_Decodificar();
     void   Lora_Master_DB();
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
     void   Lora_Master_Protocol();
     void   Lora_Master_Counter();
-    void   Protocol_ProcesarMensajesRecibidos(); // Nuevo método para procesar mensajes recibidos
     
     // ✅ MÉTODOS DE CALIBRACIÓN
     void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
     bool   IsCalibrationActive();                           // Verificar si calibración está activa
     void   Protocol_NodeStatusUpdate();
-    void   Protocol_ConsultarNodoSiguiente();
     void   Protocol_porImplementar();
     void   Protocol_ExecuteOrderFromServer();
 
@@ -131,6 +127,7 @@ public:
     bool    Zone_B_Extended = false;
 
 
+    // **_________******************************Ya fueron migradas a Master.h**************________________________________________-
 
     bool    F_No_Responder=false;
     bool    F_Node_Atiende=false;
@@ -167,19 +164,21 @@ public:
         String  rx_funct_parameter3;    // Parametro 3 de la Funcion.
         String  rx_funct_parameter4;    // Parametro 4 de la Funcion.
 
-        String  rx_mensaje_DB;          // Mensaje recibido.
-        String  rx_ST_ZA_DB;            // Estado de la Zona A.
-        String  rx_ST_ZB_DB;            // Estado de la Zona B.
-        String  rx_ST_FT_DB;            // Estado de la Fuente.
-
-        String  tx_remitente;           // Nodo que envia el mensaje.
+        
+        String  tx_remitente;           // Nodo que envia el mensaje.    
         String  tx_destinatario;        // Nodo que recibe el mensaje.
         String  tx_mensaje;             // Mensaje recibido.
         String  tx_funct_mode;          // Tipo de funcion a ejecutar.
         String  tx_funct_num;           // Numero de funcion a ejecutar.
         String  tx_funct_parameter1;    // Parametro 1 de la Funcion.
         String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
+        //_________________________**************************************************______________________________________
 
+        String  rx_mensaje_DB;          // Mensaje recibido.
+        String  rx_ST_ZA_DB;            // Estado de la Zona A.
+        String  rx_ST_ZB_DB;            // Estado de la Zona B.
+        String  rx_ST_FT_DB;            // Estado de la Fuente.
+        
         String    jsonString;
         
         // ✅ NUEVAS VARIABLES PARA SISTEMA DE ESTADO

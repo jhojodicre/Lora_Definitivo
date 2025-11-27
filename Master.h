@@ -2,6 +2,7 @@
 #define MASTER_H
 #include <Ticker.h>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 /**
  * @brief Clase Master: Implementa las reglas del protocolo de comunicación Lora
@@ -129,7 +130,7 @@ public:
      * @return true si el nodo está en alerta
      */
     bool NodoEnAlerta(int nodoID);
-    
+    void NodeStatusUpdate();
     /**
      * @brief Genera mensaje para petición especial a un nodo
      * @param nodoID ID del nodo destinatario
@@ -162,17 +163,60 @@ public:
     int  Nodo_Anterior;         // ID del nodo previamente consultado
     int  Nodo_Actual;           // ID del nodo actual en proceso
     int  Nodo_Siguiente;        // ID del siguiente nodo a consultar
+    String  Master_Address="X"; // Direccion del maestro.
     
 
-    String rx_remitente      = "";
-    String rx_destinatario    = "";
-    String rx_mensaje         = "";
-    String rx_funct_mode      = "";
-    String rx_funct_num       = "";
+    String rx_remitente        = "";
+    String rx_destinatario     = "";
+    String rx_mensaje          = "";
+    String rx_funct_mode       = "";
+    String rx_funct_num        = "";
     String rx_funct_parameter1 = "";
     String rx_funct_parameter2 = "";
     String rx_funct_parameter3 = "";
     String rx_funct_parameter4 = "";
+
+    String tx_remitente        = "";
+    String tx_destinatario     = "";
+    String tx_mensaje          = "";
+    String tx_funct_mode       = "";
+    String tx_funct_num        = "";
+    String tx_funct_parameter1 = "";
+    String tx_funct_parameter2 = "";
+    String tx_funct_parameter3 = "";
+    String tx_funct_parameter4 = "";
+
+
+
+    bool    F_No_Responder=false;
+    bool    F_Node_Atiende=false;
+    bool    F_MasterMode=false;
+    bool    F_NodeMode=false;
+    bool    F_MasterCalibration=false;
+    bool    F_ServerUpdate=false;
+    bool    F_NodeStatusUpdate=false;
+
+
+
+
+
+    // byte    Master_Address=0xFF; // Direccion del maestro.
+        String  Master_Address="X"; // Direccion del maestro.
+        char    ascii_representation[9];
+        String  rxdata;
+        String  txdata;
+        String  mensaje;
+        byte    nodo_local;
+        char    nodo_status;            // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
+        char    local_Address='1';      // Direccion del nodo local.
+        char    nodo_consultado;        // Direccion del nodo consultado.
+        char    nodo_Number;
+        String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
+        String  nodo_DB=" ";
+        int     Num_Nodos=1;            // Numero de nodos en el sistema.
+        String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
+        String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
+        String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
 private:
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {
@@ -184,6 +228,28 @@ private:
     
     // Arreglo para almacenar el estado de cada nodo (índice = nodoID)
     EstadoNodo estadosNodos[10]; // Soporte hasta 10 nodos
+
+
+    //🌐🌐** Variables para envair al servidor🌐🌐 */
+    StaticJsonDocument<300> doc;
+    Node_Status_str   = "";                              // Comunicacion ok
+    Node_Num_str      = ""; // Numero de Nodo consultado
+    rx_master_lora_3  = ""; // Estado de la zona A
+    rx_master_lora_4  = ""; // Estado de the zona B
+    rx_master_lora_5  = ""; // Estado de the salida 1
+    rx_master_lora_6  = ""; // Estado de the salida 2
+    rx_master_lora_7  = ""; // Estado de the fuente
+
+    String    nodeJS    = "nodoId";
+    String    commJS    = "comu";
+    String    zoneAJS   = "zoneA";
+    String    zoneBJS   = "zoneB";
+    String    output1JS = "output1";
+    String    output2JS = "output2";
+    String    fuenteJS  = "fuente";
+
+    String jsonString;
+
 };
 
 #endif // MASTER_H

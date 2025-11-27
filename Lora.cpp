@@ -856,15 +856,14 @@ void Lora::Lora_Master_Protocol(){
    */
     // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
     if (Protocol.Next) {
-      Protocol_ConsultarNodoSiguiente();
-    }  
+      Protocol.Master_Nodo();
+      Lora_TX();                // Envía el mensaje
+    }
     // Procesar mensajes recibidos en modo Master usando el método dedicado
     if (F_Recibido) {
-      Protocol_ProcesarMensajesRecibidos();
-    }
-    // Actualizar el status del Nodo Consultado si respondio o no, o si esta en Alerta y Luego actualizar el Servidor
-    if (F_NodeStatusUpdate|| Protocol.nodeNoResponde || Protocol.nodeAlerta) {
-      Protocol_NodeStatusUpdate();
+      Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
+      jsonString = Protocol.jsonString;                     // Limpiar el string JSON previo
+      F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
     }
     // Ejecutar ordenes recibidas desde el Servidor Web
     if(F_Master_Excecute){
@@ -890,26 +889,7 @@ void Lora::Lora_Master_Protocol(){
       Serial.println("================================");
     }
  }
-void Lora::Lora_Master_Frame(){
-  //0. Funcion Llamada desde L5.2
-  //1. Preparamos paquete para enviar
-    tx_remitente        = Master_Address;                  // Direccion del maestro.
-    tx_destinatario     = nodo_a_Consultar;                // Direccion del nodo local.
 
-
-
-  //2. Armamos el mensaje para enviar.
-    txdata = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
-  //3. Borramos Variables de envio.
-    nodo_consultado = tx_destinatario.charAt(0);
-    tx_remitente=' ';
-    tx_destinatario=' ';
-    tx_mensaje=' ';
-    tx_funct_mode=' ';
-    tx_funct_num=' ';
-    tx_funct_parameter1=' ';
-    tx_funct_parameter2=' ';
-  }
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
     Node_Status = true; // UPDATE FLAG Comunicacion Ok
@@ -967,35 +947,6 @@ void Lora::Lora_WebMessage(String mensaje) {
     Serial.println("function Param1: " + tx_funct_parameter1);
     Serial.println("function Param2: " + tx_funct_parameter2);
   }
-void Lora::Protocol_ConsultarNodoSiguiente(){
-  Protocol.Master_Nodo();
-  nodo_a_Consultar = String(Protocol.Nodo_Proximo); // Convertir el número de nodo a String
-  tx_mensaje       = ".";                             // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-  Lora_Master_Frame();      // Prepara la trama del maestro
-  Lora_TX();                // Envía el mensaje
-  Protocol.Next = false;    // Resetear la bandera
- }
-void Lora::Protocol_ProcesarMensajesRecibidos() {
-  /**
-   * @brief Procesa mensajes recibidos en modo Master
-   */
-    
-    Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
-    F_NodeStatusUpdate = true;                // Indicar que se debe actualizar el status del nodo consultado.
-    F_Recibido = false;                 // Reset de la bandera de recepción
-
-    Serial.print("Lora RX: ");
-    Serial.println(String(rxdata));
-    // Si el mensaje requiere acción especial, tomar medidas adicionales
-    // if (requiereAccionEspecial) {
-    //   Serial.println("¡ACCIÓN ESPECIAL REQUERIDA!");
-    //   // Implementar acciones especiales aquí
-    //   // Ejemplos:
-    //   // - Notificar a un servidor
-    //   // - Activar alguna alerta
-    //   // - Enviar comandos adicionales
-    // }
- }
 void Lora::Protocol_NodeStatusUpdate(){
   /**
    * @brief Actualiza el estado del nodo consultado y serializa la información a JSON
