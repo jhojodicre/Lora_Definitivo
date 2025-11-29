@@ -51,7 +51,7 @@ Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, Stri
      * @brief Constructor para almacenar estado de un nodo
      */
     // Almacenamiento de estados del nodo
-    nodo_Number = nodoNumero;
+    nodo_Number = nodoNumero.charAt(0);
     Zone_A = ZonaA_status;
     Zone_B = ZonaB_status;
     Fuente = Fuente_in_status;
@@ -150,7 +150,7 @@ void Master::Nodo_Status(String nodeNumber_st, String zonaA_st, String zonaB_st,
      * @brief Actualiza el estado de un nodo
      */
     // Guardamos los datos recibidos del nodo
-    nodo_Number = nodeNumber_st;
+    nodo_Number = nodeNumber_st.charAt(0);
     Zone_A = zonaA_st;
     Zone_B = zonaB_st;
     Fuente = fuente_st;

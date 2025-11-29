@@ -333,7 +333,6 @@ void Lora::Lora_Status_RadioConfig(){
   serializeJsonPretty(statusDoc, Serial);
   Serial.println("\n==============================");
 }
-
 void Lora::Lora_Status_SystemInfo(){
   // ✅ INFORMACIÓN GENERAL DEL SISTEMA
   StaticJsonDocument<256> sysDoc;
@@ -350,7 +349,6 @@ void Lora::Lora_Status_SystemInfo(){
   
   serializeJson(sysDoc, systemStatusJSON);
 }
-
 void Lora::Lora_Status_NodeSpecific(){
   // ✅ ESTADO ESPECÍFICO DEL NODO
   StaticJsonDocument<512> nodeDoc;
@@ -391,7 +389,6 @@ void Lora::Lora_Status_NodeSpecific(){
   
   serializeJson(nodeDoc, nodeStatusJSON);
 }
-
 void Lora::Lora_Status_MasterSpecific(){
   // ✅ ESTADO ESPECÍFICO DEL MASTER
   if (!F_MasterMode) return;
@@ -428,7 +425,6 @@ void Lora::Lora_Status_MasterSpecific(){
   
   serializeJson(masterDoc, systemStatusJSON); // Usar systemStatusJSON para Master
 }
-
 void Lora::Lora_Status_CommunicationStats(){
   // ✅ ESTADÍSTICAS DE COMUNICACIÓN
   StaticJsonDocument<256> commDoc;
@@ -457,7 +453,6 @@ void Lora::Lora_Status_CommunicationStats(){
   // Añadir a radioStatusJSON para comunicación
   radioStatusJSON = commJSON;
 }
-
 String Lora::Lora_GetStatus(String type){
   // ✅ MÉTODO UNIFICADO PARA OBTENER DIFERENTES TIPOS DE ESTADO
   StaticJsonDocument<1024> unifiedDoc;
@@ -843,52 +838,7 @@ void Lora::Lora_Node_Counter(){
  }
 
 
-void Lora::Lora_Master_Protocol(){
-   /**
-   * @brief Implementa el protocolo para el modo Master
-   * 
-   * Este método maneja el ciclo completo del protocolo Master:
-   * 1. Revisa si a llegado un Nuevo Mensaje.
-   * 2. Prepara El siguiente nodo a ser consultado.
-   * 3. Prepara el mensaje del nodo consultado.
-   * 4. Actualiza el Servidor.
-   * 5. Ejecuta ordenes desde el Servidor.
-   */
-    // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
-    if (Protocol.Next) {
-      Protocol.Master_Nodo();
-      Lora_TX();                // Envía el mensaje
-    }
-    // Procesar mensajes recibidos en modo Master usando el método dedicado
-    if (F_Recibido) {
-      Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
-      jsonString = Protocol.jsonString;                     // Limpiar el string JSON previo
-      F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
-    }
-    // Ejecutar ordenes recibidas desde el Servidor Web
-    if(F_Master_Excecute){
-      Protocol_ExecuteOrderFromServer();
-      F_Master_Excecute = false;
-        
-      // Imprimir estado actual del Master
-      Serial.println("=== ESTADO ACTUAL DEL MASTER ===");
-      if (F_MasterCalibration) {
-      Serial.printf("🔬 MODO: CALIBRACIÓN ACTIVA\n");
-      Serial.printf("📡 Nodo calibrando: %s\n", nodo_a_Consultar.c_str());
-      Serial.printf("📊 Muestras tomadas: %d/10\n", validSamples);
-      if (validSamples > 0) {
-        Serial.printf("📶 RSSI promedio parcial: %.1f dBm\n", totalRSSI / validSamples);
-      }
-      Serial.printf("🔢 Contador Master: %d\n", Master_Counter);
-      } else {
-      Serial.printf("🎯 MODO: MASTER NORMAL\n");
-      Serial.printf("📡 Nodo consultado: %c\n", Protocol.Nodo_Consultado);
-      Serial.printf("📈 Próximo nodo: %c\n", Protocol.Nodo_Proximo);
-      Serial.printf("🔢 Total nodos: %d\n", Num_Nodos);
-      }
-      Serial.println("================================");
-    }
- }
+
 
 void Lora::Lora_Master_Decodificar(){
   if(rx_remitente==nodo_consultado){
@@ -991,24 +941,7 @@ void Lora::Protocol_NodeStatusUpdate(){
   F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
   F_NodeStatusUpdate = false;             // Resetear la bandera de actualización del estado del nodo
  }
-void Lora::Protocol_ExecuteOrderFromServer() {
-  /**
-   * @brief Ejecuta órdenes recibidas desde el servidor
-   * 
-   */
-  if(Device_King != "M"){
-    Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-    Lora_TX();                       // 3. Se envia el mensaje.
-    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-    Serial.println("🚀Server->Master->Node");
-  }
-  if(Device_King== "M"){
-    correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
-    correrRef->Functions_Run();
-    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-    Serial.println("🚀Server->Master");
-  }
- }
+
 void Lora::Lora_Master_Counter(){
     ++Master_Counter;
     counterStr = String(Master_Counter, DEC);
@@ -1038,7 +971,7 @@ void Lora::Protocol_Master_Calibration(){
     Survey_Calibration_Node();
   }
   if(F_Recibido){
-    Protocol_ProcesarMensajesRecibidos();
+    // Protocol_ProcesarMensajesRecibidos();
     Survey_MeasureNodeSignal();
   }
   if (F_NodeStatusUpdate || Protocol.nodeNoResponde || Protocol.nodeAlerta) {
@@ -1058,7 +991,7 @@ void Lora::Survey_Calibration_Node(){
   Serial.println("🎯 Enviando survey a nodo: " + nodo_a_Consultar);
   
   Lora_Master_Counter();
-  Lora_Master_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
+  // Lora_Master_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
   Lora_TX();
   Protocol.NextSurvey = false;    // Resetear la bandera
   
@@ -1117,57 +1050,6 @@ void Lora::Survey_FinishCalibration(){
   Serial.println("F_Node_Calibrated: " + String(Protocol.F_Calibration_EN));
 
 }
-
-// ✅ NUEVAS FUNCIONES DE CONTROL DE CALIBRACIÓN
-void Lora::StartCalibration(String nodeToCalibrate) {
-  if (!F_MasterMode) {
-    Serial.println("❌ Error: Solo el Master puede iniciar calibración");
-    return;
-  }
-  
-  if (F_MasterCalibration) {
-    Serial.println("⚠️ Advertencia: Calibración ya está activa");
-    return;
-  }
-  Serial.println("🚀 Iniciando calibración del nodo: " + nodeToCalibrate);
-  Serial.println("📊 Variables de calibración inicializadas");
-  Protocol.Master_Calibration_Init();
-  // ✅ CONFIGURAR CALIBRACIÓN
-  // nodo_a_Consultar = nodeToCalibrate;
-  F_MasterCalibration = true;
-  
-  // ✅ RESETEAR VARIABLES
-  totalRSSI         = 0;
-  validSamples      = 0;
-  avgRSSI           = 0;
-  Master_Counter    = 0;
-  F_Node_Calibrated = false;
-}
-bool Lora::IsCalibrationActive() {
-  return F_MasterCalibration;
-}
-void Lora::Lora_Protocol(){
-  /**
-   * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
-   * 
-   * Este es el punto de entrada principal para la gestión del protocolo
-   * y se debe llamar regularmente desde el loop principal.
-   */
-  Lora_RX();
-  
-  // En Modo Nodo, ejecuta el protocolo para nodos
-  if (F_NodeMode) {
-    Lora_Node_Protocol();
-  }
-  // En Modo Master Standby, gestiona el ciclo del protocolo
-  if (F_MasterMode && !F_MasterCalibration) {
-    Lora_Master_Protocol();
-  }
-  // En Modo Master Calibracion
-  if(F_MasterCalibration){
-    Protocol_Master_Calibration();
-  }
- }
 
 
 
@@ -1244,3 +1126,124 @@ void Lora::SetRadioConfigFromMaster(int config) {
   // Opcional: Enviar confirmación al Master
   // tx_mensaje = "CFG_OK_" + String(config);
 }
+void Lora::StartCalibration(String nodeToCalibrate) {
+  if (!F_MasterMode) {
+    Serial.println("❌ Error: Solo el Master puede iniciar calibración");
+    return;
+  }
+  
+  if (F_MasterCalibration) {
+    Serial.println("⚠️ Advertencia: Calibración ya está activa");
+    return;
+  }
+  Serial.println("🚀 Iniciando calibración del nodo: " + nodeToCalibrate);
+  Serial.println("📊 Variables de calibración inicializadas");
+  Protocol.Master_Calibration_Init();
+  // ✅ CONFIGURAR CALIBRACIÓN
+  // nodo_a_Consultar = nodeToCalibrate;
+  F_MasterCalibration = true;
+  
+  // ✅ RESETEAR VARIABLES
+  totalRSSI         = 0;
+  validSamples      = 0;
+  avgRSSI           = 0;
+  Master_Counter    = 0;
+  F_Node_Calibrated = false;
+}
+bool Lora::IsCalibrationActive() {
+  return F_MasterCalibration;
+}
+
+
+// 👑👑👑MASTR PROTOCOL👑👑
+void Lora::Protocol_ExecuteOrderFromServer() {
+  /**
+   * @brief Ejecuta órdenes recibidas desde el servidor
+   * 
+   */
+  if(Device_King != "M"){
+    // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+    Lora_TX();                       // 3. Se envia el mensaje.
+    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+    Serial.println("🚀Server->Master->Node");
+  }
+  if(Device_King== "M"){
+    correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
+    correrRef->Functions_Run();
+    F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+    Serial.println("🚀Server->Master");
+  }
+ }
+void Lora::Lora_Master_Protocol(){
+   /**
+   * @brief Implementa el protocolo para el modo Master
+   * 
+   * Este método maneja el ciclo completo del protocolo Master:
+   * 1. Revisa si a llegado un Nuevo Mensaje.
+   * 2. Prepara El siguiente nodo a ser consultado.
+   * 3. Prepara el mensaje del nodo consultado.
+   * 4. Actualiza el Servidor.
+   * 5. Ejecuta ordenes desde el Servidor.
+   */
+    // El temporizador en Master.cpp activa la bandera Protocol.Next para consultar el siguiente nodo
+    if (Protocol.Next) {
+      Protocol.Master_Nodo();
+      Lora_TX();                // Envía el mensaje
+    }
+    // Procesar mensajes recibidos en modo Master usando el método dedicado
+    if (F_Recibido) {
+      Protocol.ProcesarMensaje(rxdata);   // Decodificar el mensaje recibido
+      jsonString = Protocol.jsonString;                     // Limpiar el string JSON previo
+      F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
+    }
+    // Ejecutar ordenes recibidas desde el Servidor Web
+    if(F_Master_Excecute){
+
+      Protocol_ExecuteOrderFromServer();
+      F_Master_Excecute = false;
+        
+      // Imprimir estado actual del Master
+      Serial.println("=== ESTADO ACTUAL DEL MASTER ===");
+      if (F_MasterCalibration) {
+      Serial.printf("🔬 MODO: CALIBRACIÓN ACTIVA\n");
+      Serial.printf("📡 Nodo calibrando: %s\n", nodo_a_Consultar.c_str());
+      Serial.printf("📊 Muestras tomadas: %d/10\n", validSamples);
+      if (validSamples > 0) {
+        Serial.printf("📶 RSSI promedio parcial: %.1f dBm\n", totalRSSI / validSamples);
+      }
+      Serial.printf("🔢 Contador Master: %d\n", Master_Counter);
+      } else {
+      Serial.printf("🎯 MODO: MASTER NORMAL\n");
+      Serial.printf("📡 Nodo consultado: %c\n", Protocol.Nodo_Consultado);
+      Serial.printf("📈 Próximo nodo: %c\n", Protocol.Nodo_Proximo);
+      Serial.printf("🔢 Total nodos: %d\n", Num_Nodos);
+      }
+      Serial.println("================================");
+    }
+ }
+
+
+// ✅✅✅ PROTOCOLO PRINCIPAL ✅✅✅
+void Lora::Lora_Protocol(){
+  /**
+   * @brief Gestiona el protocolo de comunicación según el modo (Master o Nodo)
+   * 
+   * Este es el punto de entrada principal para la gestión del protocolo
+   * y se debe llamar regularmente desde el loop principal.
+   */
+  Lora_RX();
+  
+  // En Modo Nodo, ejecuta el protocolo para nodos
+  if (F_NodeMode) {
+    Lora_Node_Protocol();
+  }
+  // En Modo Master Standby, gestiona el ciclo del protocolo
+  if (F_MasterMode && !F_MasterCalibration) {
+    Lora_Master_Protocol();
+  }
+  // En Modo Master Calibracion
+  if(F_MasterCalibration){
+    Protocol_Master_Calibration();
+  }
+ }
+
