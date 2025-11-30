@@ -1,4 +1,6 @@
 #include "Master.h"
+#include "Lora.h"
+#include "Functions.h"
 #include <Arduino.h>
 #include <Ticker.h>
 
@@ -60,11 +62,13 @@ Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, Stri
     Node_DB = nodo_Number + Zone_A + Zone_B + Fuente;
 }
 
-void Master::Iniciar() {
+void Master::Iniciar(Lora* Node, Functions* Correr) {
     /**
      * @brief Inicializa el protocolo y los temporizadores
      */
     // En modo Master, inicia el temporizador de consulta periódica
+    nodeRef = Node;
+    correrRef = Correr;
     if (Mode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
@@ -296,8 +300,153 @@ void Master::DebugEstadoBanderas() {
     Serial.println(nodeAlerta ? "TRUE" : "FALSE");
 }
 
+
+
+
 //*********** Programa Principal ******************/
-// 1. Enviar Mensaje cada vez que el temporizador llame a la ISR
+void Master::Calibration_Protocol() {
+    /**
+     * @brief Protocolo para modo de calibración
+     */
+    // Aquí implementa la lógica del protocolo de calibración
+    // Por ejemplo: ajustar potencia de transmisión, medir RSSI, etc.
+    
+    Serial.println("🔧 Ejecutando protocolo de calibración");
+    
+    // Ejemplo de implementación básica:
+    // - Enviar paquetes de prueba
+    // - Medir calidad de señal
+    // - Ajustar parámetros de radio
+}
+
+
+
+void Master::NodeMessage(){
+  // 0. Function Llamada desde Lora_Nodo_Decodificar.
+  // 1. Preparamos paquete para enviar
+    //Estados de Entradas.
+    // bitWrite(nodo_local,0, );
+    // bitWrite(nodo_local,0, Zone_A_ST);
+    // bitWrite(nodo_local,1, Zone_B_ERR);
+    // bitWrite(nodo_local,2, Zone_B_ST);
+    // bitWrite(nodo_local,3, Zone_A_ERR);
+    // bitWrite(nodo_local,4, false);
+    // bitWrite(nodo_local,5, false);
+    // bitWrite(nodo_local,6, true);
+    // bitWrite(nodo_local,7, false);
+    // nodo_status=char(nodo_local);
+
+    tx_node_lora_1          =String(local_Address);         // Direccion del nodo local.
+    tx_node_lora_2          =String(Master_Address);        // Direccion del maestro.
+    tx_node_lora_3          =nodeRef->Zone_A_str;              // Estado de la zona A      
+    tx_node_lora_4          =nodeRef->Zone_B_str;              // Estado de la zona B
+    tx_node_lora_5          =nodeRef->Rele_1_out_str;          // Estado de la Salida 1
+    tx_node_lora_6          =nodeRef->Rele_2_out_str;          // Estado de la Salida 2
+    tx_node_lora_7          =nodeRef->Fuente_in_str;           // Estado de la Fuente
+    tx_node_lora_8          =message_type;                  // Tipo de mensaje
+
+
+
+    tx_node_lora_5 = counterStr.substring(0, 1); // primer dígito
+    tx_node_lora_6 = counterStr.substring(1, 2); // segundo dígito
+    tx_node_lora_7 = counterStr.substring(2, 3); // tercer dígito
+    tx_node_lora_8 = counterStr.substring(3, 4); // cuarto dígito
+  // 2. Armamos el paquete a enviar.
+    mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
+}
+void Master::NodeCounter(){
+    ++Node_Counter;
+ }
+void Master::NodeDecodificar(){
+  // 1. Preparamos mensaje para enviar.
+    if(rx_destinatario.charAt(0)==local_Address){
+      Serial.println("Nodo_Atiende");
+      if(rx_funct_mode=="E"){
+        Serial.println("Peticion escuchada");
+        F_Node_Excecute=true;  //Flag Desactivado en L-4.3
+      }
+      if(rx_funct_mode=="M"){
+      }
+      if(rx_funct_mode=="A"){
+        // 3. Contador de mensajes enviados.
+        String counterStr = String(Node_Counter, DEC);
+        while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
+        NodeCounter();
+      }
+
+      F_Responder=true;
+      F_Node_Atiende=true;
+      // Protocol.nodeResponde=F_Node_Atiende;
+    }
+    nodeRef->F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
+  }
+// 🛂🛂NODO PROTOCOL🛂🛂
+void Master::Node_Protocol() {
+    /**
+     * @brief Protocolo para cuando el dispositivo está en modo Nodo
+     */
+    // Aquí implementa la lógica del protocolo del Nodo
+    // Por ejemplo: responder a consultas del Master, reportar estado, etc.
+    
+    //-P.1 LORA RX
+    //-P.2 Node IO.
+    nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
+     //-P.3 Nodo Evento en Zonas
+    if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
+      Serial.println("event");
+      while(msg_enviado<2){
+        NodeMessage();  // Antes de enviar el mensaje se prepara la trama del nodo.
+        nodeRef->Lora_TX();
+        delay(100);
+        ++ msg_enviado;
+      }
+      nodeRef->msg_enviar=false;
+      msg_enviado=0;
+      nodeRef->F_IO_Event_Enable = false;
+    }
+      //-P.4 Nodo RX.
+    if(nodeRef->F_Recibido){
+      NodeDecodificar();        // Se recibe el mensaje.
+    }
+      //-P.5 Nodo Ejecuta Funciones.
+    if(F_Node_Excecute){
+      // Validación de datos antes de ejecutar funciones
+      String command = rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2;
+      Serial.print("Ejecutando comando: ");
+      Serial.println(command);
+      
+      // Verificar que el comando tenga la longitud mínima esperada
+      if(command.length() >= 4 && rx_funct_mode != "" && rx_funct_num != ""){
+        try {
+          correrRef->Functions_Request(command);
+          correrRef->Functions_Run();
+          Serial.println("Comando ejecutado correctamente");
+        } catch (...) {
+          Serial.println("Error al ejecutar comando - evitando reinicio");
+        }
+      } else {
+        Serial.println("Comando inválido - ignorando para evitar reinicio");
+        Serial.print("rx_funct_mode: ");
+        Serial.println(rx_funct_mode);
+        Serial.print("rx_funct_num: ");
+        Serial.println(rx_funct_num);
+      }
+      F_Responder = true;
+      F_Node_Excecute=false;
+    }
+    // Ejemplo de implementación básica:
+    // - Escuchar mensajes del Master
+    // - Responder con estado actual
+    // - Reportar alertas si es necesario
+      //-P.6 Nodo TX.
+    if(F_Responder){
+      NodeMessage();    // Antes de enviar el mensaje se prepara la trama del nodo.
+      nodeRef->Lora_TX();            // Se envia el mensaje.
+    }
+}
+
+
 void Master::timer_master_ISR() {
     /**
      * @brief ISR para el temporizador de consulta periódica
@@ -311,32 +460,6 @@ void Master::timer_master_ISR() {
         // También podríamos ejecutar lógica adicional aquí, pero es mejor mantener
         // las ISRs lo más cortas posible
     }
-}
-
-void Master::Master_Mensaje() {
-    /**
-     * @brief Prepara el mensaje para el nodo consultado
-     */
-  //1. Preparamos paquete para enviar
-    tx_remitente        = Master_Address;                  // Direccion del maestro.
-    tx_destinatario     = String(Nodo_Proximo);                // Direccion del nodo local.
-    tx_mensaje          = ".";                           // Mensaje de consulta de estado.
-
-
-
-  //2. Armamos el mensaje para enviar.
-    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
-  //3. Borramos Variables de envio.
-    nodo_consultado = tx_destinatario.charAt(0);
-    tx_remitente=' ';
-    tx_destinatario=' ';
-    tx_mensaje=' ';
-    tx_funct_mode=' ';
-    tx_funct_num=' ';
-    tx_funct_parameter1=' ';
-    tx_funct_parameter2=' ';
-    // Aquí podrías implementar lógica adicional para mensajes especiales
-    // Por ejemplo: comandos específicos para cada nodo según su estado
 }
 void Master::Nodo_REQUEST() {
     /**
@@ -382,8 +505,7 @@ void Master::Master_Nodo() {
     /**
      * @brief Prepara la consulta al siguiente nodo
      */
-    // Primero determinamos cuál es el siguiente nodo a consultar
-    Nodo_REQUEST();
+    
     
     // Verificar si hay algún nodo en alerta que deba tener prioridad
     for (int i = 1; i <= Nodo_Ultimo; i++) {
@@ -396,17 +518,38 @@ void Master::Master_Nodo() {
         }
     }
     
-    // Preparamos el mensaje para el nodo seleccionado
-    Master_Mensaje();
-    Next = false;    // Resetear la bandera
+    
 
     
     // Registramos el intento de comunicación
     // Serial.print("Master consulta a nodo: ");
     // Serial.println(Nodo_Consultado);
 }
+void Master::MasterMessage() {
+    /**
+     * @brief Prepara el mensaje para el nodo consultado
+     */
+  //1. Preparamos paquete para enviar
+    tx_remitente        = Master_Address;                  // Direccion del maestro.
+    tx_destinatario     = String(Nodo_Proximo);                // Direccion del nodo local.
+    tx_mensaje          = ".";                           // Mensaje de consulta de estado.
 
-// 2. Recibir y procesar mensaje del nodo
+
+
+  //2. Armamos el mensaje para enviar.
+    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+  //3. Borramos Variables de envio.
+    nodo_consultado = tx_destinatario.charAt(0);
+    tx_remitente=' ';
+    tx_destinatario=' ';
+    tx_mensaje=' ';
+    tx_funct_mode=' ';
+    tx_funct_num=' ';
+    tx_funct_parameter1=' ';
+    tx_funct_parameter2=' ';
+    // Aquí podrías implementar lógica adicional para mensajes especiales
+    // Por ejemplo: comandos específicos para cada nodo según su estado
+}
 void Master::SerializeObjectToJson() {
   doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
   doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
@@ -464,7 +607,7 @@ void Master::NodeStatusUpdate(){
   F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
   F_NodeStatusUpdate = false; 
 }
-void Master::ProcesarMensaje(String mensaje_loraRX) {
+void Master::MasterDecodificar(String mensaje_loraRX) {
     /**
      * @brief Procesa un mensaje recibido y determina acciones
      */
@@ -527,4 +670,64 @@ void Master::ProcesarMensaje(String mensaje_loraRX) {
     }
 
     NodeStatusUpdate();
+}
+void Master::Master_Counter(){
+    ++MasterCounter;
+    counterStr = String(MasterCounter, DEC);
+    tx_mensaje = counterStr; // Contador de mensajes enviados.
+ }
+// 👑👑MASTR PROTOCOL👑👑
+void Master::Master_Protocol() {
+    /**
+     * @brief Ejecuta las funciones principales del protocolo Master
+     */
+    // Verificar si es momento de consultar al siguiente nodo
+    if(Next) {
+        // Primero determinamos cuál es el siguiente nodo a consultar
+        Nodo_REQUEST();
+        Master_Nodo(); // Verifica si hay un nodo en alerta
+        
+        MasterMessage();// Preparamos el mensaje para el nodo seleccionado
+        nodeRef->txdata = mensaje; // Asignar el mensaje a la clase Lora
+        nodeRef->Lora_TX(); // Enviar el mensaje
+        Next = false;    // Resetear la bandera
+    }
+    if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
+        MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
+        nodeRef->F_Recibido = false; // Resetear la bandera de recepción
+        F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
+    }
+    if(nodeRef->F_Master_Excecute){
+        if(message_type=="M"){
+            correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
+            correrRef->Functions_Run();
+            nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+            Serial.println("🚀Server->Master");
+        }
+        if(message_type != "M"){
+                    // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
+            nodeRef->Lora_TX();                       // 3. Se envia el mensaje.
+            nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+            Serial.println("🚀Server->Master->Node");
+        }
+  }
+}
+
+
+// ✅✅PROTOCOL PRINCIPAL✅✅
+void Master::Preguntar() {
+    /**
+     * @brief Inicia el protocolo Chisme
+     */
+    nodeRef->Lora_RX();
+
+    if(Mode && !F_Calibration){
+        Master_Protocol();
+    }
+    if(!Mode){
+        Node_Protocol();
+    }
+    if(F_Calibration){
+        Calibration_Protocol();
+    }
 }

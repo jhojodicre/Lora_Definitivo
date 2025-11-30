@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
+// Forward declaration para evitar dependencia circular
+class Lora;
+
 /**
  * @brief Clase Master: Implementa las reglas del protocolo de comunicación Lora
  * 
@@ -16,8 +19,8 @@
 class Master {
 public:
     // ----- FLAGS Y ESTADOS DEL PROTOCOLO -----
-    bool Mode;                 // true = Modo Master, false = Modo Nodo
-    int  nodeNumber;           // Número de nodo o cantidad total de nodos
+    bool Mode;                          // true = Modo Master, false = Modo Nodo
+    int  nodeNumber;                    // Número de nodo o cantidad total de nodos
     int  nodeStatus;           // Estado actual del nodo (0=No responde, 1=Normal, 2=Alerta)
     bool Next = false;                 // Flag para indicar que es momento de transmitir al siguiente nodo
     bool NextSurvey = false;           // Flag para indicar que es momento de transmitir al siguiente nodo en la encuesta
@@ -27,8 +30,10 @@ public:
     bool F_Calibration_EN = false;      // Flag que indica si la calibración está habilitada
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
-
+    bool F_Calibration=true;
     int  timeout_NoResponse = 800; // Tiempo de espera para considerar que un nodo no responde (ms)
+    String message_type=""; // Tipo de mensaje recibido
+
     // ----- CONSTRUCTORES -----
     /**
      * @brief Constructor para modo Master
@@ -50,13 +55,30 @@ public:
     /**
      * @brief Inicializa los temporizadores y configuraciones del protocolo
      */
-    void Iniciar();
+    void Iniciar(class Lora* Node, class Functions* Correr);
+
+    void Preguntar();
+    void Node_Protocol();
+    void Calibration_Protocol();
     
     /**
      * @brief Configura parámetros del protocolo
      */
     void Configuracion();
-    
+    void Master_Protocol();
+    void Master_Counter();
+
+    int  msg_enviado=0;
+    int   MasterCounter=0;
+    String counterStr="" ;
+
+    // Pasos para Pasar una instancia de Clase
+    // Declarar un puntero a la clase
+    // Asignar el puntero en el método Iniciar
+    // Usar el puntero para llamar métodos o acceder a variables
+    // Ejemplo:
+    class Functions* correrRef; // Puntero a la clase Functions para ejecutar funciones
+    class Lora* nodeRef; // Puntero a la clase Lora para interacción con radio
     /**
      * @brief Gestiona el ciclo principal del protocolo
      */
@@ -77,17 +99,11 @@ public:
     /**
      * @brief Prepara la consulta al siguiente nodo
      */
-    void Master_Nodo();
+    void Master_Nodo();  /*** @brief Prepara el mensaje para el nodo consultado*/
+    void MasterMessage();
     
-    /**
-     * @brief Prepara el mensaje para el nodo consultado
-     */
-    void Master_Mensaje();
     
-    /**
-     * @brief Maneja la secuencia de consulta a nodos
-     */
-    void Secuencia();
+    void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
     
     // ----- MÉTODOS DE TEMPORIZADOR Y PETICIONES -----
     /**
@@ -95,10 +111,8 @@ public:
      */
     static void timer_master_ISR();
     
-    /**
-     * @brief Procesa una petición del Master a un Nodo
-     */
-    void Master_Request();
+
+    void Master_Request();    /*** @brief Procesa una petición del Master a un Nodo*/
     
     // ----- MÉTODOS DE GESTIÓN DE DATOS DE NODOS -----
     /**
@@ -108,20 +122,22 @@ public:
      * @param zonaB Estado de Zona B
      * @param fuente Estado de la Fuente
      */
-    void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);
-    
-    /**
-     * @brief Actualiza la base de datos del Master con información de nodos
-     */
+    void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
     void Master_DB();
+    void NodeDecodificar();
+    void NodeCounter();
+    bool F_Node_Excecute=false;
+    bool F_Responder=false;
+    void NodeMessage();
     
+    int Node_Counter=0;
     /**
      * @brief Procesa un mensaje recibido y determina acciones
      * @param origen ID del nodo origen
      * @param mensaje Contenido del mensaje
      * @return true si el mensaje requiere acción especial
      */
-    void ProcesarMensaje(String mensaje_rx_lora);
+    void MasterDecodificar(String mensaje_rx_lora);
     
     /**
      * @brief Verifica si un nodo está en estado de alerta
@@ -183,7 +199,14 @@ public:
     String tx_funct_parameter3 = " ";
     String tx_funct_parameter4 = " ";
 
-
+    String tx_node_lora_1 = " ";
+    String tx_node_lora_2 = " ";
+    String tx_node_lora_3 = " ";
+    String tx_node_lora_4 = " ";
+    String tx_node_lora_5 = " ";
+    String tx_node_lora_6 = " ";
+    String tx_node_lora_7 = " ";
+    String tx_node_lora_8 = " ";
 
     bool    F_No_Responder=false;
     bool    F_Node_Atiende=false;
@@ -200,13 +223,13 @@ public:
 
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
+        char    local_Address='1';      // Direccion del nodo local.
         char    ascii_representation[9];
         String  rxdata;
         String  txdata;
         String  mensaje;
         byte    nodo_local;
         char    nodo_status;            // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-        char    local_Address='1';      // Direccion del nodo local.
         char    nodo_consultado;        // Direccion del nodo consultado.
         String  nodo_Number;
         String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.

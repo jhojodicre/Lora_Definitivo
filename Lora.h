@@ -7,37 +7,36 @@
 #include <Preferences.h>  // ✅ Para memoria no volátil en ESP32
 class Lora {
 public:
-    Master      Protocol;
+    // Master      Protocol;
     Lora(bool isMaster,int  nodeNumber, char localAddress);
     void   Setup();
     void   Lora_Setup(class Functions* correr);
     void   Lora_TX();
     void   Lora_RX();
-    
+
     // Configuración LoRa según distancia:
     // 0 = Por defecto (configuración actual)
     // 1 = Nodo CERCANO (SF7, BW500, TX2) - Alta velocidad
-    // 2 = Nodo MEDIO (SF9, BW250, TX10) - Balanceado  
+    // 2 = Nodo MEDIO (SF9, BW250, TX10) - Balanceado
     // 3 = Nodo LEJANO (SF12, BW125, TX20) - Máximo alcance
     // 4 = Personalizado (para pruebas)
     void   Lora_Configure(int numero_de_configuracion);
     static void    rx();
 
-    void   Lora_IO_Zones();   
+    void   Lora_IO_Zones();
     void   Lora_IO_Dummy_Simulate();
     void   Lora_IO_Zones_Force();
     void   Lora_IO_Zone_A_ACK();
     void   Lora_IO_Zone_B_ACK();
-    
-    void   Lora_Protocol();
-    
-    void   Lora_Node_Counter();
+
+
+
+
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
-    void   Lora_Nodo_Frame();
-    void   Lora_Nodo_Decodificar();
+    
     void   Lora_Node_Print(String z_executed);
-    void   Lora_Node_Protocol();
+    
     void   Lora_Node_Print_RX();
     static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
@@ -47,7 +46,7 @@ public:
 
     // ✅ SISTEMA DE ESTADO Y CONSULTAS
     void   Lora_Status_RadioConfig();                     // Estado de configuración de radio
-    void   Lora_Status_SystemInfo();                      // Información general del sistema  
+    void   Lora_Status_SystemInfo();                      // Información general del sistema
     void   Lora_Status_NodeSpecific();                    // Estado específico del nodo
     void   Lora_Status_MasterSpecific();                  // Estado específico del Master
     void   Lora_Status_CommunicationStats();              // Estadísticas de comunicación
@@ -60,15 +59,13 @@ public:
     void   Lora_Master_DB();
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
-    void   Lora_Master_Protocol();
     void   Lora_Master_Counter();
-    
+
     // ✅ MÉTODOS DE CALIBRACIÓN
     void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
     bool   IsCalibrationActive();                           // Verificar si calibración está activa
     void   Protocol_NodeStatusUpdate();
     void   Protocol_porImplementar();
-    void   Protocol_ExecuteOrderFromServer();
 
     void   Protocol_Master_Calibration();
     void   Protocol_Calibration_Node();
@@ -76,10 +73,10 @@ public:
     void   Survey_MeasureNodeSignal();
     void   Survey_FinishCalibration();
     void   DebugCalibrationState();
-    
+
     // ✅ GESTIÓN DE CONFIGURACIÓN PERSISTENTE
     void   SaveRadioConfigToNVS(int config);              // Guardar configuración en memoria no volátil
-    int    LoadRadioConfigFromNVS();                      // Cargar configuración desde memoria no volátil  
+    int    LoadRadioConfigFromNVS();                      // Cargar configuración desde memoria no volátil
     void   ClearRadioConfigNVS();                         // Limpiar configuración guardada
     bool   HasStoredRadioConfig();                        // Verificar si hay configuración guardada
     void   SetRadioConfigFromMaster(int config);          // Establecer configuración desde Master
@@ -87,7 +84,7 @@ public:
 
     float  RSSI         = 0;
     float  SNR          = 0;
-    float  avgRSSI      = 0.1; 
+    float  avgRSSI      = 0.1;
     float  avgSNR       = 0.1;
     float  totalRSSI    = 0;
     float  totalSNR     = 0;
@@ -116,13 +113,13 @@ public:
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
 
-    bool    F_Event_Enable=false;
+    bool    F_IO_Event_Enable=false;
     bool    timer_ZA_En=false;
     bool    timer_ZA_Reached=false;
     bool    timer_ZB_En=false;
     bool    timer_ZB_Reached=false;
     bool    Timer_Nodo_Answer_F=false;      // flag que indica que el timer de responder esta activo.
-    
+
     bool    Zone_A_Extended = false;
     bool    Zone_B_Extended = false;
 
@@ -164,8 +161,8 @@ public:
         String  rx_funct_parameter3;    // Parametro 3 de la Funcion.
         String  rx_funct_parameter4;    // Parametro 4 de la Funcion.
 
-        
-        String  tx_remitente;           // Nodo que envia el mensaje.    
+
+        String  tx_remitente;           // Nodo que envia el mensaje.
         String  tx_destinatario;        // Nodo que recibe el mensaje.
         String  tx_mensaje;             // Mensaje recibido.
         String  tx_funct_mode;          // Tipo de funcion a ejecutar.
@@ -178,9 +175,9 @@ public:
         String  rx_ST_ZA_DB;            // Estado de la Zona A.
         String  rx_ST_ZB_DB;            // Estado de la Zona B.
         String  rx_ST_FT_DB;            // Estado de la Fuente.
-        
+
         String    jsonString;
-        
+
         // ✅ NUEVAS VARIABLES PARA SISTEMA DE ESTADO
         String    radioStatusJSON;          // JSON con estado completo del radio
         String    systemStatusJSON;         // JSON con estado general del sistema
@@ -224,7 +221,7 @@ public:
         String  Rele_2_out_str;
         String  Fuente_in_str;
         String  Tipo_de_Mensaje;
-        
+
         String  Zone_A_F_str;
         String  Zone_B_F_str;
 
@@ -233,7 +230,12 @@ public:
 
     // Instancias de Clases:
         class Functions* correrRef;
-        
+    // Protocolo
+        bool        msg_enviar=false;
+        int         msg_enviado=0;
+        uint16_t    Node_Counter = 0;
+        uint16_t    Master_Counter = 0;
+        String      counterStr = "0";
 private:
     // Entradas Fisicas
         int     Zona_A_in=39;
@@ -249,7 +251,7 @@ private:
 
         int     Fuente_in=43;           // 3.3V
 
-        
+
     // Estadon del Nodo
         bool    Node_Status;
     // Entradas Auxiliares
@@ -277,12 +279,7 @@ private:
         int     Zonas;
         int     Zonas_Fallan;
 
-    // Protocolo
-        bool        msg_enviar=false;
-        int         msg_enviado=0;
-        uint16_t    Node_Counter = 0;
-        uint16_t    Master_Counter = 0;
-        String      counterStr = "0";
+
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time;

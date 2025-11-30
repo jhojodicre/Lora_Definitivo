@@ -5,6 +5,7 @@
     #include "Lora.h"
     #include <HTTPClient.h>
     #include "NodeWebServer.h"
+    #include "Master.h"
 
 //3. Variables Globales.
   //-3.1 Variables Interrupciones
@@ -62,6 +63,7 @@
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
     Lora      Node(true,5,'1');
+    Master    Chismoso(true, 5);      // Master: true, Numero de Nodos: 5
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -82,11 +84,8 @@
     }
 void setup(){
   //S1. Condiciones Iniciales.
-    Serial.begin(115200);
-    delay(1000);  // Esperar que termine el boot del ROM
-    Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
-    Serial.printf("📍 Nodo: %c\n", Node.local_Address);
-    Serial.println("✅ Puerto serie iniciado a 115200 baudios");
+
+    Serial.printf("📍 Nodo: %c\n", Chismoso.local_Address);
     
   //S2. Class Setup.
     Serial.println("📡 Iniciando configuración LoRa...");
@@ -97,6 +96,7 @@ void setup(){
     webServer.begin(&Node, &Correr);
     Serial.println("✅ Sistema iniciado correctamente!");
     Serial.println("=====================================\n");
+    Chismoso.Iniciar(&Node, &Correr);
 }
 void loop(){
   //L1. Function Start
@@ -128,11 +128,11 @@ void loop(){
         flag_F_codified_funtion=false;
       }
   //L4. Funciones del Protocolo.
-    Node.Lora_Protocol();
+    Chismoso.Preguntar();
   //L5. Funciones del Master.
-    if(Node.F_ServerUpdate){
+    if(Chismoso.F_ServerUpdate){
       updateServer();
-      Node.F_ServerUpdate = false;
+      Chismoso.F_ServerUpdate = false;
     }
     
   //L6. Monitoreo del sistema (cada 30 segundos)
@@ -145,6 +145,7 @@ void loop(){
 }
 //A 📎 Funciones Ausiliares
 //A1 Master RX Request.
+
   //-1.1  Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
