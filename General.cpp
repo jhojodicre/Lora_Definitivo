@@ -29,10 +29,6 @@ General::General(bool ready)
   // attachInterrupt (digitalPinToInterrupt (PB_ZB_in), ISR_4, FALLING);      // attach interrupt handler for D2
 
   // interrupts ();
-    Serial.begin(115200);
-    delay(1000);  // Esperar que termine el boot del ROM
-    Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
-    Serial.println("✅ Puerto serie iniciado a 115200 baudios");
 }
 
 bool General::Iniciar()

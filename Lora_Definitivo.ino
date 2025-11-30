@@ -84,12 +84,15 @@
     }
 void setup(){
   //S1. Condiciones Iniciales.
-
+    Serial.begin(115200);
+    delay(1000);  // Esperar que termine el boot del ROM
+    Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
+    Serial.println("✅ Puerto serie iniciado a 115200 baudios");
     Serial.printf("📍 Nodo: %c\n", Chismoso.local_Address);
     
   //S2. Class Setup.
     Serial.println("📡 Iniciando configuración LoRa...");
-    Node.Lora_Setup(&Correr);
+    Node.Lora_Setup();
     Serial.println("⚙️ Iniciando funciones del sistema...");
     Correr.Function_begin(&Node);
     Serial.println("🌐 Iniciando servidor web...");
@@ -134,14 +137,6 @@ void loop(){
       updateServer();
       Chismoso.F_ServerUpdate = false;
     }
-    
-  //L6. Monitoreo del sistema (cada 30 segundos)
-    // if(millis() - last_status_time > status_interval) {
-    //   Serial.println("💓 Sistema funcionando correctamente...");
-    //   Serial.printf("📡 Nodo: %c | Config: %d | Tiempo activo: %lu s\n", 
-    //                 Node.local_Address, Node.Node_Configuration_Radio, millis()/1000);
-    //   last_status_time = millis();
-    // }
 }
 //A 📎 Funciones Ausiliares
 //A1 Master RX Request.

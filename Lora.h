@@ -10,7 +10,7 @@ public:
     // Master      Protocol;
     Lora(bool isMaster,int  nodeNumber, char localAddress);
     void   Setup();
-    void   Lora_Setup(class Functions* correr);
+    void   Lora_Setup();
     void   Lora_TX();
     void   Lora_RX();
 
@@ -228,8 +228,7 @@ public:
         String  Zone_A_ACK_str;
         String  Zone_B_ACK_str;
 
-    // Instancias de Clases:
-        class Functions* correrRef;
+
     // Protocolo
         bool        msg_enviar=false;
         int         msg_enviado=0;

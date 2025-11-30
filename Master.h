@@ -19,7 +19,8 @@ class Lora;
 class Master {
 public:
     // ----- FLAGS Y ESTADOS DEL PROTOCOLO -----
-    bool Mode;                          // true = Modo Master, false = Modo Nodo
+    bool MasterMode=false;                          // true = Modo Master, false = Modo Nodo
+    bool NodeMode=false;                            // true = Modo Nodo, false = Modo Master
     int  nodeNumber;                    // Número de nodo o cantidad total de nodos
     int  nodeStatus;           // Estado actual del nodo (0=No responde, 1=Normal, 2=Alerta)
     bool Next = false;                 // Flag para indicar que es momento de transmitir al siguiente nodo
@@ -30,7 +31,7 @@ public:
     bool F_Calibration_EN = false;      // Flag que indica si la calibración está habilitada
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
-    bool F_Calibration=true;
+    bool F_Calibration=false;
     int  timeout_NoResponse = 800; // Tiempo de espera para considerar que un nodo no responde (ms)
     String message_type=""; // Tipo de mensaje recibido
 

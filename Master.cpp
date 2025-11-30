@@ -19,11 +19,12 @@ Master::Master(bool mode_master, int nodo_number) {
      * @param nodo_number Número de nodos si es Master, ID propio si es Nodo
      */
     // Inicialización de variables principales
-    Mode = mode_master;
+    MasterMode = mode_master;
+    NodeMode   = !mode_master;
     nodeNumber = nodo_number;
     
     // Configuración de la secuencia de nodos
-    if (Mode) {
+    if (MasterMode) {
         // En modo Master, nodeNumber indica la cantidad de nodos
         Nodo_Ultimo = nodeNumber;
         Nodo_Primero = 1;
@@ -67,9 +68,10 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
      * @brief Inicializa el protocolo y los temporizadores
      */
     // En modo Master, inicia el temporizador de consulta periódica
+
     nodeRef = Node;
     correrRef = Correr;
-    if (Mode) {
+    if (MasterMode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
     timer_master.attach_ms(1000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
@@ -90,16 +92,7 @@ void Master::Configuracion() {
     // Esta función podría permitir cambiar parámetros en tiempo de ejecución
     // Por ejemplo: intervalos de consulta, timeouts, etc.
     
-    // Por ahora, solo imprime la configuración actual
-    if (Mode) {
-        Serial.println("Configuración actual del protocolo Master:");
-        Serial.print("- Nodos en la red: ");
-        Serial.println(Nodo_Ultimo);
-        Serial.print("- Nodo inicial: ");
-        Serial.println(Nodo_Primero);
-        Serial.print("- Tiempo entre consultas: ");
-        Serial.println("5 segundos");
-    }
+
 }
 
 void Master::Gestion() {
@@ -109,27 +102,7 @@ void Master::Gestion() {
     // Esta función podría llamarse desde el loop() principal
     // para manejar lógica adicional no basada en interrupciones
     
-    // Por ejemplo, verificar nodos que no han respondido en mucho tiempo
-    if (Mode) {
-        unsigned long tiempoActual = millis();
-        
-        // Revisar todos los nodos registrados
-        for (int i = 1; i <= Nodo_Ultimo; i++) {
-            // Si un nodo no ha respondido en más de 30 segundos (y antes respondía)
-            if (estadosNodos[i].responde && 
-                (tiempoActual - estadosNodos[i].ultimaRespuesta > 30000)) {
-                
-                // Marcar como que no responde
-                estadosNodos[i].responde = false;
-                estadosNodos[i].ultimoEstado = 0;
-                
-                // Informar del cambio
-                Serial.print("Nodo ");
-                Serial.print(i);
-                Serial.println(" ha dejado de responder");
-            }
-        }
-    }
+
 }
 void Master::Secuencia() {
     /**
@@ -721,10 +694,10 @@ void Master::Preguntar() {
      */
     nodeRef->Lora_RX();
 
-    if(Mode && !F_Calibration){
+    if(MasterMode && !F_Calibration){
         Master_Protocol();
     }
-    if(!Mode){
+    if(!MasterMode){
         Node_Protocol();
     }
     if(F_Calibration){

@@ -11,7 +11,6 @@
 #include "Master.h"
 #include <Arduino.h>
 #include <Ticker.h>
-#include <Functions.h>
 #include <ArduinoJson.h>
 
 // Turns the 'PRG' button into the power button, long press is off
@@ -50,7 +49,6 @@ const char* Lora::NVS_NAMESPACE = "lora_config";
 const char* Lora::NVS_RADIO_CONFIG_KEY = "radio_config";
 
 //Instancias
-Functions   Update (false);
 Ticker      Timer_Nodo_Answer;
 Ticker      Timer_ZoneA_Enable;
 Ticker      Timer_ZoneB_Enable;
@@ -94,19 +92,14 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber){
       
       F_Nodo_Excecute=false;
       nodeInstance = this; // Asignar la instancia actual al puntero global
+      Serial.println("📡 Clase Lora instanciada.");
  }
-void Lora::Lora_Setup(Functions* correr)
+void Lora::Lora_Setup()
 {
-    correrRef = correr;
 
     // ✅ USAR CONFIGURACIÓN GUARDADA O POR DEFECTO
     // -1 = Usar configuración guardada si existe, si no usar por defecto (0)
     Lora_Configure(-1);
-    
-    // Inicializar el temporizador de Master si estamos en modo Master
-    if (F_MasterMode) {
-        // Protocol.Iniciar(); // Esto inicia el temporizador dentro de la clase Master
-    }
  }
 void Lora::Lora_Configure(int numero_de_configuracion){
   // ✅ VERIFICAR CONFIGURACIÓN GUARDADA EN MEMORIA NO VOLÁTIL
