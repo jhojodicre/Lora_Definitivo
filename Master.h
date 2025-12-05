@@ -41,7 +41,7 @@ public:
      * @param mode_master true=Modo Master, false=Modo Nodo
      * @param nodo_number Cantidad total de nodos en la red si es Master, número de nodo si es Nodo
      */
-    Master(bool mode_master, int nodo_number);
+    Master(bool mode_master, int nodo_number, char NodeAddress);
     
     /**
      * @brief Constructor para almacenar estado de un nodo
@@ -125,13 +125,14 @@ public:
      */
     void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
     void Master_DB();
-    void NodeDecodificar();
-    void NodeCounter();
+    void Node_Decodificar();
+    void Node_Counter();
+    void Node_Print_RX();
     bool F_Node_Excecute=false;
     bool F_Responder=false;
-    void NodeMessage();
+    void Node_Message();
     
-    int Node_Counter=0;
+    int nodeCounter=0;
     /**
      * @brief Procesa un mensaje recibido y determina acciones
      * @param origen ID del nodo origen
@@ -224,7 +225,7 @@ public:
 
     // byte    Master_Address=0xFF; // Direccion del maestro.
         String  Master_Address="X"; // Direccion del maestro.
-        char    local_Address='1';      // Direccion del nodo local.
+        char    NodeAddress='1';      // Direccion del nodo local.
         char    ascii_representation[9];
         String  rxdata;
         String  txdata;
@@ -256,11 +257,14 @@ private:
     StaticJsonDocument<300> doc;
     String    Node_Status_str   = " ";                              // Comunicacion ok
     String    Node_Num_str      = " "; // Numero de Nodo consultado
+    String    rx_master_lora_1  = " "; // Direccion del nodo que responde
+    String    rx_master_lora_2  = " "; // Direccion del maestro
     String    rx_master_lora_3  = " "; // Estado de la zona A
     String    rx_master_lora_4  = " "; // Estado de the zona B
     String    rx_master_lora_5  = " "; // Estado de the salida 1
     String    rx_master_lora_6  = " "; // Estado de the salida 2
     String    rx_master_lora_7  = " "; // Estado de the fuente
+    String    rx_master_lora_8  = " "; // Tipo de mensaje, si es de emergencia
 
     String    nodeJS    = "nodoId";
     String    commJS    = "comu";

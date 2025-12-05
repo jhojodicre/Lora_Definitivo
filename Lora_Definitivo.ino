@@ -62,8 +62,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);         // Funciones a Ejecutar
     General   General(false);       // Configuraciones Generales del Nodo.
-    Lora      Node(true,5,'1');
-    Master    Chismoso(true, 5);      // Master: true, Numero de Nodos: 5
+    Lora      Node(false,5,'1');
+    Master    Chismoso(false, 5, '1');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);  // ✅ AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -88,15 +88,17 @@ void setup(){
     delay(1000);  // Esperar que termine el boot del ROM
     Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
     Serial.println("✅ Puerto serie iniciado a 115200 baudios");
-    Serial.printf("📍 Nodo: %c\n", Chismoso.local_Address);
+    Serial.printf("📍 Nodo: %c\n", Chismoso.NodeAddress);
     
   //S2. Class Setup.
     Serial.println("📡 Iniciando configuración LoRa...");
     Node.Lora_Setup();
     Serial.println("⚙️ Iniciando funciones del sistema...");
     Correr.Function_begin(&Node);
-    Serial.println("🌐 Iniciando servidor web...");
-    webServer.begin(&Node, &Correr);
+    if(Chismoso.MasterMode){
+      webServer.begin(&Node, &Correr);
+      Serial.println("🌐 Iniciando servidor web...");
+    }
     Serial.println("✅ Sistema iniciado correctamente!");
     Serial.println("=====================================\n");
     Chismoso.Iniciar(&Node, &Correr);

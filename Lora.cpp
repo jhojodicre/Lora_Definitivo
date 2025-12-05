@@ -239,7 +239,6 @@ void Lora::Lora_RX(){
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
       F_Recibido = true;  // Bandera activada en Lora_RX.
     }
-    
     rx_remitente        = rxdata.charAt(0); // Nodo que envia el mensaje.
     rx_destinatario     = rxdata.charAt(1); // Nodo que recibe el mensaje.
     rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
@@ -692,22 +691,7 @@ void Lora::Lora_Event_Disable(){
 void Lora::Lora_Node_Print(String z_executed){
   both.printf(z_executed.c_str());
   }
-void Lora::Lora_Node_Print_RX(){
-  Serial.print("RX: ");
-  Serial.println(String(rx_destinatario));
-  Serial.print("LA: ");
-  Serial.println(String(local_Address));
-  Serial.print("ms: ");
-  Serial.println(String(rx_mensaje));
-  Serial.print("md: ");
-  Serial.println(String(rx_funct_mode));
-  Serial.print("nf: ");
-  Serial.println(String(rx_funct_num));
-  Serial.print("p1: ");
-  Serial.println(String(rx_funct_parameter1));
-  Serial.print("p2: ");
-  Serial.println(String(rx_funct_parameter2));
- }
+
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
@@ -718,22 +702,6 @@ void Lora::Lora_Timer_Enable(int answerTime){
     Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
   }
 
-
-
-
-void Lora::SerializeObjectToJson() {
-  doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
-  doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
-  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
-  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
-  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
-  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
-  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
-  serializeJson(doc, jsonString);
-
-  // Serial.print("LORA_JSON String:");
-  // Serial.println(jsonString);
- }
 void Lora::Lora_WebMessage(String mensaje) {
     Serial.print("Lora WebMessage: ");
     Serial.println(mensaje);
@@ -749,50 +717,6 @@ void Lora::Lora_WebMessage(String mensaje) {
     Serial.println("function Param1: " + tx_funct_parameter1);
     Serial.println("function Param2: " + tx_funct_parameter2);
   }
-void Lora::Protocol_NodeStatusUpdate(){
-  /**
-   * @brief Actualiza el estado del nodo consultado y serializa la información a JSON
-   *
-   * Este método puede ser llamado por los siguientes eventos:
-   * -1 Cuando un Nodo Responde correctamente
-   * -2 Cuando un Nodo no responde a la consulta.
-   * -3 Cuando un Nodo cambia el estado de sus entradas (Zonas) nodo en Alerta.
-   */
-  
-  // if(Protocol.nodeResponde){                            // Si el nodo respondió correctamente
-  //   Node_Status_str = "1";                              // Comunicacion ok
-  //   // Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
-  //   Serial.println("Nodo responde timer activo");
-  //   SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
-  //   // Protocol.nodeResponde = false;                      // Resetear la bandera para la próxima consulta
-  // }
-  // if(Protocol.nodeNoResponde){      // Si el nodo NO respondió a la consulta
-  //   Node_Status_str = "0"; // Nodo no responde
-  //   Node_Num_str    = String(Protocol.Nodo_Consultado); // Numero de Nodo consultado
-    
-  //   // Poner los estados de las zonas y salidas como ="0" (desconocido)
-  //   rx_master_lora_3 = "0"; // Estado de la zona A
-  //   rx_master_lora_4 = "0"; // Estado de la zona B
-  //   rx_master_lora_5 = "0"; // Estado de la salida 1
-  //   rx_master_lora_6 = "0"; // Estado de la salida 2
-  //   rx_master_lora_7 = "0"; // Estado de la fuente
-    
-  //   // Serializar para enviar al servidor/DB
-  //   SerializeObjectToJson();
-  //   Serial.print("Nodo ");
-  //   Serial.print(Protocol.Nodo_Consultado);
-  //   Serial.println(" no respondió a la consulta anterior");
-  //   Protocol.nodeNoResponde = false; // Resetear la bandera para la próxima consulta
-  // }
-  // if(Protocol.nodeAlerta){          // Si el nodo cambió el estado de sus entradas (Zonas)
-  //   Protocol.nodeAlerta = false;            // Resetear la bandera para la próxima consulta
-  //   Node_Status_str = "1";                  // Comunicacion ok
-  //   Node_Num_str    = String(Protocol.Nodo_Actual); // Numero de Nodo consultado
-  //   SerializeObjectToJson();                // Serializa el objeto a JSON
-  // }
-  // F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
-  // F_NodeStatusUpdate = false;             // Resetear la bandera de actualización del estado del nodo
- }
 
 
 
@@ -820,7 +744,7 @@ void Lora::Survey_Calibration_Node(){
   
   Serial.println("🎯 Enviando survey a nodo: " + nodo_a_Consultar);
   
-  Lora_Master_Counter();
+  // Lora_Master_Counter();
   // Lora_Master_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
   Lora_TX();
   // Protocol.NextSurvey = false;    // Resetear la bandera

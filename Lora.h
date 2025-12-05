@@ -37,7 +37,6 @@ public:
     
     void   Lora_Node_Print(String z_executed);
     
-    void   Lora_Node_Print_RX();
     static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
@@ -54,17 +53,12 @@ public:
     void   Lora_UpdateAllStatus();                        // Actualizar todos los estados
 
 
-
-    void   Lora_Master_Decodificar();
-    void   Lora_Master_DB();
     void   SerializeObjectToJson();
     void   Lora_WebMessage(String mensaje);
-    void   Lora_Master_Counter();
 
     // ✅ MÉTODOS DE CALIBRACIÓN
     void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
     bool   IsCalibrationActive();                           // Verificar si calibración está activa
-    void   Protocol_NodeStatusUpdate();
     void   Protocol_porImplementar();
 
     void   Protocol_Master_Calibration();

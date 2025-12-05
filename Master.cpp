@@ -12,7 +12,7 @@ Ticker timer_Survey;       // Temporizador para la encuesta de nodos
 // Puntero global al objeto Master para uso en funciones estáticas
 Master* masterInstance = nullptr;
 
-Master::Master(bool mode_master, int nodo_number) {
+Master::Master(bool mode_master, int nodo_number, char localAddress) {
     /**
      * @brief Constructor principal de la clase Master
      * @param mode_master True si es Master, False si es Nodo
@@ -22,7 +22,7 @@ Master::Master(bool mode_master, int nodo_number) {
     MasterMode = mode_master;
     NodeMode   = !mode_master;
     nodeNumber = nodo_number;
-    
+    NodeAddress = localAddress;
     // Configuración de la secuencia de nodos
     if (MasterMode) {
         // En modo Master, nodeNumber indica la cantidad de nodos
@@ -293,8 +293,21 @@ void Master::Calibration_Protocol() {
 }
 
 
-
-void Master::NodeMessage(){
+void Master::Node_Print_RX(){
+Serial.print("📩 Mensaje recibido - Remitente: ");
+Serial.print(rx_remitente);
+Serial.print(" | Destinatario: ");
+Serial.print(rx_destinatario);
+Serial.print(" | Modo: ");
+Serial.print(rx_funct_mode);
+Serial.print(" | Num: ");
+Serial.print(rx_funct_num);
+Serial.print(" | Param1: ");
+Serial.print(rx_funct_parameter1);
+Serial.print(" | Param2: ");
+Serial.println(rx_funct_parameter2);
+ }
+void Master::Node_Message(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
   // 1. Preparamos paquete para enviar
     //Estados de Entradas.
@@ -309,7 +322,7 @@ void Master::NodeMessage(){
     // bitWrite(nodo_local,7, false);
     // nodo_status=char(nodo_local);
 
-    tx_node_lora_1          =String(local_Address);         // Direccion del nodo local.
+    tx_node_lora_1          =String(NodeAddress);         // Direccion del nodo local.
     tx_node_lora_2          =String(Master_Address);        // Direccion del maestro.
     tx_node_lora_3          =nodeRef->Zone_A_str;              // Estado de la zona A      
     tx_node_lora_4          =nodeRef->Zone_B_str;              // Estado de la zona B
@@ -327,12 +340,30 @@ void Master::NodeMessage(){
   // 2. Armamos el paquete a enviar.
     mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
 }
-void Master::NodeCounter(){
-    ++Node_Counter;
+void Master::Node_Counter(){
+    ++nodeCounter;
  }
-void Master::NodeDecodificar(){
-  // 1. Preparamos mensaje para enviar.
-    if(rx_destinatario.charAt(0)==local_Address){
+void Master::Node_Decodificar(){
+  // 1. Leemos el mensaje recibido.
+    rx_master_lora_1 = mensaje.substring(0, 1); // Direccion del nodo que responde.
+    rx_master_lora_2 = mensaje.substring(1, 2); // Direccion del maestro.
+    rx_master_lora_3 = mensaje.substring(2, 3); // Estado de la zona A.
+    rx_master_lora_4 = mensaje.substring(3, 4); // Estado de la zona B.
+    rx_master_lora_5 = mensaje.substring(4, 5); // Estado de la salida 1.
+    rx_master_lora_6 = mensaje.substring(5, 6); // Estado de la salida 2.
+    rx_master_lora_7 = mensaje.substring(6, 7); // Estado de la fuente.
+    rx_master_lora_8 = mensaje.substring(7, 8); // Tipo de mensaje, si es de emergencia.
+
+    // 2. Asignamos los valores a las variables correspondientes.
+    rx_destinatario      =rx_master_lora_2;          // Direccion del nodo que responde.
+    rx_remitente         =rx_master_lora_1;          // Direccion del maestro.
+    rx_funct_mode        =rx_master_lora_8;          // Modo de funcion.
+    rx_funct_num         =rx_master_lora_5;          // Numero de funcion.
+    rx_funct_parameter1  =rx_master_lora_6;          // Parametro 1.
+    rx_funct_parameter2  =rx_master_lora_7;          // Parametro 2.
+
+    Node_Print_RX(); // Imprimimos el mensaje recibido.
+    if(rx_destinatario.charAt(0)==NodeAddress){
       Serial.println("Nodo_Atiende");
       if(rx_funct_mode=="E"){
         Serial.println("Peticion escuchada");
@@ -342,9 +373,9 @@ void Master::NodeDecodificar(){
       }
       if(rx_funct_mode=="A"){
         // 3. Contador de mensajes enviados.
-        String counterStr = String(Node_Counter, DEC);
+        String counterStr = String(nodeCounter, DEC);
         while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
-        NodeCounter();
+        Node_Counter();
       }
 
       F_Responder=true;
@@ -362,6 +393,7 @@ void Master::Node_Protocol() {
     // Por ejemplo: responder a consultas del Master, reportar estado, etc.
     
     //-P.1 LORA RX
+    mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
     // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
@@ -369,7 +401,7 @@ void Master::Node_Protocol() {
     if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
       Serial.println("event");
       while(msg_enviado<2){
-        NodeMessage();  // Antes de enviar el mensaje se prepara la trama del nodo.
+        Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
         nodeRef->Lora_TX();
         delay(100);
         ++ msg_enviado;
@@ -380,7 +412,8 @@ void Master::Node_Protocol() {
     }
       //-P.4 Nodo RX.
     if(nodeRef->F_Recibido){
-      NodeDecodificar();        // Se recibe el mensaje.
+      Node_Decodificar();        // Se recibe el mensaje.
+      Serial.println("Mensaje Decodificado");
     }
       //-P.5 Nodo Ejecuta Funciones.
     if(F_Node_Excecute){
@@ -414,8 +447,9 @@ void Master::Node_Protocol() {
     // - Reportar alertas si es necesario
       //-P.6 Nodo TX.
     if(F_Responder){
-      NodeMessage();    // Antes de enviar el mensaje se prepara la trama del nodo.
+      Node_Message();    // Antes de enviar el mensaje se prepara la trama del nodo.
       nodeRef->Lora_TX();            // Se envia el mensaje.
+        F_Responder=false;
     }
 }
 
@@ -697,7 +731,7 @@ void Master::Preguntar() {
     if(MasterMode && !F_Calibration){
         Master_Protocol();
     }
-    if(!MasterMode){
+    if(NodeMode){
         Node_Protocol();
     }
     if(F_Calibration){
