@@ -48,6 +48,7 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     nodeResponde = false;
     nodeNoResponde = false;  // Inicializar correctamente para evitar valores aleatorios
     firstScan = true;
+    timeout_NoResponse=2000;
 }
 Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
     /**
@@ -74,7 +75,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
     if (MasterMode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(1000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    timer_master.attach_ms(5000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -276,7 +277,7 @@ void Master::DebugEstadoBanderas() {
 
 
 
-//*********** Programa Principal ******************/
+//**💢💢 Programa Principal 💢💢******************/
 void Master::Calibration_Protocol() {
     /**
      * @brief Protocolo para modo de calibración
@@ -332,14 +333,15 @@ void Master::Node_Message(){
     tx_node_lora_8          =message_type;                  // Tipo de mensaje
 
 
-
-    tx_node_lora_5 = counterStr.substring(0, 1); // primer dígito
-    tx_node_lora_6 = counterStr.substring(1, 2); // segundo dígito
-    tx_node_lora_7 = counterStr.substring(2, 3); // tercer dígito
-    tx_node_lora_8 = counterStr.substring(3, 4); // cuarto dígito
-  // 2. Armamos el paquete a enviar.
-    mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
-}
+    if(message_type=="F"){     
+        tx_node_lora_5 = counterStr.substring(0, 1); // primer dígito
+        tx_node_lora_6 = counterStr.substring(1, 2); // segundo dígito
+        tx_node_lora_7 = counterStr.substring(2, 3); // tercer dígito
+        tx_node_lora_8 = counterStr.substring(3, 4); // cuarto dígito
+    }
+    // 2. Armamos el paquete a enviar.
+        mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
+}   
 void Master::Node_Counter(){
     ++nodeCounter;
  }
@@ -393,6 +395,7 @@ void Master::Node_Protocol() {
     // Por ejemplo: responder a consultas del Master, reportar estado, etc.
     
     //-P.1 LORA RX
+    nodeRef->Lora_RX();
     mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
@@ -402,7 +405,7 @@ void Master::Node_Protocol() {
       Serial.println("event");
       while(msg_enviado<2){
         Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
-        nodeRef->Lora_TX();
+        nodeRef->Lora_TX(mensaje);
         delay(100);
         ++ msg_enviado;
       }
@@ -448,8 +451,8 @@ void Master::Node_Protocol() {
       //-P.6 Nodo TX.
     if(F_Responder){
       Node_Message();    // Antes de enviar el mensaje se prepara la trama del nodo.
-      nodeRef->Lora_TX();            // Se envia el mensaje.
-        F_Responder=false;
+      nodeRef->Lora_TX(mensaje);            // Se envia el mensaje.
+      F_Responder=false;
     }
 }
 
@@ -689,14 +692,15 @@ void Master::Master_Protocol() {
      * @brief Ejecuta las funciones principales del protocolo Master
      */
     // Verificar si es momento de consultar al siguiente nodo
+    nodeRef->Lora_RX();
+
     if(Next) {
         // Primero determinamos cuál es el siguiente nodo a consultar
         Nodo_REQUEST();
         Master_Nodo(); // Verifica si hay un nodo en alerta
         
         MasterMessage();// Preparamos el mensaje para el nodo seleccionado
-        nodeRef->txdata = mensaje; // Asignar el mensaje a la clase Lora
-        nodeRef->Lora_TX(); // Enviar el mensaje
+        nodeRef->Lora_TX(mensaje); // Enviar el mensaje
         Next = false;    // Resetear la bandera
     }
     if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
@@ -713,7 +717,7 @@ void Master::Master_Protocol() {
         }
         if(message_type != "M"){
                     // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-            nodeRef->Lora_TX();                       // 3. Se envia el mensaje.
+            nodeRef->Lora_TX(mensaje);                       // 3. Se envia el mensaje.
             nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
             Serial.println("🚀Server->Master->Node");
         }
@@ -726,8 +730,7 @@ void Master::Preguntar() {
     /**
      * @brief Inicia el protocolo Chisme
      */
-    nodeRef->Lora_RX();
-
+    
     if(MasterMode && !F_Calibration){
         Master_Protocol();
     }

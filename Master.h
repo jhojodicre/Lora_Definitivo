@@ -32,7 +32,7 @@ public:
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     bool F_Calibration=false;
-    int  timeout_NoResponse = 800; // Tiempo de espera para considerar que un nodo no responde (ms)
+    int  timeout_NoResponse = 3000; // Tiempo de espera para considerar que un nodo no responde (ms)
     String message_type=""; // Tipo de mensaje recibido
 
     // ----- CONSTRUCTORES -----
@@ -107,10 +107,8 @@ public:
     void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
     
     // ----- MÉTODOS DE TEMPORIZADOR Y PETICIONES -----
-    /**
-     * @brief ISR para el temporizador de consulta periódica
-     */
-    static void timer_master_ISR();
+ 
+    static void timer_master_ISR();   /* *@brief ISR para el temporizador de consulta periódica   */
     
 
     void Master_Request();    /*** @brief Procesa una petición del Master a un Nodo*/
@@ -128,6 +126,9 @@ public:
     void Node_Decodificar();
     void Node_Counter();
     void Node_Print_RX();
+    /**
+     * @brief Imprime el estado actual de todos los nodos
+     */
     bool F_Node_Excecute=false;
     bool F_Responder=false;
     void Node_Message();

@@ -18,30 +18,7 @@
 #include <heltec_unofficial.h>
 
 
-// Pause between transmited packets in seconds.
-// Set to zero to only transmit a packet when pressing the user button
-// Will not exceed 1% duty cycle, even if you set a lower value.
-#define PAUSE 300
 
-// Frequency in MHz. Keep the decimal point to designate float.
-// Check your own rules and regulations to see what is legal where you are.
-// #define FREQUENCY 866.3 // for Europe
-#define FREQUENCY 915.0 // for Europe
-// #define FREQUENCY           905.2       // for US
-
-
-// Allowed values are 7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125.0, 250.0 and 500.0 kHz.
-#define BANDWIDTH 125.0 // 250.0 (by the fault) Bandwidth in kHz. Higher means more data throughput, but also more noise.
-
-
-// meaning (in nutshell) longer range and more robust against interference.
-#define SPREADING_FACTOR 12 // Number from 5 to 12. Higher means slower but higher "processor gain",
-
-
-// set anywhere between -9 dBm (0.125 mW) to 22 dBm (158 mW). Note that the maximum ERP
-// (which is what your antenna maximally radiates) on the EU ISM band is 25 mW, and that
-// transmissting without an antenna can damage your hardware.
-#define TRANSMIT_POWER 1 // Transmit power in dBm. 0 dBm = 1 mW, enough for tabletop-testing. This value can be increased for longer range. 
 volatile    bool rxFlag = false;
 
 // ✅ CONSTANTES PARA MEMORIA NO VOLÁTIL
@@ -97,7 +74,7 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber){
 void Lora::Lora_Setup()
 {
 
-    // ✅ USAR CONFIGURACIÓN GUARDADA O POR DEFECTO
+    // 🛠⚙ USAR CONFIGURACIÓN GUARDADA O POR DEFECTO
     // -1 = Usar configuración guardada si existe, si no usar por defecto (0)
     Lora_Configure(-1);
  }
@@ -192,7 +169,9 @@ void Lora::Lora_Configure(int numero_de_configuracion){
   both.printf("Configuracion: %i (%s)\n", numero_de_configuracion, config_name.c_str());
 }
 
-void Lora::Lora_TX(){
+void Lora::Lora_TX(String mensaje){
+    // Transmit a packet
+    txdata = mensaje;
   // both.printf("TX [%s] ", String(mensaje).c_str());
     // both.printf("TX [%s] ", txdata.c_str());
     radio.clearDio1Action();
@@ -746,7 +725,7 @@ void Lora::Survey_Calibration_Node(){
   
   // Lora_Master_Counter();
   // Lora_Master_Frame();  // Antes de enviar el mensaje se prepara la trama del nodo.
-  Lora_TX();
+  // Lora_TX();
   // Protocol.NextSurvey = false;    // Resetear la bandera
   
   Serial.printf("📊 Survey enviado - Contador: %d\n", Master_Counter);
