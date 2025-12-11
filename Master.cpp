@@ -48,7 +48,7 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     nodeResponde = false;
     nodeNoResponde = false;  // Inicializar correctamente para evitar valores aleatorios
     firstScan = true;
-    timeout_NoResponse=2000;
+    timeout_NoResponse=3000;
 }
 Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
     /**

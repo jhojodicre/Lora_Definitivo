@@ -32,7 +32,7 @@ public:
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     bool F_Calibration=false;
-    int  timeout_NoResponse = 3000; // Tiempo de espera para considerar que un nodo no responde (ms)
+    int  timeout_NoResponse = 4000; // Tiempo de espera para considerar que un nodo no responde (ms)
     String message_type=""; // Tipo de mensaje recibido
 
     // ----- CONSTRUCTORES -----
