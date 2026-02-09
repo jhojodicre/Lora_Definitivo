@@ -63,7 +63,7 @@
     Functions Correr(true);                 // Funciones a Ejecutar
     General   General(false);               // Configuraciones Generales del Nodo.
     Lora      Node(false,5,'1');
-    Master    Chismoso(true, 5, '1');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
+    Master    Chismoso(false, 5, '1');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);            // AGREGAR ESTA LÍNEA
 //5. Funciones ISR.

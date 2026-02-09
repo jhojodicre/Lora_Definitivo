@@ -390,9 +390,9 @@ void Master::Node_Decodificar(){
 void Master::Node_Protocol() {
     /**
      * @brief Protocolo para cuando el dispositivo está en modo Nodo
+     // Aquí implementa la lógica del protocolo del Nodo
+     // Por ejemplo: responder a consultas del Master, reportar estado, etc.
      */
-    // Aquí implementa la lógica del protocolo del Nodo
-    // Por ejemplo: responder a consultas del Master, reportar estado, etc.
     
     //-P.1 LORA RX
     nodeRef->Lora_RX();
@@ -690,7 +690,18 @@ void Master::Master_Counter(){
 void Master::Master_Protocol() {
     /**
      * @brief Ejecuta las funciones principales del protocolo Master
-     */
+     * Esta funcion se encarga de Recibir y enviar mensajes a los Nodos, así como de ejecutar funciones especiales si se reciben comandos específicos.
+     * El flujo general es el siguiente:
+     * Recibir mensajes por Lora y procesarlos:
+     * 1 Consultar si ha llegado un mensaje por Lora.
+     * 2 Si se recibió un mensaje, decodificarlo y determinar si es una respuesta a la consulta o un mensaje inesperado.
+     * 3 Si es una respuesta a la consulta, actualizar el estado del nodo y preparar el mensaje para el siguiente nodo.
+     * 4 Si es un mensaje inesperado, marcar el nodo como en alerta y preparar el mensaje para el siguiente nodo.
+     * 5 Reconocer la Bandera de Next que ser activada por el temporizador para consultar al siguiente nodo, y ejecutar la secuencia de consulta.      
+     * Enviar mensajes por Lora:
+     * 1 Si se ha recibido un mensaje, se procesa (Decodifica) y se determina si se deben ejecutar funciones especiales o simplemente enviar un mensaje de consulta al siguiente nodo.
+     * 2 Si se deben ejecutar funciones especiales, se ejecutan y luego se envía un mensaje de confirmación al nodo.
+     * */
     // Verificar si es momento de consultar al siguiente nodo
     nodeRef->Lora_RX();
 
