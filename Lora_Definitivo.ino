@@ -63,7 +63,7 @@
     Functions Correr(true);                 // Funciones a Ejecutar
     General   General(false);               // Configuraciones Generales del Nodo.
     Lora      Node(false,5,'1');
-    Master    Chismoso(false, 5, '1');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
+    Master    Chismoso(false, 5, '2');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);            // AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -91,12 +91,12 @@ void setup(){
     Serial.printf("📍 Nodo: %c\n", Chismoso.NodeAddress);
     
   //S2. Class Setup.
-    Serial.println("📡 Iniciando configuración LoRa...");
+    Serial.println("📡 Iniciando configuracion LoRa...");
     Node.Lora_Setup();
     Serial.println("⚙️ Iniciando funciones del sistema...");
-    Correr.Function_begin(&Node);
+    Correr.Function_begin(&Node, &Chismoso);
     if(Chismoso.MasterMode){
-      webServer.begin(&Node, &Correr);
+      webServer.begin(&Node, &Correr, &Chismoso);
       Serial.println("🌐 Iniciando servidor web...");
     }
     Serial.println("✅ Sistema iniciado correctamente!");
@@ -122,13 +122,13 @@ void loop(){
         flag_F_codified_funtion=true;
         Serial.println(inputString);
         Serial.print("Nodo: ");
-        Serial.println(Node.local_Address);
+        Serial.println(Chismoso.NodeAddress);
         Serial.println("RX_SERIAL: "+inputString);
         flag_ISR_stringComplete=false;
       }
     //-L2.2 Function Run
       if(flag_F_codified_funtion){
-        // Correr.Functions_Run();
+        Correr.Functions_Run();
         inputString="";
         flag_F_codified_funtion=false;
       }
@@ -146,7 +146,7 @@ void loop(){
   //-1.1  Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
-      jsonString = Node.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
+      jsonString = Chismoso.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
     }

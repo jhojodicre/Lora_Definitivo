@@ -622,10 +622,10 @@ void Lora::Lora_IO_Dummy_Simulate(){
     Zone_B_str = "0";
     // Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
     Fuente_in_str = "0";
-    Rele_2_out_str = "0";
     // Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
-    Rele_1_out_str = "0";
+    Rele_2_out_str = "0";
     // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
+    Rele_1_out_str = "0";
  }
 void Lora::Lora_time_ZoneA_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error

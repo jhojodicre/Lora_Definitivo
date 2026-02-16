@@ -10,9 +10,10 @@ LoRaWebServer::LoRaWebServer(uint16_t serverPort) : port(serverPort), isRunning(
 }
 
 //2. Inicializar servidor
-void LoRaWebServer::begin(Lora* node, Functions* functions) {
+void LoRaWebServer::begin(Lora* node, Functions* functions, Master* master) {
     nodeRef = node;
     functionsRef = functions;
+    masterRef = master;
 
     NodeData nodos[5];          // Array de hasta 5 nodos
     //Configurar WiFi
@@ -527,7 +528,10 @@ void LoRaWebServer::configurarRutasServidor() {
     server->on("/api/send", HTTP_POST, [this]() {
         manejarMensajeRecibido();
     });
-    
+    // CORS preflight para /api/send
+    server->on("/api/send", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });    
     // RUTA 3: Endpoint de prueba (GET /api/test)
     server->on("/api/test", HTTP_GET, [this]() {
         manejarPruebaSistema();
@@ -551,10 +555,16 @@ void LoRaWebServer::configurarRutasServidor() {
     server->on("/api/ping", HTTP_POST, [this]() {
         manejarPingTest();
     });
+    // CORS preflight para /api/ping
+    server->on("/api/ping", HTTP_OPTIONS, [this]() {
+        manejarPreflightCORS();
+    });
     // RUTA 5.2: Forzar zonas (POST /api/force-zones)
     server->on("/api/force-zones", HTTP_POST, [this]() {
         manejarForzarZonas();
     });
+
+
     // RUTA 6: Cambiar dirección (POST /set-address)
     server->on("/set-address", HTTP_POST, [this]() {
         handleSetAddress();
@@ -658,7 +668,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
         }
         
         // Validar nodo
-        if (nodeId != String(nodeRef->local_Address)) {
+        if (nodeId != String(masterRef->NodeAddress)) {
             Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), nodeRef->local_Address);
             // No retornar false, procesar de todas formas
         }
@@ -673,14 +683,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
                 comando += "0";
             }
         }
-        
-        // Procesar con Functions que es más seguro
-        // functionsRef->Functions_Request(comando);
-        // functionsRef->Functions_Run();
-
-        nodeRef->nodo_a_Consultar= nodeId;
-        nodeRef->Node_to_Calibrate= nodeId;
-        nodeRef->Lora_WebMessage(mensaje);
+        masterRef->Master_ExecuteFromServer(mensaje);
         
         Serial.printf("📲📡 Mensaje procesado: %s\n", mensaje.c_str());
     } catch (...) {
@@ -802,10 +805,6 @@ void LoRaWebServer::manejarPruebaSistema() {
 
 // ✅ NUEVO: Manejar preflight CORS
 void LoRaWebServer::manejarPreflightCORS() {
-    server->sendHeader("Access-Control-Allow-Origin", "*");
-    server->sendHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    server->sendHeader("Access-Control-Allow-Headers", "Content-Type");
-    server->send(200, "text/plain", "");
     configurarHeadersCORS();
     Serial.println("🌐 Preflight CORS manejado");
 }
@@ -832,7 +831,7 @@ void LoRaWebServer::manejarHolaMundo() {
 // Manjear Ping Test
 void LoRaWebServer::manejarPingTest() {
     server->sendHeader("Access-Control-Allow-Origin", "*");
-    
+    configurarHeadersCORS();
     StaticJsonDocument<200> response;
     response["message"] = "Ping Test OK";
     response["timestamp"] = millis();
@@ -974,6 +973,7 @@ void LoRaWebServer::configurarHeadersCORS() {
     server->sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     server->sendHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     server->sendHeader("Access-Control-Max-Age", "86400");
+    server->send(200, "text/plain", "");
 }
 
 // Enviar respuesta de error
@@ -1137,7 +1137,7 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   }
   
   // Construir URL completa
-//   Serial.println("🎯 URL destino: " + String(apiEndpoint));
+  Serial.println("🎯 URL destino: " + String(apiEndpoint));
 
   // Configurar conexión HTTP
   http.begin(apiEndpoint);
@@ -1145,7 +1145,7 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   http.addHeader("User-Agent", "ESP32-Master/1.0");
   http.setTimeout(timeoutHTTP);
 
-//   Serial.println("📦 JSON enviando " + JsonString);
+  Serial.println("📦 JSON enviando " + JsonString);
 
   // Realizar petición POST
   httpResponseCode = http.POST(JsonString);
@@ -1153,8 +1153,8 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   // Procesar respuesta
   if (httpResponseCode > 0) {
     respuesta = http.getString();
-    // Serial.print("📥 Código respuesta: " + String(httpResponseCode));
-    // Serial.println("📄 Respuesta servidor: " + respuesta);
+    Serial.print("📥 Código respuesta: " + String(httpResponseCode));
+    Serial.println("📄 Respuesta servidor: " + respuesta);
     
     if (httpResponseCode == 200 || httpResponseCode == 201) {
       Serial.println("🌐 RX : ✅");

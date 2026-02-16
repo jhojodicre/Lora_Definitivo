@@ -26,8 +26,9 @@ Functions::Functions(bool ready)
     digitalWrite(LED_Rojo, HIGH);
     digitalWrite(LED_ROJO, HIGH);
 }
-void Functions::Function_begin(Lora* node){
+void Functions::Function_begin(Lora* node, Master* master){
     nodeRef = node;
+    masterRef = master;
 }
 void Functions::Functions_Request(String rxString)
 {
@@ -547,7 +548,7 @@ void Functions::m1()
         nodeRef->StartCalibration(".");
     }
 }
-// COnfiguracion de La velocidad del Radio.
+// Configuracion de La velocidad del Radio.
 void Functions::m2()
 {
     // Implementación del método m2
@@ -586,6 +587,7 @@ void Functions::m9()
 void Functions::s0()
 {
     // Implementación del método s0
+    masterRef->Master_Status_Address();
 }
 void Functions::s1()
 {

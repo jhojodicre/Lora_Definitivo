@@ -102,7 +102,9 @@ public:
      */
     void Master_Nodo();  /*** @brief Prepara el mensaje para el nodo consultado*/
     void MasterMessage();
-    
+    void Master_Status_Address();
+
+    void Master_ExecuteFromServer(String mensajeServer);
     
     void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
     

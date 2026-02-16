@@ -16,7 +16,7 @@ public:
     Functions(bool ready);
     void Functions_Request(String rxString);
     void Functions_Run();
-    void Function_begin(class Lora* node);
+    void Function_begin(class Lora* node, class Master* master);
     void a0();
     void a1(int repeticiones, int tiempo);
     void A1();
@@ -96,6 +96,7 @@ public:
 
     // Referencias a objetos externos
     class Lora* nodeRef;
+    class Master* masterRef;
 
 private:
     bool    firstScan;

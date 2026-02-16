@@ -273,7 +273,10 @@ void Master::DebugEstadoBanderas() {
     Serial.print(" | nodeAlerta: ");
     Serial.println(nodeAlerta ? "TRUE" : "FALSE");
 }
-
+void Master::Master_Status_Address() {
+    Serial.print("Dirección del Master: ");
+    Serial.println(NodeAddress);
+}
 
 
 
@@ -359,7 +362,7 @@ void Master::Node_Decodificar(){
     // 2. Asignamos los valores a las variables correspondientes.
     rx_destinatario      =rx_master_lora_2;          // Direccion del nodo que responde.
     rx_remitente         =rx_master_lora_1;          // Direccion del maestro.
-    rx_funct_mode        =rx_master_lora_8;          // Modo de funcion.
+    rx_funct_mode        =rx_master_lora_4;          // Modo de funcion.
     rx_funct_num         =rx_master_lora_5;          // Numero de funcion.
     rx_funct_parameter1  =rx_master_lora_6;          // Parametro 1.
     rx_funct_parameter2  =rx_master_lora_7;          // Parametro 2.
@@ -367,7 +370,7 @@ void Master::Node_Decodificar(){
     Node_Print_RX(); // Imprimimos el mensaje recibido.
     if(rx_destinatario.charAt(0)==NodeAddress){
       Serial.println("Nodo_Atiende");
-      if(rx_funct_mode=="E"){
+      if(rx_master_lora_3=="E"){
         Serial.println("Peticion escuchada");
         F_Node_Excecute=true;  //Flag Desactivado en L-4.3
       }
@@ -398,8 +401,8 @@ void Master::Node_Protocol() {
     nodeRef->Lora_RX();
     mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
     //-P.2 Node IO.
-    nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-    // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
+    // nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    //nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
      //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
       Serial.println("event");
@@ -456,7 +459,23 @@ void Master::Node_Protocol() {
     }
 }
 
+void Master::Master_ExecuteFromServer(String mensajeServer) {
+    /**
+     * @brief Ejecuta una acción en el Master basada en un mensaje recibido desde el servidor web
+     */
+    Serial.print("Ejecutando acción desde servidor con mensaje: ");
+    Serial.println(mensajeServer);
+  //1. Preparamos paquete para enviar
+    tx_remitente        = Master_Address;                  // Direccion del maestro.
+    tx_destinatario     = String(mensajeServer.charAt(1));     // Extraer el segundo carácter del mensaje
+    tx_mensaje          = "E";                           // Mensaje de consulta de estado.
 
+
+
+  //2. Armamos el mensaje para enviar.
+    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + mensajeServer.substring(2));
+    nodeRef->Lora_TX(mensaje); 
+}
 void Master::timer_master_ISR() {
     /**
      * @brief ISR para el temporizador de consulta periódica
@@ -633,7 +652,7 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
     rx_funct_parameter1 = Lora_Rxdata.substring(5, 6);
     rx_funct_parameter2 = Lora_Rxdata.substring(6, 7);
     rx_funct_parameter3 = Lora_Rxdata.substring(7, 8);
-    rx_funct_parameter4 = Lora_Rxdata.substring(8, 9);
+    rx_funct_parameter4 = Lora_Rxdata.substring(8, 9); 
 
     Serial.print("Remitente: ");
     Serial.print(rx_remitente);
@@ -728,12 +747,13 @@ void Master::Master_Protocol() {
         }
         if(message_type != "M"){
                     // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-            nodeRef->Lora_TX(mensaje);                       // 3. Se envia el mensaje.
+            nodeRef->Lora_TX(mensaje);                  // 3. Se envia el mensaje.
             nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
             Serial.println("🚀Server->Master->Node");
         }
   }
 }
+
 
 
 // ✅✅PROTOCOL PRINCIPAL✅✅
