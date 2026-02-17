@@ -60,8 +60,6 @@ public:
     void   Lora_Timer_Enable(int answerTime);
     void   Lora_Event_Disable();
     
-    void   Lora_Node_Print(String z_executed);
-    
     static void   Lora_timerNodo_Answer();
     static void   Lora_time_ZoneA_reach();
     static void   Lora_time_ZoneB_reach();
@@ -76,10 +74,6 @@ public:
     void   Lora_Status_CommunicationStats();              // Estadísticas de comunicación
     String Lora_GetStatus(String type = "all");           // Método unificado para obtener estado
     void   Lora_UpdateAllStatus();                        // Actualizar todos los estados
-
-
-    void   SerializeObjectToJson();
-    void   Lora_WebMessage(String mensaje);
 
     // ✅ MÉTODOS DE CALIBRACIÓN
     void   StartCalibration(String nodeToCalibrate = "1");  // Iniciar calibración
@@ -302,15 +296,7 @@ private:
         uint64_t    last_tx = 0;
         uint64_t    tx_time;
         uint64_t    minimum_pause;
-    // Json Vaibles
-        String    nodeJS    = "nodoId";
-        String    commJS    = "comu";
-        String    zoneAJS   = "zoneA";
-        String    zoneBJS   = "zoneB";
-        String    output1JS = "output1";
-        String    output2JS = "output2";
-        String    fuenteJS  = "fuente";
-        StaticJsonDocument<300> doc;
+
 
 };
 

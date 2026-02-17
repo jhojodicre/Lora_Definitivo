@@ -32,7 +32,7 @@ public:
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     bool F_Calibration=false;
-    int  timeout_NoResponse = 4000; // Tiempo de espera para considerar que un nodo no responde (ms)
+    int  timeout_NoResponse = 2000; // Tiempo de espera para considerar que un nodo no responde (ms)
     String message_type=""; // Tipo de mensaje recibido
 
     // ----- CONSTRUCTORES -----
@@ -65,7 +65,7 @@ public:
     /**
      * @brief Configura parámetros del protocolo
      */
-    void Configuracion();
+
     void Master_Protocol();
     void Master_Counter();
 
@@ -159,7 +159,6 @@ public:
      */
     String GenerarPeticionEspecial(int nodoID, String comando);
 
-    void Master_DecodificarMensaje(String mensaje);
     
     /**
      * @brief Método de debug para mostrar el estado de las banderas
@@ -256,7 +255,7 @@ private:
     EstadoNodo estadosNodos[10]; // Soporte hasta 10 nodos
 
 
-    //🌐🌐** Variables para envair al servidor🌐🌐 */
+    //🌐🌐** Variables para enviar al servidor🌐🌐 */
     StaticJsonDocument<300> doc;
     String    Node_Status_str   = " ";                              // Comunicacion ok
     String    Node_Num_str      = " "; // Numero de Nodo consultado

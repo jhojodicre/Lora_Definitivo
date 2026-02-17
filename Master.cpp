@@ -75,7 +75,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
     if (MasterMode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(5000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    timer_master.attach_ms(3000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -86,15 +86,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
         Serial.println(nodeNumber);
     }
 }
-void Master::Configuracion() {
-    /**
-     * @brief Configura los parámetros del protocolo
-     */
-    // Esta función podría permitir cambiar parámetros en tiempo de ejecución
-    // Por ejemplo: intervalos de consulta, timeouts, etc.
-    
 
-}
 
 void Master::Gestion() {
     /**
@@ -259,10 +251,6 @@ String Master::GenerarPeticionEspecial(int nodoID, String comando) {
     
     return mensaje;
 }
-void Master::Master_DecodificarMensaje(String mensaje) {
-    Serial.print("Mensaje recibido: ");
-    Serial.println(mensaje);
-}
 void Master::DebugEstadoBanderas() {
     Serial.print("=== DEBUG BANDERAS === Nodo consultado: ");
     Serial.print(Nodo_Consultado);
@@ -326,14 +314,14 @@ void Master::Node_Message(){
     // bitWrite(nodo_local,7, false);
     // nodo_status=char(nodo_local);
 
-    tx_node_lora_1          =String(NodeAddress);         // Direccion del nodo local.
-    tx_node_lora_2          =String(Master_Address);        // Direccion del maestro.
-    tx_node_lora_3          =nodeRef->Zone_A_str;              // Estado de la zona A      
-    tx_node_lora_4          =nodeRef->Zone_B_str;              // Estado de la zona B
-    tx_node_lora_5          =nodeRef->Rele_1_out_str;          // Estado de la Salida 1
-    tx_node_lora_6          =nodeRef->Rele_2_out_str;          // Estado de la Salida 2
-    tx_node_lora_7          =nodeRef->Fuente_in_str;           // Estado de la Fuente
-    tx_node_lora_8          =message_type;                  // Tipo de mensaje
+    tx_node_lora_1          =String(NodeAddress);               // Direccion del nodo local.
+    tx_node_lora_2          =String(Master_Address);            // Direccion del maestro.
+    tx_node_lora_3          =message_type;                      // Tipo de mensaje
+    tx_node_lora_4          =nodeRef->Zone_A_str;              // Estado de la zona A      
+    tx_node_lora_5          =nodeRef->Zone_B_str;              // Estado de la zona B
+    tx_node_lora_6          =nodeRef->Rele_1_out_str;          // Estado de la Salida 1
+    tx_node_lora_7          =nodeRef->Rele_2_out_str;          // Estado de la Salida 2
+    tx_node_lora_8          =nodeRef->Fuente_in_str;           // Estado de la Fuente
 
 
     if(message_type=="F"){     
@@ -369,6 +357,7 @@ void Master::Node_Decodificar(){
 
     Node_Print_RX(); // Imprimimos el mensaje recibido.
     if(rx_destinatario.charAt(0)==NodeAddress){
+        message_type= "P"; // Mensaje de Petición del Nodo al Master.
       Serial.println("Nodo_Atiende");
       if(rx_master_lora_3=="E"){
         Serial.println("Peticion escuchada");
@@ -401,12 +390,12 @@ void Master::Node_Protocol() {
     nodeRef->Lora_RX();
     mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
     //-P.2 Node IO.
-    // nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-    //nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
-     //-P.3 Nodo Evento en Zonas
+    nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+    // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
+    //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
       Serial.println("event");
-      while(msg_enviado<2){
+      while(msg_enviado<2){                                                                                                        
         Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
         nodeRef->Lora_TX(mensaje);
         delay(100);
@@ -447,13 +436,9 @@ void Master::Node_Protocol() {
       F_Responder = true;
       F_Node_Excecute=false;
     }
-    // Ejemplo de implementación básica:
-    // - Escuchar mensajes del Master
-    // - Responder con estado actual
-    // - Reportar alertas si es necesario
       //-P.6 Nodo TX.
     if(F_Responder){
-      Node_Message();    // Antes de enviar el mensaje se prepara la trama del nodo.
+      Node_Message();                       // Antes de enviar el mensaje se prepara la trama del nodo.
       nodeRef->Lora_TX(mensaje);            // Se envia el mensaje.
       F_Responder=false;
     }
@@ -582,11 +567,11 @@ void Master::MasterMessage() {
 void Master::SerializeObjectToJson() {
   doc[nodeJS]     = Node_Num_str;     // Numero de Nodo consultado
   doc[commJS]     = Node_Status_str;  // Estado de la comunicacion
-  doc[zoneAJS]    = rx_master_lora_3; // Estado de la zona A
-  doc[zoneBJS]    = rx_master_lora_4; // Estado de the zona B
-  doc[output1JS]  = rx_master_lora_5; // Estado de the salida 1
-  doc[output2JS]  = rx_master_lora_6; // Estado de the salida 2
-  doc[fuenteJS]   = rx_master_lora_7; // Estado de the fuente
+  doc[zoneAJS]    = rx_master_lora_4; // Estado de la zona A
+  doc[zoneBJS]    = rx_master_lora_5; // Estado de the zona B
+  doc[output1JS]  = rx_master_lora_6; // Estado de the salida 1
+  doc[output2JS]  = rx_master_lora_7; // Estado de the salida 2
+  doc[fuenteJS]   = rx_master_lora_8; // Estado de the fuente
   serializeJson(doc, jsonString);
 
   // Serial.print("LORA_JSON String:");
@@ -605,8 +590,7 @@ void Master::NodeStatusUpdate(){
   if(nodeResponde){                            // Si el nodo respondió correctamente
     Node_Status_str = "1";                              // Comunicacion ok
     Node_Num_str    = String(Nodo_Consultado); // Numero de Nodo consultado
-    Serial.println("Nodo responde timer activo");
-    SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
+    
     nodeResponde = false;                      // Resetear la bandera para la próxima consulta
   }
   if(nodeNoResponde){      // Si el nodo NO respondió a la consulta
@@ -631,7 +615,6 @@ void Master::NodeStatusUpdate(){
     nodeAlerta = false;            // Resetear la bandera para la próxima consulta
     Node_Status_str = "1";                  // Comunicacion ok
     Node_Num_str    = String(Nodo_Actual); // Numero de Nodo consultado
-    SerializeObjectToJson();                // Serializa el objeto a JSON
   }
   F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
   F_NodeStatusUpdate = false; 
@@ -653,6 +636,35 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
     rx_funct_parameter2 = Lora_Rxdata.substring(6, 7);
     rx_funct_parameter3 = Lora_Rxdata.substring(7, 8);
     rx_funct_parameter4 = Lora_Rxdata.substring(8, 9); 
+
+    rx_master_lora_1 = Lora_Rxdata.substring(0, 1);
+    rx_master_lora_2 = Lora_Rxdata.substring(1, 2);
+    rx_master_lora_3 = Lora_Rxdata.substring(2, 3); // Tipo de mensaje.
+    rx_master_lora_4 = Lora_Rxdata.substring(3, 4); // Estado de la zona A
+    rx_master_lora_5 = Lora_Rxdata.substring(4, 5); // Estado de la zona B
+    rx_master_lora_6 = Lora_Rxdata.substring(5, 6); // Estado de la salida 1
+    rx_master_lora_7 = Lora_Rxdata.substring(6, 7); // Estado de la salida 2
+    rx_master_lora_8 = Lora_Rxdata.substring(7, 8); // Estado de la fuente  
+    
+    // Imprimir los componentes del mensaje decodificado
+    Serial.println("=== MENSAJE DECODIFICADO ===");
+    Serial.print("rx_master_lora_1 (Remitente): ");
+    Serial.println(rx_master_lora_1);
+    Serial.print("rx_master_lora_2 (Destinatario): ");
+    Serial.println(rx_master_lora_2);
+    Serial.print("rx_master_lora_3 (Tipo de mensaje): ");
+    Serial.println(rx_master_lora_3);
+    Serial.print("rx_master_lora_4 (Zona A): ");
+    Serial.println(rx_master_lora_4);
+    Serial.print("rx_master_lora_5 (Zona B): ");
+    Serial.println(rx_master_lora_5);
+    Serial.print("rx_master_lora_6 (Salida 1): ");
+    Serial.println(rx_master_lora_6);
+    Serial.print("rx_master_lora_7 (Salida 2): ");
+    Serial.println(rx_master_lora_7);
+    Serial.print("rx_master_lora_8 (Fuente): ");
+    Serial.println(rx_master_lora_8);
+    Serial.println("========================");
 
     Serial.print("Remitente: ");
     Serial.print(rx_remitente);
@@ -698,7 +710,7 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
         // El temporizador seguirá corriendo para el nodo consultado
     }
 
-    NodeStatusUpdate();
+    
 }
 void Master::Master_Counter(){
     ++MasterCounter;
@@ -735,6 +747,8 @@ void Master::Master_Protocol() {
     }
     if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
         MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
+        NodeStatusUpdate();
+        SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
         nodeRef->F_Recibido = false; // Resetear la bandera de recepción
         F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
     }

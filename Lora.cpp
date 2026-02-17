@@ -218,29 +218,6 @@ void Lora::Lora_RX(){
       RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
       F_Recibido = true;  // Bandera activada en Lora_RX.
     }
-    rx_remitente        = rxdata.charAt(0); // Nodo que envia el mensaje.
-    rx_destinatario     = rxdata.charAt(1); // Nodo que recibe el mensaje.
-    rx_mensaje          = rxdata.substring(2, 3);         // Mensaje recibido.
-    rx_funct_mode       = rxdata.substring(3,4);         // Tipo de funcion a ejecutar.
-    rx_funct_num        = rxdata.substring(4,5);         // Numero de funcion a ejecutar.
-    rx_funct_parameter1 = rxdata.substring(5, 6); // Parametro 1 de la Funcion.
-    rx_funct_parameter2 = rxdata.substring(6, 7); // Parametro 2 de la Funcion.
-    rx_funct_parameter3 = rxdata.substring(7, 8); // Parametro 3 de la Funcion.
-    rx_funct_parameter4 = rxdata.substring(8, 9); // Parametro 4 de la Funcion.
-
-    rx_master_lora_1 = rxdata.substring(0, 1); // Direccion del nodo que responde.
-    rx_master_lora_2 = rxdata.substring(1, 2); // Direccion del maestro.
-    rx_master_lora_3 = rxdata.substring(2, 3); // Estado de la zona A.
-    rx_master_lora_4 = rxdata.substring(3, 4); // Estado de la zona B.
-    rx_master_lora_5 = rxdata.substring(4, 5); // Estado de la salida 1.
-    rx_master_lora_6 = rxdata.substring(5, 6); // Estado de la salida 2.
-    rx_master_lora_7 = rxdata.substring(6, 7); // Estado de la fuente.
-    rx_master_lora_8 = rxdata.substring(7, 8); // Tipo de mensaje, si es de emergencia.
-
-    rx_mensaje_DB       = rxdata.substring(2, 3);         // Mensaje recibido.
-    // rx_ST_ZA_DB         = rxdata.substring(3, 4);         // Estado de la Zona A.
-    rx_ST_ZA_DB         = rxdata.substring(5, 6);         // Estado de la Zona B.
-    rx_ST_ZB_DB         = rxdata.substring(6, 7);         // Estado de la Fuente.
   }
 void Lora::rx(){
   rxFlag = true;
@@ -500,6 +477,9 @@ void Lora::Lora_IO_Zones(){
     Zone_A        = digitalRead(Zona_A_in);
     Zone_B        = digitalRead(Zona_B_in);
 
+  // 2.1 Lectura de la Fuente de Alimentación.
+    Fuente_in_ST = !(digitalRead(Fuente_in));
+
   // 3. OUTPUT A OUTPUT B Read.
     Rele_1_out_ST = digitalRead(Rele_1_out);
     Rele_2_out_ST = digitalRead(Rele_2_out);
@@ -560,7 +540,7 @@ void Lora::Lora_IO_Zones(){
   // 12 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
     if(!Zone_A_ERR){
-    Zone_A_str=String(Zone_A_ST, BIN);
+      Zone_A_str=String(Zone_A_ST, BIN);
     }
     if(!Zone_B_ERR){
       Zone_B_str=String(Zone_B_ST, BIN);
@@ -666,11 +646,6 @@ void Lora::Lora_Event_Disable(){
   F_IO_Event_Enable = false;
   }
 
-
-void Lora::Lora_Node_Print(String z_executed){
-  both.printf(z_executed.c_str());
-  }
-
 void Lora::Lora_timerNodo_Answer(){
   // 1. Timer para enviar el mensaje al maestro.
     if (nodeInstance) {
@@ -680,24 +655,6 @@ void Lora::Lora_timerNodo_Answer(){
 void Lora::Lora_Timer_Enable(int answerTime){
     Timer_Nodo_Answer.once(answerTime,Lora_timerNodo_Answer);
   }
-
-void Lora::Lora_WebMessage(String mensaje) {
-    Serial.print("Lora WebMessage: ");
-    Serial.println(mensaje);
-    Device_King = mensaje.charAt(0);          // Dispositivo Rey o Master.
-    Device_Number = mensaje.charAt(1);        // Numero de Dispositivo a ejecutar la funcion.
-    tx_funct_mode=mensaje.charAt(2);          // Modo de Funcion a ejecutar.
-    tx_funct_num=mensaje.charAt(3);           // Numero de Funcion a ejecutar.
-    tx_funct_parameter1=mensaje.charAt(4);    // Primer parametro de Funcion a ejecutar.
-    tx_funct_parameter2=mensaje.charAt(5);    // Segundo parametro de Funcion a ejecutar.
-    F_Master_Excecute=true; // Flag desactivado en L5.4
-    Serial.println("function Mode: " + tx_funct_mode);
-    Serial.println("function Num: " + tx_funct_num);
-    Serial.println("function Param1: " + tx_funct_parameter1);
-    Serial.println("function Param2: " + tx_funct_parameter2);
-  }
-
-
 
 void Lora::Protocol_Master_Calibration(){
   // if(Protocol.NextSurvey){
