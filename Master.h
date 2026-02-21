@@ -143,7 +143,6 @@ public:
      * @return true si el mensaje requiere acción especial
      */
     void MasterDecodificar(String mensaje_rx_lora);
-    
     /**
      * @brief Verifica si un nodo está en estado de alerta
      * @param nodoID ID del nodo a verificar

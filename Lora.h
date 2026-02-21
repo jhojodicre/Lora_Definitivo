@@ -163,33 +163,13 @@ public:
         String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
         String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
         String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
-    //Variables para la recepcion de mensaje.
-        char    rx_remitente;           // Nodo que envia el mensaje.
-        char    rx_destinatario;        // Nodo que recibe el mensaje.
-        String  rx_mensaje;             // Mensaje recibido.
-        String  rx_funct_mode;          // Tipo de funcion a ejecutar.
-        String  rx_funct_num;           // Numero de funcion a ejecutar.
-        String  rx_funct_parameter1;    // Parametro 1 de la Funcion.
-        String  rx_funct_parameter2;    // Parametro 2 de la Funcion.
-        String  rx_funct_parameter3;    // Parametro 3 de la Funcion.
-        String  rx_funct_parameter4;    // Parametro 4 de la Funcion.
 
-
-        String  tx_remitente;           // Nodo que envia el mensaje.
-        String  tx_destinatario;        // Nodo que recibe el mensaje.
-        String  tx_mensaje;             // Mensaje recibido.
-        String  tx_funct_mode;          // Tipo de funcion a ejecutar.
-        String  tx_funct_num;           // Numero de funcion a ejecutar.
-        String  tx_funct_parameter1;    // Parametro 1 de la Funcion.
-        String  tx_funct_parameter2;    // Parametro 2 de la Funcion.
         //_________________________**************************************************______________________________________
 
         String  rx_mensaje_DB;          // Mensaje recibido.
         String  rx_ST_ZA_DB;            // Estado de la Zona A.
         String  rx_ST_ZB_DB;            // Estado de la Zona B.
         String  rx_ST_FT_DB;            // Estado de la Fuente.
-
-        String    jsonString;
 
         // ✅ NUEVAS VARIABLES PARA SISTEMA DE ESTADO
         String    radioStatusJSON;          // JSON con estado completo del radio
@@ -233,7 +213,6 @@ public:
         String  Rele_1_out_str;
         String  Rele_2_out_str;
         String  Fuente_in_str;
-        String  Tipo_de_Mensaje;
 
         String  Zone_A_F_str;
         String  Zone_B_F_str;

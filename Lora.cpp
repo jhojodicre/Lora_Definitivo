@@ -48,6 +48,9 @@ Lora::Lora(bool isMaster, int NumNodes, char nodeNumber){
     //1. Configuracion de Hardware
       pinMode(Zona_A_in, INPUT);
       pinMode(Zona_B_in, INPUT);
+
+      pinMode(Fuente_in, INPUT);
+
       pinMode(PB_ZA_in, INPUT);
       pinMode(PB_ZB_in, INPUT);
       pinMode(PB_ZC_in, INPUT);
@@ -332,7 +335,6 @@ void Lora::Lora_Status_NodeSpecific(){
   
   // === 📈 CONTADORES ===
   nodeDoc["counters"]["node_counter"] = Node_Counter;
-  nodeDoc["counters"]["message_type"] = Tipo_de_Mensaje;
   
   serializeJson(nodeDoc, nodeStatusJSON);
 }
@@ -478,7 +480,7 @@ void Lora::Lora_IO_Zones(){
     Zone_B        = digitalRead(Zona_B_in);
 
   // 2.1 Lectura de la Fuente de Alimentación.
-    Fuente_in_ST = !(digitalRead(Fuente_in));
+    Fuente_in_ST = digitalRead(Fuente_in);
 
   // 3. OUTPUT A OUTPUT B Read.
     Rele_1_out_ST = digitalRead(Rele_1_out);
@@ -532,10 +534,6 @@ void Lora::Lora_IO_Zones(){
     if(F_IO_Event_Enable){
       msg_enviar = true;
       msg_enviado=0;
-      Tipo_de_Mensaje="U";
-    } 
-    else{
-      Tipo_de_Mensaje="A";
     }
   // 12 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS

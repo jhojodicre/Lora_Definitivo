@@ -394,7 +394,7 @@ void Master::Node_Protocol() {
     // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
     //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
-      Serial.println("event");
+      message_type="E"; // Mensaje de Emergencia del Nodo al Master.
       while(msg_enviado<2){                                                                                                        
         Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
         nodeRef->Lora_TX(mensaje);
