@@ -32,8 +32,9 @@ public:
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     bool F_Calibration=false;
-    int  timeout_NoResponse = 2000; // Tiempo de espera para considerar que un nodo no responde (ms)
-    String message_type=""; // Tipo de mensaje recibido
+    int  timeout_NoResponse = 6000; // Tiempo de espera para considerar que un nodo no responde (ms)
+    String message_type="i"; // Tipo de mensaje recibido. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo.
+    // Se enviara un mensaje al iniciar el nodo, o cuando el master lo solicite, despues de un reset o cuando el nodo detecte un evento en las zonas. El mensaje se procesara para actualizar la base de datos del Master y se enviara al servidor/DB.
 
     // ----- CONSTRUCTORES -----
     /**
@@ -105,6 +106,9 @@ public:
     void Master_Status_Address();
 
     void Master_ExecuteFromServer(String mensajeServer);
+    bool EncolarMensajeServidor(const String& mensajeLora);
+    bool ObtenerSiguienteMensajeServidor(String& mensajeLora);
+    void ProcesarColaServidor();
     
     void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
     
@@ -132,7 +136,7 @@ public:
      * @brief Imprime el estado actual de todos los nodos
      */
     bool F_Node_Excecute=false;
-    bool F_Responder=false;
+    bool F_Responder=true; // se activara para que el nodo envie un mensjae al iniciar el el protocolo.
     void Node_Message();
     
     int nodeCounter=0;
@@ -218,6 +222,7 @@ public:
     bool    F_MasterCalibration=false;
     bool    F_ServerUpdate=false;
     bool    F_NodeStatusUpdate=false;
+    bool    F_ServerQueuePending=false;
 
 
     String jsonString;
@@ -242,6 +247,12 @@ public:
         String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
         String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
 private:
+    static const int SERVER_QUEUE_SIZE = 10;
+    String serverMessageQueue[SERVER_QUEUE_SIZE];
+    int serverQueueHead = 0;
+    int serverQueueTail = 0;
+    int serverQueueCount = 0;
+
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {
         bool responde;          // Si el nodo está respondiendo

@@ -36,11 +36,10 @@ Ticker      Timer_ZoneB_Extended;   // Timer para 6 segundos (tiempo alcanzado)
 Ticker      Timer_ZoneB_Error;      // Timer para 9 segundos (error)
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
-Lora::Lora(bool isMaster, int NumNodes, char nodeNumber){
+Lora::Lora(bool IO_Simulated, int NumNodes, char nodeNumber){
     // Inicializa el atributo Master correctamente
-
-  F_MasterMode  = isMaster;
-  F_NodeMode    = !isMaster;
+  
+  F_IO_Simulated = IO_Simulated;
   local_Address = nodeNumber; // Direccion del nodo local.
   Num_Nodos     = NumNodes;
 
@@ -470,6 +469,10 @@ void Lora::Lora_UpdateAllStatus(){
 
 
 void Lora::Lora_IO_Zones(){
+  if(F_IO_Simulated){
+    Lora_IO_Dummy_Simulate();
+    return;
+  }
   // 1. ZONE A y ZONE B Push Button Acknowledge.
     Zone_A_ACK    = digitalRead(PB_ZA_in);       // pulsador A. PB_ZA_in
     Zone_B_ACK    = digitalRead(PB_ZB_in);       // pulsador B.

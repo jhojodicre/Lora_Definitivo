@@ -62,8 +62,8 @@
   //-4.1 Clases propias.
     Functions Correr(true);                 // Funciones a Ejecutar
     General   General(false);               // Configuraciones Generales del Nodo.
-    Lora      Node(false,5,'1');
-    Master    Chismoso(false, 1, '1');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
+    Lora      Node(true,5,'1');
+    Master    Chismoso(true, 5, '5');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);            // AGREGAR ESTA LÍNEA
 //5. Funciones ISR.
@@ -134,6 +134,7 @@ void loop(){
       }
   //L4. Funciones del Protocolo.
     Chismoso.Preguntar();
+
   //L5. Funciones del Master.
     if(Chismoso.F_ServerUpdate){
       updateServer();
@@ -141,7 +142,6 @@ void loop(){
     }
 }
 //A 📎 Funciones Ausiliares
-//A1 Master RX Request.
 
   //-1.1  Update Server.
     void updateServer() {

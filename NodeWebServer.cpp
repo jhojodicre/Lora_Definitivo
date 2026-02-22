@@ -644,6 +644,7 @@ void LoRaWebServer::manejarMensajeRecibido() {
     }
 
 }
+
 // Procesar Mensaje
 bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
     // ✅ VALIDACIÓN ROBUSTA: Verificar todas las referencias
@@ -693,6 +694,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
     
     return true; // ✅ CORREGIDO: Agregar return true
 }
+
 // MANEJADOR: ESTADO DEL NODO
 void LoRaWebServer::manejarEstadoNodo() {
   Serial.println("📊 Solicitud GET /api/status - Estado del nodo");

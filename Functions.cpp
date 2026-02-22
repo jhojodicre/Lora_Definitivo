@@ -420,10 +420,10 @@ void Functions::c1(String argumento1){
     // Implementación del método c1
     Serial.printf("c1: ejecutada con argumento %s\n", argumento1.c_str());
     if (function_Parameter1 == "1") {
-        digitalWrite(LED_Rojo, LOW);
+        digitalWrite(LED_Rojo, HIGH);
         Serial.println("LR ON");
     } else if (function_Parameter1 == "0") {
-        digitalWrite(LED_Rojo, HIGH);
+        digitalWrite(LED_Rojo, LOW);
         Serial.println("LR OFF");
     }
 }
@@ -433,9 +433,9 @@ void Functions::c2(String argumento1)
     Serial.printf("c2: ejecutada con argumento %s\n", argumento1.c_str());
     // Implementación del método c2
     if (function_Parameter1 == "1") {
-        digitalWrite(LED_Azul, LOW);
-    } else if (function_Parameter1 == "0") {
         digitalWrite(LED_Azul, HIGH);
+    } else if (function_Parameter1 == "0") {
+        digitalWrite(LED_Azul, LOW);
     }
 }
 // Habilitada para activar o desactivar una salida digital

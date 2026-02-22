@@ -75,7 +75,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
     if (MasterMode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(3000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    timer_master.attach_ms(9000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -391,7 +391,6 @@ void Master::Node_Protocol() {
     mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
-    // nodeRef->Lora_IO_Dummy_Simulate(); // Se simulan las señales de entrada.
     //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
       message_type="E"; // Mensaje de Emergencia del Nodo al Master.
@@ -435,6 +434,7 @@ void Master::Node_Protocol() {
       }
       F_Responder = true;
       F_Node_Excecute=false;
+      nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas antes de responder al Master.
     }
       //-P.6 Nodo TX.
     if(F_Responder){
@@ -448,18 +448,59 @@ void Master::Master_ExecuteFromServer(String mensajeServer) {
     /**
      * @brief Ejecuta una acción en el Master basada en un mensaje recibido desde el servidor web
      */
-    Serial.print("Ejecutando acción desde servidor con mensaje: ");
+    Serial.print("Encolando acción desde servidor: ");
     Serial.println(mensajeServer);
-  //1. Preparamos paquete para enviar
-    tx_remitente        = Master_Address;                  // Direccion del maestro.
-    tx_destinatario     = String(mensajeServer.charAt(1));     // Extraer el segundo carácter del mensaje
-    tx_mensaje          = "E";                           // Mensaje de consulta de estado.
 
+    if (mensajeServer.length() < 2) {
+        Serial.println("❌ Mensaje de servidor inválido (muy corto)");
+        return;
+    }
 
+    String mensajeLora = String(Master_Address + String(mensajeServer.charAt(1)) + "E" + mensajeServer.substring(2));
 
-  //2. Armamos el mensaje para enviar.
-    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + mensajeServer.substring(2));
-    nodeRef->Lora_TX(mensaje); 
+    if (!EncolarMensajeServidor(mensajeLora)) {
+        Serial.println("❌ Cola de mensajes del servidor llena");
+    }
+}
+bool Master::EncolarMensajeServidor(const String& mensajeLora) {
+    if (serverQueueCount >= SERVER_QUEUE_SIZE) {
+        return false;
+    }
+
+    serverMessageQueue[serverQueueTail] = mensajeLora;
+    serverQueueTail = (serverQueueTail + 1) % SERVER_QUEUE_SIZE;
+    serverQueueCount++;
+    F_ServerQueuePending = (serverQueueCount > 0);
+
+    Serial.print("📥 Cola servidor +1 | Pendientes: ");
+    Serial.println(serverQueueCount);
+    return true;
+}
+bool Master::ObtenerSiguienteMensajeServidor(String& mensajeLora) {
+    if (serverQueueCount <= 0) {
+        F_ServerQueuePending = false;
+        return false;
+    }
+
+    mensajeLora = serverMessageQueue[serverQueueHead];
+    serverMessageQueue[serverQueueHead] = "";
+    serverQueueHead = (serverQueueHead + 1) % SERVER_QUEUE_SIZE;
+    serverQueueCount--;
+    F_ServerQueuePending = (serverQueueCount > 0);
+    return true;
+}
+void Master::ProcesarColaServidor() {
+    if (!F_ServerQueuePending) {
+        return;
+    }
+
+    String mensajePendiente = "";
+    if (ObtenerSiguienteMensajeServidor(mensajePendiente)) {
+        mensaje = mensajePendiente;
+        nodeRef->Lora_TX(mensaje);
+        Serial.print("🚀 ColaServer->Node | Restantes: ");
+        Serial.println(serverQueueCount);
+    }
 }
 void Master::timer_master_ISR() {
     /**
@@ -737,20 +778,28 @@ void Master::Master_Protocol() {
     nodeRef->Lora_RX();
 
     if(Next) {
-        // Primero determinamos cuál es el siguiente nodo a consultar
-        Nodo_REQUEST();
-        Master_Nodo(); // Verifica si hay un nodo en alerta
-        
-        MasterMessage();// Preparamos el mensaje para el nodo seleccionado
-        nodeRef->Lora_TX(mensaje); // Enviar el mensaje
+        if (F_ServerQueuePending) {
+            ProcesarColaServidor();
+        } else {
+            // Primero determinamos cuál es el siguiente nodo a consultar
+            Nodo_REQUEST();
+            Master_Nodo(); // Verifica si hay un nodo en alerta
+            
+            MasterMessage();// Preparamos el mensaje para el nodo seleccionado
+            nodeRef->Lora_TX(mensaje); // Enviar el mensaje
+        }
         Next = false;    // Resetear la bandera
+    }
+    if(nodeNoResponde){ // Si el nodo no respondió a la consulta
+        NodeStatusUpdate(); // Actualizar el estado del nodo y serializar a JSON
+        F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
     }
     if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
         MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
         NodeStatusUpdate();
         SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
-        nodeRef->F_Recibido = false; // Resetear la bandera de recepción
         F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
+        nodeRef->F_Recibido = false; // Resetear la bandera de recepción
     }
     if(nodeRef->F_Master_Excecute){
         if(message_type=="M"){

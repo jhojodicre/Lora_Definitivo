@@ -126,6 +126,7 @@ public:
     bool    F_Master_Update=false;
     bool    F_function_Special=false;
 
+    bool    F_IO_Simulated=false;
     bool    F_IO_Event_Enable=false;
     bool    timer_ZA_En=false;
     bool    timer_ZA_Reached=false;
