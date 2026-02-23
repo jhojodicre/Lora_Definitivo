@@ -494,16 +494,35 @@ void Lora::Lora_IO_Zones(){
 
   // 4  ZONES AB RESET con el pulsador C.
     if(!Zone_AB_ACK){
+      delay(20); // Antirebote simple
+      if(!Zone_AB_ACK){ // Verificar que el botón sigue presionado después del retardo
       Lora_IO_Zone_A_ACK();
       Lora_IO_Zone_B_ACK();
+      }
+      else{
+        return; // Si el botón no está presionado, salir sin hacer nada
+      }
+
     }
   // 5. ZONE  A RESET= Zona A aceptada desde el pulsador activo en bajo "0"
     if(!Zone_A_ACK){
+      delay(20); // Antirebote simple
+      if(!Zone_A_ACK){ // Verificar que el botón sigue presionado después del retardo
       Lora_IO_Zone_A_ACK();
+      }
+      else{
+        return; // Si el botón no está presionado, salir sin hacer nada
+      }
     }
   // 6. ZONE  B RESET= Zone B aceptada desde el pulsador activo en bajo "0"
     if(!Zone_B_ACK){
+      delay(20); // Antirebote simple
+      if(!Zone_B_ACK){ // Verificar que el botón sigue presionado después del retardo
       Lora_IO_Zone_B_ACK();
+      }
+      else{
+        return; // Si el botón no está presionado, salir sin hacer nada
+      }
 
     }
   // 7. ZONE  A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.

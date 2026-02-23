@@ -32,7 +32,8 @@ public:
     bool F_Calibration_Complete = false; // Flag que indica si la calibración ha sido completada
     String Lora_Rxdata;     // Datos recibidos por Lora
     bool F_Calibration=false;
-    int  timeout_NoResponse = 6000; // Tiempo de espera para considerar que un nodo no responde (ms)
+    int  timeout_NoResponse = 3000; // Tiempo de espera para considerar que un nodo no responde (ms)
+    int  timeout_master = 4000; // Tiempo entre consultas a nodos (ms)
     String message_type="i"; // Tipo de mensaje recibido. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo.
     // Se enviara un mensaje al iniciar el nodo, o cuando el master lo solicite, despues de un reset o cuando el nodo detecte un evento en las zonas. El mensaje se procesara para actualizar la base de datos del Master y se enviara al servidor/DB.
 
@@ -132,6 +133,7 @@ public:
     void Node_Decodificar();
     void Node_Counter();
     void Node_Print_RX();
+    void Node_Alerta();
     /**
      * @brief Imprime el estado actual de todos los nodos
      */

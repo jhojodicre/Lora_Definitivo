@@ -8,6 +8,7 @@
 Ticker timer_master;        // Temporizador principal para consulta de nodos
 Ticker timer_No_Response;   // Temporizador para timeout de respuesta de nodos
 Ticker timer_Survey;       // Temporizador para la encuesta de nodos
+Ticker timer_nodo_alerta;    // Temporizador para gestionar alertas de nodos
 
 // Puntero global al objeto Master para uso en funciones estáticas
 Master* masterInstance = nullptr;
@@ -75,7 +76,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
     if (MasterMode) {
     Serial.println("Iniciando protocolo Master");
     // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(9000, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    timer_master.attach_ms(timeout_master, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -284,7 +285,14 @@ void Master::Calibration_Protocol() {
     // - Ajustar parámetros de radio
 }
 
-
+void Master::Node_Alerta() {
+    timer_master.attach_ms(6000, [this]() {
+            message_type="E"; // Mensaje de Emergencia del Nodo al Master.
+            Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
+            nodeRef->Lora_TX(mensaje);
+        });
+      
+}
 void Master::Node_Print_RX(){
 Serial.print("📩 Mensaje recibido - Remitente: ");
 Serial.print(rx_remitente);
@@ -371,7 +379,10 @@ void Master::Node_Decodificar(){
         while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
         Node_Counter();
       }
-
+      if(rx_master_lora_3=="O"){
+        Serial.println("Nodo escuchado");
+        timer_nodo_alerta.detach(); // Detener temporizador de alerta si estaba activo
+      }
       F_Responder=true;
       F_Node_Atiende=true;
       // Protocol.nodeResponde=F_Node_Atiende;
@@ -392,17 +403,12 @@ void Master::Node_Protocol() {
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
     //-P.3 Nodo Evento en Zonas
-    if(nodeRef->F_IO_Event_Enable && nodeRef->msg_enviar){
-      message_type="E"; // Mensaje de Emergencia del Nodo al Master.
-      while(msg_enviado<2){                                                                                                        
+    if(nodeRef->F_IO_Event_Enable){
+        message_type="E"; // Mensaje de Emergencia del Nodo al Master.
         Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
         nodeRef->Lora_TX(mensaje);
-        delay(100);
-        ++ msg_enviado;
-      }
-      nodeRef->msg_enviar=false;
-      msg_enviado=0;
-      nodeRef->F_IO_Event_Enable = false;
+        Node_Alerta();        // Se detecta un evento en las zonas, se actualiza el estado del nodo a alerta y se prepara el mensaje para enviar al Master. 
+        nodeRef->F_IO_Event_Enable = false;
     }
       //-P.4 Nodo RX.
     if(nodeRef->F_Recibido){
@@ -746,6 +752,9 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
         Nodo_Actual = rx_remitente.toInt(); // Convertir String a int antes de asignar
         nodeAlerta = true; // Mensaje inesperado, posible alerta
         
+        if(rx_mensaje == "O"){
+            EncolarMensajeServidor(rx_remitente + "O" + rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
+        }
         // IMPORTANTE: No cambiar nodeResponde/nodeNoResponde aquí
         // porque este mensaje no es del nodo que estamos consultando
         // El temporizador seguirá corriendo para el nodo consultado
