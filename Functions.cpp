@@ -578,9 +578,10 @@ void Functions::m8()
 {
     // Implementación del método m8
 }
+// ▶ Funcione RESET Master
 void Functions::m9()
 {
-    // Implementación del método m9
+    ESP.restart();
 }
 // ▶ Funciones de Estado de Configuracion de Nodos
 // 🔹

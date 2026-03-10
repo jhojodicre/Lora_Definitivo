@@ -50,6 +50,11 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     nodeNoResponde = false;  // Inicializar correctamente para evitar valores aleatorios
     firstScan = true;
     timeout_NoResponse=3000;
+    txEnCurso = false;
+    txEsServidor = false;
+    txNodoEsperado = ' ';
+    txStartMs = 0;
+    serverBurstCount = 0;
 }
 Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
     /**
@@ -454,14 +459,17 @@ void Master::Master_ExecuteFromServer(String mensajeServer) {
     /**
      * @brief Ejecuta una acción en el Master basada en un mensaje recibido desde el servidor web
      */
-    Serial.print("Encolando acción desde servidor: ");
-    Serial.println(mensajeServer);
-
-    if (mensajeServer.length() < 2) {
-        Serial.println("❌ Mensaje de servidor inválido (muy corto)");
+    
+    // Validar que el mensaje del servidor comience con "M"
+    if (mensajeServer.charAt(0) == 'M') {
+        Serial.println(mensajeServer.substring(2));
+        message_From_Server = mensajeServer;
+        F_Server_Master = true;
         return;
     }
-
+    
+    Serial.print("Encolando acción desde servidor: ");
+    Serial.println(mensajeServer);
     String mensajeLora = String(Master_Address + String(mensajeServer.charAt(1)) + "E" + mensajeServer.substring(2));
 
     if (!EncolarMensajeServidor(mensajeLora)) {
@@ -502,10 +510,61 @@ void Master::ProcesarColaServidor() {
 
     String mensajePendiente = "";
     if (ObtenerSiguienteMensajeServidor(mensajePendiente)) {
-        mensaje = mensajePendiente;
-        nodeRef->Lora_TX(mensaje);
-        Serial.print("🚀 ColaServer->Node | Restantes: ");
-        Serial.println(serverQueueCount);
+        char nodoEsperado = ' ';
+        if (mensajePendiente.length() > 1) {
+            nodoEsperado = mensajePendiente.charAt(1);
+        }
+
+        if (EnviarTramaCentral(mensajePendiente, nodoEsperado, true)) {
+            Serial.print("🚀 ColaServer->Node | Restantes: ");
+            Serial.println(serverQueueCount);
+            serverBurstCount++;
+        } else {
+            // No se pudo enviar, reencolar al frente lógico (al final real para simplicidad)
+            EncolarMensajeServidor(mensajePendiente);
+        }
+    }
+}
+bool Master::EnviarTramaCentral(const String& mensajeTx, char nodoEsperado, bool esServidor) {
+    if (txEnCurso) {
+        return false;
+    }
+
+    if (mensajeTx.length() == 0) {
+        return false;
+    }
+
+    mensaje = mensajeTx;
+    nodeRef->Lora_TX(mensaje);
+
+    txEnCurso = true;
+    txEsServidor = esServidor;
+    txNodoEsperado = nodoEsperado;
+    txStartMs = millis();
+
+    return true;
+}
+void Master::LiberarCanalTx(const String& motivo) {
+    if (!txEnCurso) {
+        return;
+    }
+
+    Serial.print("🔓 TX liberado: ");
+    Serial.print(motivo);
+
+    txEnCurso = false;
+    txEsServidor = false;
+    txNodoEsperado = ' ';
+    txStartMs = 0;
+}
+void Master::RevisarTimeoutTx() {
+    if (!txEnCurso) {
+        return;
+    }
+
+    unsigned long ahora = millis();
+    if ((ahora - txStartMs) > (unsigned long)timeout_NoResponse) {
+        LiberarCanalTx("timeout");
     }
 }
 void Master::timer_master_ISR() {
@@ -546,13 +605,12 @@ void Master::Nodo_REQUEST() {
         
         // Configurar temporizador de timeout DESPUÉS de resetear las banderas
         timer_No_Response.once_ms(timeout_NoResponse, [this]() {
-            Serial.println("Timeout: Verificando respuesta del nodo");
             
             // Solo marcar como no responde si efectivamente no respondió
             if (!estadosNodos[Nodo_Consultado].responde) {
-                Serial.print("Nodo ");
+                Serial.print("⚠🚫Nodo ");
                 Serial.print(Nodo_Consultado);
-                Serial.println(" no respondió a tiempo");
+                Serial.println(" TimeOut");
                 nodeNoResponde = true;
             } else {
                 // Serial.print("Nodo ");
@@ -653,9 +711,9 @@ void Master::NodeStatusUpdate(){
     
     // Serializar para enviar al servidor/DB
     SerializeObjectToJson();
-    Serial.print("Nodo ");
-    Serial.print(Nodo_Consultado);
-    Serial.println(" no respondió a la consulta anterior");
+    if (txEnCurso && !txEsServidor) {
+        LiberarCanalTx("nodeNoResponde");
+    }
     nodeNoResponde = false; // Resetear la bandera para la próxima consulta
   }
   if(nodeAlerta){          // Si el nodo cambió el estado de sus entradas (Zonas)
@@ -665,6 +723,32 @@ void Master::NodeStatusUpdate(){
   }
   F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
   F_NodeStatusUpdate = false; 
+}
+void Master::Master_Print_RX() {
+    // Imprimir los componentes del mensaje decodificado
+    Serial.println("=== MENSAJE DECODIFICADO ===");
+    Serial.print("rx_master_lora_1 (Remitente): ");
+    Serial.println(rx_master_lora_1);
+    Serial.print("rx_master_lora_2 (Destinatario): ");
+    Serial.println(rx_master_lora_2);
+    Serial.print("rx_master_lora_3 (Tipo de mensaje): ");
+    Serial.println(rx_master_lora_3);
+    Serial.print("rx_master_lora_4 (Zona A): ");
+    Serial.println(rx_master_lora_4);
+    Serial.print("rx_master_lora_5 (Zona B): ");
+    Serial.println(rx_master_lora_5);
+    Serial.print("rx_master_lora_6 (Salida 1): ");
+    Serial.println(rx_master_lora_6);
+    Serial.print("rx_master_lora_7 (Salida 2): ");
+    Serial.println(rx_master_lora_7);
+    Serial.print("rx_master_lora_8 (Fuente): ");
+    Serial.println(rx_master_lora_8);
+    Serial.println("========================");
+
+    Serial.print("Remitente: ");
+    Serial.print(rx_remitente);
+    Serial.print(" | Nodo Consultado: ");
+    Serial.println(Nodo_Consultado);
 }
 void Master::MasterDecodificar(String mensaje_loraRX) {
     /**
@@ -692,31 +776,10 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
     rx_master_lora_6 = Lora_Rxdata.substring(5, 6); // Estado de la salida 1
     rx_master_lora_7 = Lora_Rxdata.substring(6, 7); // Estado de la salida 2
     rx_master_lora_8 = Lora_Rxdata.substring(7, 8); // Estado de la fuente  
-    
-    // Imprimir los componentes del mensaje decodificado
-    Serial.println("=== MENSAJE DECODIFICADO ===");
-    Serial.print("rx_master_lora_1 (Remitente): ");
-    Serial.println(rx_master_lora_1);
-    Serial.print("rx_master_lora_2 (Destinatario): ");
-    Serial.println(rx_master_lora_2);
-    Serial.print("rx_master_lora_3 (Tipo de mensaje): ");
-    Serial.println(rx_master_lora_3);
-    Serial.print("rx_master_lora_4 (Zona A): ");
-    Serial.println(rx_master_lora_4);
-    Serial.print("rx_master_lora_5 (Zona B): ");
-    Serial.println(rx_master_lora_5);
-    Serial.print("rx_master_lora_6 (Salida 1): ");
-    Serial.println(rx_master_lora_6);
-    Serial.print("rx_master_lora_7 (Salida 2): ");
-    Serial.println(rx_master_lora_7);
-    Serial.print("rx_master_lora_8 (Fuente): ");
-    Serial.println(rx_master_lora_8);
-    Serial.println("========================");
 
-    Serial.print("Remitente: ");
-    Serial.print(rx_remitente);
-    Serial.print(" | Nodo Consultado: ");
-    Serial.println(Nodo_Consultado);
+    if (txEnCurso && rx_remitente.length() > 0 && rx_remitente.charAt(0) == txNodoEsperado) {
+        LiberarCanalTx("respuesta del nodo esperado");
+    }
 
     // Registrar que el nodo ha respondido
     if (rx_remitente.toInt() == Nodo_Consultado) { // Comparar correctamente convirtiendo String a int
@@ -785,19 +848,31 @@ void Master::Master_Protocol() {
      * */
     // Verificar si es momento de consultar al siguiente nodo
     nodeRef->Lora_RX();
+    RevisarTimeoutTx();
 
-    if(Next) {
-        if (F_ServerQueuePending) {
+    // Árbitro de envío: prioridad server, luego automático
+    if (!txEnCurso) {
+        bool permitirServidor = F_ServerQueuePending;
+
+        if (F_ServerQueuePending && Next && serverBurstCount >= SERVER_BURST_MAX) {
+            permitirServidor = false;
+        }
+
+        if (permitirServidor) {
             ProcesarColaServidor();
-        } else {
+        } else if(Next) {
             // Primero determinamos cuál es el siguiente nodo a consultar
             Nodo_REQUEST();
             Master_Nodo(); // Verifica si hay un nodo en alerta
             
             MasterMessage();// Preparamos el mensaje para el nodo seleccionado
-            nodeRef->Lora_TX(mensaje); // Enviar el mensaje
+            if (EnviarTramaCentral(mensaje, nodo_consultado, false)) {
+                serverBurstCount = 0;
+            }
+            Next = false;    // Resetear la bandera
+        } else {
+            serverBurstCount = 0;
         }
-        Next = false;    // Resetear la bandera
     }
     if(nodeNoResponde){ // Si el nodo no respondió a la consulta
         NodeStatusUpdate(); // Actualizar el estado del nodo y serializar a JSON
@@ -819,11 +894,17 @@ void Master::Master_Protocol() {
         }
         if(message_type != "M"){
                     // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-            nodeRef->Lora_TX(mensaje);                  // 3. Se envia el mensaje.
-            nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-            Serial.println("🚀Server->Master->Node");
+            if (EnviarTramaCentral(mensaje, nodo_consultado, true)) {
+                nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
+                Serial.println("🚀Server->Master->Node");
+            }
         }
   }
+    if(F_Server_Master){
+        correrRef->Functions_Request(message_From_Server);
+        correrRef->Functions_Run();
+        F_Server_Master=false;
+    }
 }
 
 

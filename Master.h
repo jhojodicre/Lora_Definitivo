@@ -110,6 +110,9 @@ public:
     bool EncolarMensajeServidor(const String& mensajeLora);
     bool ObtenerSiguienteMensajeServidor(String& mensajeLora);
     void ProcesarColaServidor();
+    bool EnviarTramaCentral(const String& mensajeTx, char nodoEsperado, bool esServidor);
+    void LiberarCanalTx(const String& motivo);
+    void RevisarTimeoutTx();
     
     void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
     
@@ -119,15 +122,7 @@ public:
     
 
     void Master_Request();    /*** @brief Procesa una petición del Master a un Nodo*/
-    
-    // ----- MÉTODOS DE GESTIÓN DE DATOS DE NODOS -----
-    /**
-     * @brief Actualiza el estado de un nodo
-     * @param nodeNumber Número de nodo
-     * @param zonaA Estado de Zona A
-     * @param zonaB Estado de Zona B
-     * @param fuente Estado de la Fuente
-     */
+    void Master_Print_RX(); /*** @brief Imprime el mensaje recibido por el Master*/
     void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
     void Master_DB();
     void Node_Decodificar();
@@ -225,6 +220,7 @@ public:
     bool    F_ServerUpdate=false;
     bool    F_NodeStatusUpdate=false;
     bool    F_ServerQueuePending=false;
+    bool    F_Server_Master=false;
 
 
     String jsonString;
@@ -248,12 +244,20 @@ public:
         String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
         String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
         String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
+        String  message_From_Server = " "; // Mensaje recibido del servidor para ser procesado por el Master.
 private:
     static const int SERVER_QUEUE_SIZE = 10;
+    static const int SERVER_BURST_MAX = 2;
     String serverMessageQueue[SERVER_QUEUE_SIZE];
     int serverQueueHead = 0;
     int serverQueueTail = 0;
     int serverQueueCount = 0;
+
+    bool txEnCurso = false;
+    bool txEsServidor = false;
+    char txNodoEsperado = ' ';
+    unsigned long txStartMs = 0;
+    int serverBurstCount = 0;
 
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {
