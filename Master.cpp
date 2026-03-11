@@ -55,6 +55,8 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     txNodoEsperado = ' ';
     txStartMs = 0;
     serverBurstCount = 0;
+    retryNoResponsePending = false;
+    nodoRetryPendiente = 0;
 }
 Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
     /**
@@ -585,40 +587,53 @@ void Master::Nodo_REQUEST() {
     /**
      * @brief Determina el siguiente nodo a consultar en secuencia cíclica
      */
-    // Si llegamos al último nodo, volvemos al primero
-    if (Nodo_Proximo == Nodo_Ultimo) {
-        Nodo_Proximo = Nodo_Primero - 1;
+    if (retryNoResponsePending && nodoRetryPendiente > 0 && estadosNodos[Nodo_Consultado].intentos <= 2) {
+        Nodo_Proximo = nodoRetryPendiente;
+        Nodo_Consultado = nodoRetryPendiente;
+        retryNoResponsePending = false;
+        Serial.print("🔁 Reintentando nodo ");
+        Serial.println(Nodo_Consultado);
+    } else {
+        // Si llegamos al último nodo, volvemos al primero
+        if (Nodo_Proximo == Nodo_Ultimo) {
+            Nodo_Proximo = Nodo_Primero - 1;
+        }
+        
+        // Avanzamos al siguiente nodo
+        if (Nodo_Proximo <= Nodo_Ultimo) {
+            ++Nodo_Proximo;
+            Nodo_Consultado = Nodo_Proximo;
+        }
     }
-    
-    // Avanzamos al siguiente nodo
-    if (Nodo_Proximo <= Nodo_Ultimo) {
-        ++Nodo_Proximo;
-        Nodo_Consultado = Nodo_Proximo;
+
+    if (Nodo_Consultado > 0 && Nodo_Consultado <= Nodo_Ultimo) {
         
         // Registrar que estamos consultando este nodo
         estadosNodos[Nodo_Consultado].intentos++;
         estadosNodos[Nodo_Consultado].responde = false; // Resetear bandera de respuesta
-        
-        // Información de depuración
-        // Serial.print("Consultando nodo: ");
-        // Serial.println(Nodo_Consultado);
-        
-        // Configurar temporizador de timeout DESPUÉS de resetear las banderas
-        timer_No_Response.once_ms(timeout_NoResponse, [this]() {
-            
-            // Solo marcar como no responde si efectivamente no respondió
-            if (!estadosNodos[Nodo_Consultado].responde) {
-                Serial.print("⚠🚫Nodo ");
-                Serial.print(Nodo_Consultado);
-                Serial.println(" TimeOut");
-                nodeNoResponde = true;
-            } else {
-                // Serial.print("Nodo ");
-                // Serial.print(Nodo_Consultado);
-                // Serial.println(" respondió correctamente antes del timeout");
-            }
-        });
     }
+        // Configurar temporizador de timeout DESPUÉS de resetear las banderas
+    timer_No_Response.once_ms(timeout_NoResponse, [this]() {
+        
+        // Solo marcar como no responde si efectivamente no respondió
+        if (!estadosNodos[Nodo_Consultado].responde) {
+            if (estadosNodos[Nodo_Consultado].intentos == 1) {
+                nodoRetryPendiente = Nodo_Consultado;
+                retryNoResponsePending = true;
+                Serial.print("⚠ Nodo ");
+                Serial.print(Nodo_Consultado);
+                Serial.println(" sin respuesta, reintento 1/2");
+            }
+            if (estadosNodos[Nodo_Consultado].intentos == 2) {
+                estadosNodos[Nodo_Consultado].intentos = 0;
+                nodoRetryPendiente = 0; // No reintentar más después del segundo intento
+                retryNoResponsePending = false;
+                Serial.print("⚠ Nodo ");
+                Serial.print(Nodo_Consultado);
+                Serial.println(" sin respuesta, reintento 2/2");
+            }
+        }
+    });
 }
 void Master::Master_Nodo() {
     /**

@@ -258,6 +258,8 @@ private:
     char txNodoEsperado = ' ';
     unsigned long txStartMs = 0;
     int serverBurstCount = 0;
+    bool retryNoResponsePending = false;
+    int nodoRetryPendiente = 0;
 
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {
