@@ -137,6 +137,9 @@ public:
     bool    Zone_A_Extended = false;
     bool    Zone_B_Extended = false;
 
+    uint16_t   time_Zone_Actived = 3000;  // Tiempo para considerar que la zona está activada (3 segundos)
+    uint16_t   time_Zone_Fall = 6000;     // Tiempo para considerar que la zona ha caído (6 segundos)
+
 
     // **_________******************************Ya fueron migradas a Master.h**************________________________________________-
 
@@ -247,35 +250,35 @@ private:
     // Estadon del Nodo
         bool    Node_Status;
     // Entradas Auxiliares
-        bool    Zone_A;
-        bool    Zone_B;
-        bool    Zone_C;
+        bool    Zone_A_in_ST = false;
+        bool    Zone_B_in_ST = false;
+        bool    Zone_C_in_ST = false;
         // Zonas Reonocidas
-        bool    Zone_A_ACK;
-        bool    Zone_B_ACK;
-        bool    Zone_AB_ACK;
+        bool    Zone_A_ACK = false;
+        bool    Zone_B_ACK = false;
+        bool    Zone_AB_ACK = false;
 
-        bool    Fuente_in_ST;
+        bool    Fuente_in_ST = false;
 
-        bool    Rele_1_out_ST;
-        bool    Rele_2_out_ST;
+        bool    Rele_1_out_ST = false;
+        bool    Rele_2_out_ST = false;
 
     // Estados de Zonas
-        bool    Zone_A_ST;
-        bool    Zone_B_ST;
+        bool    Zone_A_ST = false;
+        bool    Zone_B_ST = false;
 
     // Zonas en Error
         bool    Zone_A_ERR = false;
         bool    Zone_B_ERR = false;
 
-        int     Zonas;
-        int     Zonas_Fallan;
+        int     Zonas = 0;
+        int     Zonas_Fallan = 0;
 
 
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
-        uint64_t    tx_time;
-        uint64_t    minimum_pause;
+        uint64_t    tx_time = 0;
+        uint64_t    minimum_pause = 0;
 
 
 };

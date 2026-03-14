@@ -60,8 +60,6 @@ Lora::Lora(bool IO_Simulated, int NumNodes, char nodeNumber){
     //2. Condicion Inicial.
       digitalWrite(Rele_1_out, LOW);
       digitalWrite(Rele_2_out, LOW);
-      Zone_A = false;
-      Zone_B = false;
       
       // Inicializar estados de zonas
       Zone_A_ST = false;
@@ -303,8 +301,8 @@ void Lora::Lora_Status_NodeSpecific(){
   StaticJsonDocument<512> nodeDoc;
   
   // === 🔌 ENTRADAS DIGITALES ===
-  nodeDoc["inputs"]["zone_a"] = Zone_A;
-  nodeDoc["inputs"]["zone_b"] = Zone_B;
+  nodeDoc["inputs"]["Zone_A_ST"] = Zone_A_ST;
+  nodeDoc["inputs"]["Zone_A_ST"] = Zone_A_ST;
   nodeDoc["inputs"]["zone_a_ack"] = Zone_A_ACK;
   nodeDoc["inputs"]["zone_b_ack"] = Zone_B_ACK;
   nodeDoc["inputs"]["zone_ab_ack"] = Zone_AB_ACK;
@@ -401,7 +399,7 @@ void Lora::Lora_Status_CommunicationStats(){
   // Añadir a radioStatusJSON para comunicación
   radioStatusJSON = commJSON;
 }
-String Lora::Lora_GetStatus(String type){
+String Lora::Lora_GetStatus(String type){                                             
   // ✅ MÉTODO UNIFICADO PARA OBTENER DIFERENTES TIPOS DE ESTADO
   StaticJsonDocument<1024> unifiedDoc;
   
@@ -479,15 +477,15 @@ void Lora::Lora_IO_Zones(){
     Zone_AB_ACK   = digitalRead(PB_ZC_in);       // pulsador C. Pulsador por defecto PRG.
 
   // 2. ZONE A y ZONE B Read input.
-    Zone_A        = digitalRead(Zona_A_in);
-    Zone_B        = digitalRead(Zona_B_in);
-
-  // 2.1 Lectura de la Fuente de Alimentación.
-    Fuente_in_ST = digitalRead(Fuente_in);
+    Zone_A_in_ST  = digitalRead(Zona_A_in);
+    Zone_B_in_ST  = digitalRead(Zona_B_in);
 
   // 3. OUTPUT A OUTPUT B Read.
     Rele_1_out_ST = digitalRead(Rele_1_out);
     Rele_2_out_ST = digitalRead(Rele_2_out);
+    
+  // 4. Lectura de la Fuente de Alimentación.
+    Fuente_in_ST  = digitalRead(Fuente_in);
     
   // 3.1 LLamada a la Funcion de Forazado.
       // Lora_IO_Zones_Force();
@@ -526,31 +524,26 @@ void Lora::Lora_IO_Zones(){
 
     }
   // 7. ZONE  A ACTIVA - Timer secuencial: 3s confirmación, luego 3s más para error.
-    if(!Zone_A){
+    if(!Zone_A_in_ST){
       if(!timer_ZA_En){
         // Primer timer: 3 segundos para confirmación (Zone_A_ST = true)
-        Timer_ZoneA_Enable.once_ms(3000, Lora_time_ZoneA_reach);
+        Timer_ZoneA_Enable.once_ms(time_Zone_Actived, Lora_time_ZoneA_reach);
         // Iniciar segundo timer de 6 segundos para confirmar (Zone_A_ERROR = true)
-        Timer_ZoneA_Error.once_ms(6000, Lora_time_ZoneA_error);
+        Timer_ZoneA_Error.once_ms(time_Zone_Fall, Lora_time_ZoneA_error);
         timer_ZA_En=true;
         Serial.println("ZA_Timers_EN");
       }
     }
   // 8. ZONE  B ACTIVA - Sistema de múltiples niveles temporales.
-    if(!Zone_B){
+    if(!Zone_B_in_ST){
       if(!timer_ZB_En){
         // Nivel 1: 3 segundos - Zona confirmada (Zone_B_ST = true)
-        Timer_ZoneB_Enable.once_ms(3000, Lora_time_ZoneB_reach);
+        Timer_ZoneB_Enable.once_ms(time_Zone_Actived, Lora_time_ZoneB_reach);
         // Nivel 2: 6 segundos - Tiempo alcanzado (Zone_B_Extended = true)
-        Timer_ZoneB_Extended.once_ms(6000, Lora_time_ZoneB_error);
+        Timer_ZoneB_Error.once_ms(time_Zone_Fall, Lora_time_ZoneB_error);
         timer_ZB_En=true;
         Serial.println("ZB_Timers_EN");
       }
-    }
-  // 9. ZONE  A y B FALLAN.
-    if(!Zone_A && timer_ZA_Reached){
-      // bitSet(Zonas_Fallan, Zone_A);
-      // F_IO_Event_Enable = true;
     }
   // 11. Evento en Zonas.
     if(F_IO_Event_Enable){
@@ -562,54 +555,23 @@ void Lora::Lora_IO_Zones(){
     if(!Zone_A_ERR){
       Zone_A_str=String(Zone_A_ST, BIN);
     }
+    else{
+      Zone_A_str="2";
+    }
     if(!Zone_B_ERR){
       Zone_B_str=String(Zone_B_ST, BIN);
     }
-    if(Zone_A_ERR){
-      Zone_A_str="2";
-    }
-    if(Zone_B_ERR){
+    else{
       Zone_B_str="2";
     }
     //PUSHBUTTON INPUTS
     Zone_A_ACK_str=String(!Zone_A_ACK, BIN);
     Zone_B_ACK_str=String(!Zone_B_ACK, BIN);
-    //SORUCE INPUT
-    Fuente_in_str=String(Fuente_in_ST, BIN);
     // SALIDAS
     Rele_1_out_str=String(Rele_1_out_ST, BIN);
     Rele_2_out_str=String(Rele_2_out_ST, BIN);
- }
-void Lora::Lora_IO_Zones_Force(){
-  // 1. Fuerza de Zonas A y B.
-  if(Zone_A_Forzar) Zone_A = Zone_A_Force;
-  if(Zone_B_Forzar) Zone_B = Zone_B_Force;
-  if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
- }
-void Lora::Lora_IO_Zone_A_ACK(){
-  Zone_A_ST=false;
-  Zone_A_ERR=false;
-  Zone_A_Extended=false;
-  Zone_B_Extended=false;
-  timer_ZA_Reached=false;
-  timer_ZA_En=false;
-  F_IO_Event_Enable = true;
-  Zone_A_F_str='.';
-  // Implementacion Futura.
-  bitClear(Zonas, Zone_A);
-  bitClear(Zonas_Fallan, Zone_A);
- }
-void Lora::Lora_IO_Zone_B_ACK(){
-  Zone_B_ST=false;
-  Zone_B_ERR=false;
-  timer_ZB_Reached=false;
-  timer_ZB_En=false;
-  Zone_B_Extended=false;
-  F_IO_Event_Enable = true;
-  Zone_B_F_str='.';
-  // Implementacion Futura.
-  bitClear(Zonas, Zone_B);
-  bitClear(Zonas_Fallan, Zone_B);
+    //SORUCE INPUT
+    Fuente_in_str=String(Fuente_in_ST, BIN);
  }
 void Lora::Lora_IO_Dummy_Simulate(){
   // 1. Simulacion de Paquete.
@@ -627,40 +589,80 @@ void Lora::Lora_IO_Dummy_Simulate(){
     // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
     Rele_1_out_str = "0";
  }
+void Lora::Lora_IO_Zones_Force(){
+  // 1. Fuerza de Zonas A y B.
+  if(Zone_A_Forzar) Zone_A_ST = Zone_A_Force;
+  if(Zone_B_Forzar) Zone_A_ST = Zone_B_Force;
+  if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
+ }
+void Lora::Lora_IO_Zone_A_ACK(){
+  Zone_A_ST=false;
+  Zone_A_ERR=false;
+  Zone_A_Extended=false;
+  Zone_B_Extended=false;
+  timer_ZA_Reached=false;
+  timer_ZA_En=false;
+  F_IO_Event_Enable = false;
+  Zone_A_F_str='.';
+  Zone_A_str=String(Zone_A_ST, BIN);
+  // Implementacion Futura.
+  bitClear(Zonas, Zone_A_ST);
+  bitClear(Zonas_Fallan, Zone_A_ST);
+ }
+void Lora::Lora_IO_Zone_B_ACK(){
+  Zone_B_ST=false;
+  Zone_B_ERR=false;
+  timer_ZB_Reached=false;
+  timer_ZB_En=false;
+  Zone_B_Extended=false;
+  F_IO_Event_Enable = false;
+  Zone_B_F_str='.';
+  Zone_B_str=String(Zone_B_ST, BIN);
+  // Implementacion Futura.
+  bitClear(Zonas, Zone_B_ST);
+  bitClear(Zonas_Fallan, Zone_B_ST);
+ }
+
+void Lora::Lora_time_ZoneA_reach(){
+  nodeInstance->timer_ZA_Reached=true;
+  if(!(nodeInstance->Zone_A_in_ST)){
+    // Zona confirmada después de 3 segundos
+    nodeInstance->Zone_A_ST=true;
+    nodeInstance->F_IO_Event_Enable=true;
+    nodeInstance->Zone_A_str=String(nodeInstance->Zone_A_ST, BIN);
+    Serial.println("Zone_A_ST true");
+  }
+ }
 void Lora::Lora_time_ZoneA_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error
-  if(!(nodeInstance->Zone_A)){
+  if(!(nodeInstance->Zone_A_in_ST)){
     nodeInstance->Zone_A_ERR=true;
     nodeInstance->F_IO_Event_Enable=true;
+    nodeInstance->timer_ZA_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
     Serial.println("ZA_ERROR true");
   }
  }
 void Lora::Lora_time_ZoneB_reach(){
   nodeInstance->timer_ZB_Reached=true;
-  if(!(nodeInstance->Zone_B)){
+  if(!(nodeInstance->Zone_B_in_ST)){
     // Zona confirmada después de 3 segundos
     nodeInstance->Zone_B_ST=true;
     nodeInstance->F_IO_Event_Enable=true;
+    nodeInstance->timer_ZB_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
+    nodeInstance->Zone_B_str=String(nodeInstance->Zone_B_ST, BIN);
     Serial.println("Zone_B_ST true");
   }
  }
 void Lora::Lora_time_ZoneB_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error
-  if(!(nodeInstance->Zone_B)){
+  if(!(nodeInstance->Zone_B_in_ST)){
     nodeInstance->Zone_B_ERR=true;
     nodeInstance->F_IO_Event_Enable=true;
+    nodeInstance->timer_ZB_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
     Serial.println("ZB_ERROR true");
   }
  }
-void Lora::Lora_time_ZoneA_reach(){
-  nodeInstance->timer_ZA_Reached=true;
-  if(!(nodeInstance->Zone_A)){
-    // Zona confirmada después de 3 segundos
-    nodeInstance->Zone_A_ST=true;
-    nodeInstance->F_IO_Event_Enable=true;
-    Serial.println("Zone_A_ST true");
-  }
- }
+
 void Lora::Lora_Event_Disable(){
   Timer_Nodo_Answer.detach();
   F_IO_Event_Enable = false;
@@ -863,4 +865,3 @@ void Lora::StartCalibration(String nodeToCalibrate) {
 bool Lora::IsCalibrationActive() {
   return F_MasterCalibration;
 }
-

@@ -81,9 +81,9 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
     nodeRef = Node;
     correrRef = Correr;
     if (MasterMode) {
-    Serial.println("Iniciando protocolo Master");
-    // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
-    timer_master.attach_ms(timeout_master, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+        Serial.println("Iniciando protocolo Master");
+        // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
+        timer_master.attach_ms(timeout_master, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
         
         // Imprime información de configuración
         Serial.print("Total de nodos configurados: ");
@@ -293,7 +293,7 @@ void Master::Calibration_Protocol() {
 }
 
 void Master::Node_Alerta() {
-    timer_master.attach_ms(6000, [this]() {
+    timer_nodo_alerta.attach_ms(6000, [this]() {
             message_type="E"; // Mensaje de Emergencia del Nodo al Master.
             Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
             nodeRef->Lora_TX(mensaje);
@@ -301,18 +301,18 @@ void Master::Node_Alerta() {
       
 }
 void Master::Node_Print_RX(){
-Serial.print("📩 Mensaje recibido - Remitente: ");
-Serial.print(rx_remitente);
-Serial.print(" | Destinatario: ");
-Serial.print(rx_destinatario);
-Serial.print(" | Modo: ");
-Serial.print(rx_funct_mode);
-Serial.print(" | Num: ");
-Serial.print(rx_funct_num);
-Serial.print(" | Param1: ");
-Serial.print(rx_funct_parameter1);
-Serial.print(" | Param2: ");
-Serial.println(rx_funct_parameter2);
+    Serial.print("📩 Mensaje recibido - Remitente: ");
+    Serial.print(rx_remitente);
+    Serial.print(" | Destinatario: ");
+    Serial.print(rx_destinatario);
+    Serial.print(" | Modo: ");
+    Serial.print(rx_funct_mode);
+    Serial.print(" | Num: ");
+    Serial.print(rx_funct_num);
+    Serial.print(" | Param1: ");
+    Serial.print(rx_funct_parameter1);
+    Serial.print(" | Param2: ");
+    Serial.println(rx_funct_parameter2);
  }
 void Master::Node_Message(){
   // 0. Function Llamada desde Lora_Nodo_Decodificar.
@@ -339,63 +339,64 @@ void Master::Node_Message(){
     tx_node_lora_8          =nodeRef->Fuente_in_str;           // Estado de la Fuente
 
 
-    if(message_type=="F"){     
+    if(rx_mensaje=="F"){
+        tx_node_lora_3          = "F";                             // Tipo de mensaje de Función Especial
         tx_node_lora_5 = counterStr.substring(0, 1); // primer dígito
         tx_node_lora_6 = counterStr.substring(1, 2); // segundo dígito
         tx_node_lora_7 = counterStr.substring(2, 3); // tercer dígito
-        tx_node_lora_8 = counterStr.substring(3, 4); // cuarto dígito
     }
     // 2. Armamos el paquete a enviar.
-        mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
+    mensaje = String(  tx_node_lora_1 + tx_node_lora_2 + tx_node_lora_3 + tx_node_lora_4 + tx_node_lora_5 + tx_node_lora_6 + tx_node_lora_7 + tx_node_lora_8);
 }   
 void Master::Node_Counter(){
     ++nodeCounter;
- }
+}
 void Master::Node_Decodificar(){
   // 1. Leemos el mensaje recibido.
     rx_master_lora_1 = mensaje.substring(0, 1); // Direccion del nodo que responde.
     rx_master_lora_2 = mensaje.substring(1, 2); // Direccion del maestro.
-    rx_master_lora_3 = mensaje.substring(2, 3); // Estado de la zona A.
-    rx_master_lora_4 = mensaje.substring(3, 4); // Estado de la zona B.
-    rx_master_lora_5 = mensaje.substring(4, 5); // Estado de la salida 1.
-    rx_master_lora_6 = mensaje.substring(5, 6); // Estado de la salida 2.
-    rx_master_lora_7 = mensaje.substring(6, 7); // Estado de la fuente.
-    rx_master_lora_8 = mensaje.substring(7, 8); // Tipo de mensaje, si es de emergencia.
+    rx_master_lora_3 = mensaje.substring(2, 3); // Tipo de mensaje, que recibo del Maestro. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo, "P"=Petición del Nodo al Master, "O"=Respuesta de Petición del Nodo al Master.
+    rx_master_lora_4 = mensaje.substring(3, 4); // Modo de función. "M"=Modo Manual, "A"=Modo Automático, "F"=Modo Función Especial.
+    rx_master_lora_5 = mensaje.substring(4, 5); // Numero de función o comando específico.
+    rx_master_lora_6 = mensaje.substring(5, 6); // Parametro 1 para la función o comando específico.
+    rx_master_lora_7 = mensaje.substring(6, 7); // Parametro 2 para la función o comando específico.
+    rx_master_lora_8 = mensaje.substring(7, 8); // Parametro 3 para la función o comando específico (opcional, dependiendo de la función).
 
     // 2. Asignamos los valores a las variables correspondientes.
-    rx_destinatario      =rx_master_lora_2;          // Direccion del nodo que responde.
     rx_remitente         =rx_master_lora_1;          // Direccion del maestro.
+    rx_destinatario      =rx_master_lora_2;          // Direccion del nodo que responde.
+    rx_mensaje           =rx_master_lora_3;          // Tipo de mensaje.
     rx_funct_mode        =rx_master_lora_4;          // Modo de funcion.
     rx_funct_num         =rx_master_lora_5;          // Numero de funcion.
     rx_funct_parameter1  =rx_master_lora_6;          // Parametro 1.
     rx_funct_parameter2  =rx_master_lora_7;          // Parametro 2.
+    rx_funct_parameter3  =rx_master_lora_8;          // Parametro 3.
 
     Node_Print_RX(); // Imprimimos el mensaje recibido.
+
+    // 3. Validamos que el mensaje esté dirigido a este nodo.
     if(rx_destinatario.charAt(0)==NodeAddress){
-        message_type= "P"; // Mensaje de Petición del Nodo al Master.
-      Serial.println("Nodo_Atiende");
-      if(rx_master_lora_3=="E"){
-        Serial.println("Peticion escuchada");
+      message_type= "P"; // Mensaje de Petición del Nodo al Master.
+      if(rx_mensaje=="E"){
         F_Node_Excecute=true;  //Flag Desactivado en L-4.3
       }
-      if(rx_funct_mode=="M"){
+      if(rx_mensaje=="M"){
       }
-      if(rx_funct_mode=="A"){
+      if(rx_mensaje=="A"){
         // 3. Contador de mensajes enviados.
         String counterStr = String(nodeCounter, DEC);
         while (counterStr.length() < 4) counterStr = "0" + counterStr; // Asegura 4 dígitos
         Node_Counter();
       }
-      if(rx_master_lora_3=="O"){
+      if(rx_mensaje=="O"){
         Serial.println("Nodo escuchado");
         timer_nodo_alerta.detach(); // Detener temporizador de alerta si estaba activo
       }
       F_Responder=true;
       F_Node_Atiende=true;
-      // Protocol.nodeResponde=F_Node_Atiende;
     }
     nodeRef->F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
-  }
+}
 // 🛂🛂NODO PROTOCOL🛂🛂
 void Master::Node_Protocol() {
     /**
@@ -424,13 +425,15 @@ void Master::Node_Protocol() {
     }
       //-P.5 Nodo Ejecuta Funciones.
     if(F_Node_Excecute){
+      timer_nodo_alerta.detach(); // Detener temporizador de alerta si estaba activo
+      Serial.println("Timer de alerta detenido (si estaba activo)");
       // Validación de datos antes de ejecutar funciones
-      String command = rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2;
+      String command = rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2 + rx_funct_parameter3;
       Serial.print("Ejecutando comando: ");
       Serial.println(command);
       
       // Verificar que el comando tenga la longitud mínima esperada
-      if(command.length() >= 4 && rx_funct_mode != "" && rx_funct_num != ""){
+      if(command.length() > 3){
         try {
           correrRef->Functions_Request(command);
           correrRef->Functions_Run();
@@ -472,7 +475,7 @@ void Master::Master_ExecuteFromServer(String mensajeServer) {
     
     Serial.print("Encolando acción desde servidor: ");
     Serial.println(mensajeServer);
-    String mensajeLora = String(Master_Address + String(mensajeServer.charAt(1)) + "E" + mensajeServer.substring(2));
+    String mensajeLora = String(Master_Address + String(mensajeServer.charAt(1)) + mensajeServer.substring(2));
 
     if (!EncolarMensajeServidor(mensajeLora)) {
         Serial.println("❌ Cola de mensajes del servidor llena");
@@ -671,7 +674,7 @@ void Master::MasterMessage() {
 
 
   //2. Armamos el mensaje para enviar.
-    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 );
+    mensaje = String(  tx_remitente + tx_destinatario + tx_mensaje + tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2 + tx_funct_parameter3 );
   //3. Borramos Variables de envio.
     nodo_consultado = tx_destinatario.charAt(0);
     tx_remitente=' ';
@@ -681,6 +684,7 @@ void Master::MasterMessage() {
     tx_funct_num=' ';
     tx_funct_parameter1=' ';
     tx_funct_parameter2=' ';
+    tx_funct_parameter3=' ';
     // Aquí podrías implementar lógica adicional para mensajes especiales
     // Por ejemplo: comandos específicos para cada nodo según su estado
 }
