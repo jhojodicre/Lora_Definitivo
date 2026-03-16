@@ -49,7 +49,10 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     nodeResponde = false;
     nodeNoResponde = false;  // Inicializar correctamente para evitar valores aleatorios
     firstScan = true;
+
     timeout_NoResponse=3000;
+    timeout_master = 4000; // Tiempo entre consultas a nodos (ms)
+
     txEnCurso = false;
     txEsServidor = false;
     txNodoEsperado = ' ';
@@ -57,6 +60,10 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     serverBurstCount = 0;
     retryNoResponsePending = false;
     nodoRetryPendiente = 0;
+    F_NodeAlertaActiva = false;
+    F_NodeAlertaPendienteTx = false;
+    F_NodeRxSincronizado = false;
+    F_ForzarTxEmergencia = false;
 }
 Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
     /**
@@ -293,12 +300,10 @@ void Master::Calibration_Protocol() {
 }
 
 void Master::Node_Alerta() {
-    timer_nodo_alerta.attach_ms(6000, [this]() {
-            message_type="E"; // Mensaje de Emergencia del Nodo al Master.
-            Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
-            nodeRef->Lora_TX(mensaje);
-        });
-      
+    message_type="E";
+    F_NodeAlertaPendienteTx = true;
+    F_NodeAlertaActiva = true;
+    nodeRef->F_IO_Event_Enable = false;
 }
 void Master::Node_Print_RX(){
     Serial.print("📩 Mensaje recibido - Remitente: ");
@@ -352,7 +357,8 @@ void Master::Node_Counter(){
     ++nodeCounter;
 }
 void Master::Node_Decodificar(){
-  // 1. Leemos el mensaje recibido.
+    
+    // 1. Leemos el mensaje recibido.
     rx_master_lora_1 = mensaje.substring(0, 1); // Direccion del nodo que responde.
     rx_master_lora_2 = mensaje.substring(1, 2); // Direccion del maestro.
     rx_master_lora_3 = mensaje.substring(2, 3); // Tipo de mensaje, que recibo del Maestro. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo, "P"=Petición del Nodo al Master, "O"=Respuesta de Petición del Nodo al Master.
@@ -361,7 +367,7 @@ void Master::Node_Decodificar(){
     rx_master_lora_6 = mensaje.substring(5, 6); // Parametro 1 para la función o comando específico.
     rx_master_lora_7 = mensaje.substring(6, 7); // Parametro 2 para la función o comando específico.
     rx_master_lora_8 = mensaje.substring(7, 8); // Parametro 3 para la función o comando específico (opcional, dependiendo de la función).
-
+    
     // 2. Asignamos los valores a las variables correspondientes.
     rx_remitente         =rx_master_lora_1;          // Direccion del maestro.
     rx_destinatario      =rx_master_lora_2;          // Direccion del nodo que responde.
@@ -371,11 +377,13 @@ void Master::Node_Decodificar(){
     rx_funct_parameter1  =rx_master_lora_6;          // Parametro 1.
     rx_funct_parameter2  =rx_master_lora_7;          // Parametro 2.
     rx_funct_parameter3  =rx_master_lora_8;          // Parametro 3.
-
-    Node_Print_RX(); // Imprimimos el mensaje recibido.
-
-    // 3. Validamos que el mensaje esté dirigido a este nodo.
+        
+        
+    // 0. Validamos que el mensaje esté dirigido a este nodo.
     if(rx_destinatario.charAt(0)==NodeAddress){
+        
+        Node_Print_RX(); // Imprimimos el mensaje recibido.
+     
       message_type= "P"; // Mensaje de Petición del Nodo al Master.
       if(rx_mensaje=="E"){
         F_Node_Excecute=true;  //Flag Desactivado en L-4.3
@@ -391,10 +399,22 @@ void Master::Node_Decodificar(){
       if(rx_mensaje=="O"){
         Serial.println("Nodo escuchado");
         timer_nodo_alerta.detach(); // Detener temporizador de alerta si estaba activo
+                F_NodeAlertaActiva = false;
+                F_NodeAlertaPendienteTx = false;
+                F_ForzarTxEmergencia = false;
       }
       F_Responder=true;
       F_Node_Atiende=true;
     }
+    // Convertir NodeAddress (char) a String para comparar correctamente con rx_remitente (String)
+    String nodeAddressStr = String(NodeAddress);
+    if(F_NodeAlertaActiva && rx_destinatario=="X" && rx_remitente != nodeAddressStr){                                                                                                                         
+        F_NodeRxSincronizado = true;
+        message_type = "E"; // Mensaje de Emergencia del Nodo al Master.
+        F_Responder=true;
+        F_Node_Atiende=true;
+    }
+
     nodeRef->F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
 }
 // 🛂🛂NODO PROTOCOL🛂🛂
@@ -408,20 +428,22 @@ void Master::Node_Protocol() {
     //-P.1 LORA RX
     nodeRef->Lora_RX();
     mensaje = nodeRef->rxdata;      // Se lee el mensaje recibido.
+    
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
     //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable){
-        message_type="E"; // Mensaje de Emergencia del Nodo al Master.
-        Node_Message();  // Antes de enviar el mensaje se prepara la trama del nodo.
-        nodeRef->Lora_TX(mensaje);
         Node_Alerta();        // Se detecta un evento en las zonas, se actualiza el estado del nodo a alerta y se prepara el mensaje para enviar al Master. 
-        nodeRef->F_IO_Event_Enable = false;
+        F_Responder=true;     // Se activa la bandera para responder al Master.
     }
-      //-P.4 Nodo RX.
+    //-P.4 Nodo RX.
     if(nodeRef->F_Recibido){
       Node_Decodificar();        // Se recibe el mensaje.
       Serial.println("Mensaje Decodificado");
+    }
+    if (F_NodeAlertaPendienteTx && F_NodeRxSincronizado) {
+        F_NodeRxSincronizado = false;
+        Serial.println("⏱️ Alerta diferida: envío sincronizado tras RX");
     }
       //-P.5 Nodo Ejecuta Funciones.
     if(F_Node_Excecute){
@@ -456,6 +478,7 @@ void Master::Node_Protocol() {
     if(F_Responder){
       Node_Message();                       // Antes de enviar el mensaje se prepara la trama del nodo.
       nodeRef->Lora_TX(mensaje);            // Se envia el mensaje.
+            
       F_Responder=false;
     }
 }
@@ -834,8 +857,8 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
         Nodo_Actual = rx_remitente.toInt(); // Convertir String a int antes de asignar
         nodeAlerta = true; // Mensaje inesperado, posible alerta
         
-        if(rx_mensaje == "O"){
-            EncolarMensajeServidor(rx_remitente + "O" + rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
+        if(rx_mensaje == "E"){
+            EncolarMensajeServidor(Master_Address + rx_remitente + "O" + rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2);
         }
         // IMPORTANTE: No cambiar nodeResponde/nodeNoResponde aquí
         // porque este mensaje no es del nodo que estamos consultando

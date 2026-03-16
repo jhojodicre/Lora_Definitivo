@@ -134,6 +134,10 @@ public:
      */
     bool F_Node_Excecute=false;
     bool F_Responder=true; // se activara para que el nodo envie un mensjae al iniciar el el protocolo.
+    bool F_NodeAlertaActiva=false;
+    bool F_NodeAlertaPendienteTx=false;
+    bool F_NodeRxSincronizado=false;
+    bool F_ForzarTxEmergencia=false;
     void Node_Message();
     
     int nodeCounter=0;
