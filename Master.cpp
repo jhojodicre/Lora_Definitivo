@@ -411,8 +411,12 @@ void Master::Node_Decodificar(){
     if(F_NodeAlertaActiva && rx_destinatario=="X" && rx_remitente != nodeAddressStr){                                                                                                                         
         F_NodeRxSincronizado = true;
         message_type = "E"; // Mensaje de Emergencia del Nodo al Master.
-        F_Responder=true;
         F_Node_Atiende=true;
+    }
+    if(rx_remitente=="X" && rx_destinatario !=nodeAddressStr && F_NodeAlertaActiva && !F_NodeRxSincronizado){ // Mensaje de Emergencia del Nodo al Master.
+        timer_nodo_alerta.once_ms(2000, [this]() {
+            this->F_NodeRxSincronizado = true;
+        });
     }
 
     nodeRef->F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
@@ -442,12 +446,12 @@ void Master::Node_Protocol() {
       Serial.println("Mensaje Decodificado");
     }
     if (F_NodeAlertaPendienteTx && F_NodeRxSincronizado) {
+        F_Responder = true;
         F_NodeRxSincronizado = false;
         Serial.println("⏱️ Alerta diferida: envío sincronizado tras RX");
     }
       //-P.5 Nodo Ejecuta Funciones.
     if(F_Node_Excecute){
-      timer_nodo_alerta.detach(); // Detener temporizador de alerta si estaba activo
       Serial.println("Timer de alerta detenido (si estaba activo)");
       // Validación de datos antes de ejecutar funciones
       String command = rx_funct_mode + rx_funct_num + rx_funct_parameter1 + rx_funct_parameter2 + rx_funct_parameter3;
@@ -798,7 +802,6 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
      */
     // Esta función analiza mensajes recibidos y determina acciones especiales
     // Desglosar el mensaje recibido en los nueve substrings como en la clase Lora
-    timer_No_Response.detach();             // 1. Detener el temporizador de no respuesta
     Lora_Rxdata         = mensaje_loraRX;
     rx_remitente        = Lora_Rxdata.substring(0, 1);
     rx_destinatario     = Lora_Rxdata.substring(1, 2);
@@ -826,6 +829,7 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
     // Registrar que el nodo ha respondido
     if (rx_remitente.toInt() == Nodo_Consultado) { // Comparar correctamente convirtiendo String a int
         // Serial.println("*** NODO CONSULTADO RESPONDIÓ CORRECTAMENTE ***");
+        timer_No_Response.detach();             // 1. Detener el temporizador de no respuesta
         nodeResponde = true;
         nodeNoResponde = false;
         
