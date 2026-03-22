@@ -403,6 +403,7 @@ void Master::Node_Decodificar(){
                 F_NodeAlertaPendienteTx = false;
                 F_ForzarTxEmergencia = false;
       }
+      
       F_Responder=true;
       F_Node_Atiende=true;
     }
@@ -417,6 +418,8 @@ void Master::Node_Decodificar(){
         timer_nodo_alerta.once_ms(2000, [this]() {
             this->F_NodeRxSincronizado = true;
         });
+
+        
     }
 
     nodeRef->F_Recibido=false;               // Flag activado desde Lora_Nodo_Decodificar Se resetea la bandera de recepcion.
@@ -435,22 +438,28 @@ void Master::Node_Protocol() {
     
     //-P.2 Node IO.
     nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas.
+
     //-P.3 Nodo Evento en Zonas
     if(nodeRef->F_IO_Event_Enable){
         Node_Alerta();        // Se detecta un evento en las zonas, se actualiza el estado del nodo a alerta y se prepara el mensaje para enviar al Master. 
         F_Responder=true;     // Se activa la bandera para responder al Master.
     }
+
     //-P.4 Nodo RX.
     if(nodeRef->F_Recibido){
       Node_Decodificar();        // Se recibe el mensaje.
       Serial.println("Mensaje Decodificado");
     }
+
+    //-P.5 Nodo Alerta Pendiente Tx.
     if (F_NodeAlertaPendienteTx && F_NodeRxSincronizado) {
+        
         F_Responder = true;
         F_NodeRxSincronizado = false;
         Serial.println("⏱️ Alerta diferida: envío sincronizado tras RX");
     }
-      //-P.5 Nodo Ejecuta Funciones.
+
+    //-P.6 Nodo Ejecuta Funciones.
     if(F_Node_Excecute){
       Serial.println("Timer de alerta detenido (si estaba activo)");
       // Validación de datos antes de ejecutar funciones
@@ -478,7 +487,8 @@ void Master::Node_Protocol() {
       F_Node_Excecute=false;
       nodeRef->Lora_IO_Zones(); // Se actualizan los estados de las zonas antes de responder al Master.
     }
-      //-P.6 Nodo TX.
+
+    //-P.7 Nodo TX.
     if(F_Responder){
       Node_Message();                       // Antes de enviar el mensaje se prepara la trama del nodo.
       nodeRef->Lora_TX(mensaje);            // Se envia el mensaje.

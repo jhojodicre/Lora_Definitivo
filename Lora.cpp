@@ -643,49 +643,8 @@ void Lora::Lora_IO_Dummy_Simulate(){
     // Fuente_in_str = "0";
 
   // 4. Lectura de la Fuente de Alimentación.
-    batteryVoltage = heltec_vbat();
-
-    int rawLow = -1;
-    int rawHigh = -1;
-    bool fallbackUsed = false;
-    bool ctrlActiveLow = true;
-    if (batteryVoltage < 0.05f) {
-      fallbackUsed = true;
-      pinMode(VBAT_CTRL, OUTPUT);
-      digitalWrite(VBAT_CTRL, LOW);
-      delay(6);
-      rawLow = analogRead(VBAT_ADC);
-      digitalWrite(VBAT_CTRL, HIGH);
-      delay(6);
-      rawHigh = analogRead(VBAT_ADC);
-      pinMode(VBAT_CTRL, INPUT);
-
-      int bestRaw = rawLow;
-      if (rawHigh > rawLow) {
-        bestRaw = rawHigh;
-        ctrlActiveLow = false;
-      }
-      batteryVoltage = bestRaw / 238.7f;
-    }
-
-    int batteryPercent = heltec_battery_percent(batteryVoltage);
-    Fuente_in_ST = (batteryVoltage > 4.35);
-
-    static unsigned long lastPrintTime = 0;
-    if (millis() - lastPrintTime >= 3000) {
-      if (fallbackUsed) {
-        both.printf("🔋 Battery: %.2fV (%d%%) | %s | FB L:%d H:%d active:%s\n",
-                      batteryVoltage, batteryPercent,
-                      Fuente_in_ST ? "USB/Fuente" : "Bateria",
-                      rawLow, rawHigh,
-                      ctrlActiveLow ? "LOW" : "HIGH");
-      } else {
-        both.printf("🔋 Battery: %.2fV (%d%%) | %s\n",
-                      batteryVoltage, batteryPercent,
-                      Fuente_in_ST ? "USB/Fuente" : "Bateria");
-      }
-      lastPrintTime = millis();
-    }
+    Lora_IO_Battery();
+    Fuente_in_str=String(Fuente_in_ST, BIN);
   }
 
 void Lora::Lora_IO_Zones_Force(){
