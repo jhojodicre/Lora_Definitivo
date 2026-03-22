@@ -947,7 +947,7 @@ void Master::Master_Protocol() {
         }
   }
     if(F_Server_Master){
-        correrRef->Functions_Request(message_From_Server);
+        correrRef->Functions_Request(message_From_Server.substring(2));
         correrRef->Functions_Run();
         F_Server_Master=false;
     }

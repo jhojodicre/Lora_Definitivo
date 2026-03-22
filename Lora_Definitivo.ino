@@ -7,7 +7,7 @@
     #include "NodeWebServer.h"
     #include "Master.h"
 
-//3. Variables Globales.
+//3. Variables Globales.                                               
   //-3.1 Variables Interrupciones
     volatile bool flag_ISR_prueba=false;             // Flag: prueba para interrupcion serial.
     volatile bool flag_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.

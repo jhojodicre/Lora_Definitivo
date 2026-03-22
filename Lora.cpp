@@ -104,6 +104,10 @@ void Lora::Lora_Configure(int numero_de_configuracion){
   
   // Configuracion inicial de Lora con selección automática según distancia
   heltec_setup();
+  // ESP32-S3: el rango ADC por defecto (0dB ~950mV) es insuficiente para VBAT_ADC
+  // (el divisor entrega hasta ~2.1V). ADC_11db extiende el rango a ~3.1V.
+  analogSetAttenuation(ADC_11db);
+  analogReadResolution(12);
   RADIOLIB_OR_HALT(radio.begin());
   
   // Set the callback function for received packets
@@ -465,7 +469,59 @@ void Lora::Lora_UpdateAllStatus(){
   Serial.println("✅ Todos los estados actualizados");
 }
 
+void Lora::Lora_IO_Battery(){
+  // Lectura de la Fuente de Alimentación.
+    // VBAT_CTRL=GPIO37 habilita el divisor; VBAT_ADC=GPIO1 lee el voltaje.
+    // Se configura aqui para asegurar que SIEMPRE quede activo en el camino real del loop.
+    static bool vbatAdcConfigured = false;
+    if (!vbatAdcConfigured) {
+      analogSetAttenuation(ADC_11db);
+      analogReadResolution(12);
+      vbatAdcConfigured = true;
+    }
 
+    int rawLow = -1;
+    int rawHigh = -1;
+    bool fallbackUsed = false;
+    bool ctrlActiveLow = true;
+
+    // Si por cualquier motivo la libreria devuelve ~0, hacemos una lectura manual robusta
+    // y detectamos la polaridad real de VBAT_CTRL en tu hardware.
+      fallbackUsed = true;
+      pinMode(VBAT_CTRL, OUTPUT);
+
+      digitalWrite(VBAT_CTRL, LOW);
+      delay(8);
+      rawLow = analogRead(VBAT_ADC);
+
+      digitalWrite(VBAT_CTRL, HIGH);
+      delay(8);
+      rawHigh = analogRead(VBAT_ADC);
+
+      pinMode(VBAT_CTRL, INPUT);
+
+      int bestRaw = rawLow;
+      if (rawHigh > rawLow) {
+        bestRaw = rawHigh;
+        ctrlActiveLow = false;
+      }
+
+      batteryVoltage = bestRaw / 238.7f;
+
+    int batteryPercent = heltec_battery_percent(batteryVoltage);
+    // >4.18V = batería al 100% / cargando activamente | <4.18V = batería descargando
+    // Nota: con divisor resistivo no se puede distinguir USB vs batería llena con certeza
+    Fuente_in_ST = (batteryVoltage < 3.95f);
+
+    static unsigned long lastPrintTime = 0;
+    // if (millis() - lastPrintTime >= 3000) {
+      
+    //     both.printf("🔋 Bat: %.2fV (%d%%) | %s\n",
+    //                   batteryVoltage, batteryPercent,
+    //                   Fuente_in_ST ? "USB/Fuente" : "Bateria");
+    //   lastPrintTime = millis();
+    // }
+  }
 void Lora::Lora_IO_Zones(){
   if(F_IO_Simulated){
     Lora_IO_Dummy_Simulate();
@@ -485,10 +541,7 @@ void Lora::Lora_IO_Zones(){
     Rele_2_out_ST = digitalRead(Rele_2_out);
     
   // 4. Lectura de la Fuente de Alimentación.
-    Fuente_in_ST  = digitalRead(Fuente_in);
-    
-  // 3.1 LLamada a la Funcion de Forazado.
-      // Lora_IO_Zones_Force();
+    Lora_IO_Battery();
 
   // 4  ZONES AB RESET con el pulsador C.
     if(!Zone_AB_ACK){
@@ -582,13 +635,59 @@ void Lora::Lora_IO_Dummy_Simulate(){
     Zone_A_str = "0";
     // Zone_B_str = String(random(0, 2));    // Random between "0" and "1"
     Zone_B_str = "0";
-    // Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
-    Fuente_in_str = "0";
-    // Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
-    Rele_2_out_str = "0";
     // Rele_1_out_str = String(random(0, 2)); // Random between "0" and "1"
     Rele_1_out_str = "0";
- }
+    // Rele_2_out_str = String(random(0, 2)); // Random between "0" and "1"
+    Rele_2_out_str = "0";
+    // Fuente_in_str = String(random(0, 2)); // Random between "0" and "1"
+    // Fuente_in_str = "0";
+
+  // 4. Lectura de la Fuente de Alimentación.
+    batteryVoltage = heltec_vbat();
+
+    int rawLow = -1;
+    int rawHigh = -1;
+    bool fallbackUsed = false;
+    bool ctrlActiveLow = true;
+    if (batteryVoltage < 0.05f) {
+      fallbackUsed = true;
+      pinMode(VBAT_CTRL, OUTPUT);
+      digitalWrite(VBAT_CTRL, LOW);
+      delay(6);
+      rawLow = analogRead(VBAT_ADC);
+      digitalWrite(VBAT_CTRL, HIGH);
+      delay(6);
+      rawHigh = analogRead(VBAT_ADC);
+      pinMode(VBAT_CTRL, INPUT);
+
+      int bestRaw = rawLow;
+      if (rawHigh > rawLow) {
+        bestRaw = rawHigh;
+        ctrlActiveLow = false;
+      }
+      batteryVoltage = bestRaw / 238.7f;
+    }
+
+    int batteryPercent = heltec_battery_percent(batteryVoltage);
+    Fuente_in_ST = (batteryVoltage > 4.35);
+
+    static unsigned long lastPrintTime = 0;
+    if (millis() - lastPrintTime >= 3000) {
+      if (fallbackUsed) {
+        both.printf("🔋 Battery: %.2fV (%d%%) | %s | FB L:%d H:%d active:%s\n",
+                      batteryVoltage, batteryPercent,
+                      Fuente_in_ST ? "USB/Fuente" : "Bateria",
+                      rawLow, rawHigh,
+                      ctrlActiveLow ? "LOW" : "HIGH");
+      } else {
+        both.printf("🔋 Battery: %.2fV (%d%%) | %s\n",
+                      batteryVoltage, batteryPercent,
+                      Fuente_in_ST ? "USB/Fuente" : "Bateria");
+      }
+      lastPrintTime = millis();
+    }
+  }
+
 void Lora::Lora_IO_Zones_Force(){
   // 1. Fuerza de Zonas A y B.
   if(Zone_A_Forzar) Zone_A_ST = Zone_A_Force;

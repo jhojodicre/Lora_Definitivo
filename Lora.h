@@ -49,6 +49,7 @@ public:
     static void    rx();
 
     void   Lora_IO_Zones();
+    void   Lora_IO_Battery();
     void   Lora_IO_Dummy_Simulate();
     void   Lora_IO_Zones_Force();
     void   Lora_IO_Zone_A_ACK();
@@ -180,24 +181,7 @@ public:
         String    systemStatusJSON;         // JSON con estado general del sistema
         String    nodeStatusJSON;           // JSON con estado específico del nodo
 
-        String    tx_nodo_lora_1;
-        String    tx_nodo_lora_2;
-        String    tx_nodo_lora_3;
-        String    tx_nodo_lora_4;
-        String    tx_nodo_lora_5;
-        String    tx_nodo_lora_6;
-        String    tx_nodo_lora_7;
-        String    tx_nodo_lora_8;
 
-
-        String    rx_master_lora_1;
-        String    rx_master_lora_2;
-        String    rx_master_lora_3;
-        String    rx_master_lora_4;
-        String    rx_master_lora_5;
-        String    rx_master_lora_6;
-        String    rx_master_lora_7;
-        String    rx_master_lora_8;
 
     // Forzados
         bool    Zone_A_Force;
@@ -274,7 +258,8 @@ private:
         int     Zonas = 0;
         int     Zonas_Fallan = 0;
 
-
+    // Voltaje de la batería
+        float   batteryVoltage = 0.0;
     // long        mensaje = 0;
         uint64_t    last_tx = 0;
         uint64_t    tx_time = 0;
