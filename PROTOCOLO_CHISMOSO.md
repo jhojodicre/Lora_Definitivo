@@ -383,3 +383,108 @@ Este documento describe el protocolo CHISMOSO actual, no el protocolo ideal. La 
 3. una maquina de estados Nodo
 4. una politica de retransmision y acuses
 5. un plan de migracion sin romper el hardware actual
+
+## Backlog priorizado para mejorar CHISMOSO
+
+Esta lista esta ordenada por impacto en confiabilidad y por riesgo operativo.
+
+### Prioridad 0 (critico)
+
+#### 0.1 Unificar direccion local de nodo
+
+- Problema: hoy hay dos fuentes de verdad para la direccion (`local_Address` en `Lora` y `NodeAddress` en `Master`) y pueden divergir.
+- Impacto: mensajes ignorados o aceptados por el nodo equivocado.
+- Evidencia: [Lora_Definitivo.ino#L65](Lora_Definitivo.ino#L65) y [Lora_Definitivo.ino#L66](Lora_Definitivo.ino#L66).
+- Accion recomendada: exponer una sola direccion canonica y usarla en parseo, armado y logs.
+- Criterio de salida: no existe ningun flujo que compare contra una direccion distinta de la canonica.
+
+#### 0.2 Normalizar tabla de tipos de mensaje
+
+- Problema: `E`, `A`, `M`, `O`, `P`, `F`, `R`, `.` tienen usos cruzados y en algunos casos contradictorios.
+- Impacto: comportamiento ambiguo y bugs de estado dificilmente reproducibles.
+- Evidencia: [Master.cpp#L359](Master.cpp#L359), [Master.cpp#L809](Master.cpp#L809), [Master.cpp#L890](Master.cpp#L890).
+- Accion recomendada: crear enum/constantes con un significado unico por tipo.
+- Criterio de salida: cada tipo se interpreta igual en Maestro y Nodo.
+
+### Prioridad 1 (alta)
+
+#### 1.1 Separar frame de comando y frame de estado
+
+- Problema: la misma trama de 8 bytes cambia semantica segun sentido.
+- Impacto: parser fragil, dificil de extender y validar.
+- Accion recomendada: mantener 8 bytes si se quiere compatibilidad, pero con `kind` explicito y campos estables; alternativa: frame variable con cabecera fija.
+- Criterio de salida: parser unico que no dependa del sentido para interpretar posiciones.
+
+#### 1.2 Definir contrato de ACK y retransmision
+
+- Problema: la alerta diferida y el acuse `O` no tienen reglas cerradas de entrega.
+- Impacto: posible perdida silenciosa de alertas o reintentos innecesarios.
+- Accion recomendada: fijar politica de reintento, timeout por tipo y maximo de retransmisiones.
+- Criterio de salida: cada mensaje critico tiene estado `pendiente`, `confirmado` o `expirado`.
+
+#### 1.3 Incorporar numero de secuencia de aplicacion
+
+- Problema: no hay identificador robusto de mensaje para deduplicar/reintentar.
+- Impacto: duplicados y dificultad para correlacionar TX/RX.
+- Accion recomendada: agregar `seq` por remitente y validacion de repetidos.
+- Criterio de salida: el receptor detecta y descarta duplicados de forma deterministica.
+
+### Prioridad 2 (media)
+
+#### 2.1 Separar responsabilidades de `Master`
+
+- Problema: mezcla transporte, scheduler, parser, negocio, servidor y ejecucion.
+- Impacto: alto acoplamiento y baja testabilidad.
+- Accion recomendada: dividir en modulos: `LinkLayer`, `ProtocolCodec`, `NodeScheduler`, `ServerBridge`.
+- Criterio de salida: cada modulo tiene una responsabilidad clara y API corta.
+
+#### 2.2 Formalizar maquina de estados Maestro/Nodo
+
+- Problema: hoy hay muchas banderas con transiciones implícitas.
+- Impacto: condiciones de carrera logicas y estados invalidados por orden de ejecucion.
+- Accion recomendada: modelar estados explicitos y transiciones con eventos.
+- Criterio de salida: diagrama y codigo alineados con transiciones verificables.
+
+#### 2.3 Endurecer validacion de trama
+
+- Problema: no hay version ni longitud declarada ni checksum de aplicacion.
+- Impacto: tramas parcialmente validas pueden activar acciones no deseadas.
+- Accion recomendada: agregar `ver`, `len` y checksum simple de payload.
+- Criterio de salida: cualquier trama invalida se descarta con motivo de error trazable.
+
+### Prioridad 3 (mejora continua)
+
+#### 3.1 Telemetria de protocolo
+
+- Problema: no existe metrica consolidada de PER, latencia, reintentos y colisiones logicas.
+- Impacto: se optimiza a ciegas.
+- Accion recomendada: exponer contadores y percentiles basicos via JSON/serial.
+- Criterio de salida: dashboard o log con KPIs minimos del enlace.
+
+#### 3.2 Compatibilidad evolutiva
+
+- Problema: cambios de protocolo pueden romper nodos desplegados.
+- Impacto: riesgo operativo en campo.
+- Accion recomendada: estrategia de versionado y modo dual temporal v1/v2.
+- Criterio de salida: migracion gradual sin downtime de red.
+
+## Orden sugerido de ejecucion
+
+1. P0.1 Direccion canonica.
+2. P0.2 Tabla unica de tipos.
+3. P1.1 Frame unificado (manteniendo compatibilidad).
+4. P1.2 ACK/retransmision.
+5. P1.3 Secuencia y deduplicacion.
+6. P2.2 Maquinas de estados.
+7. P2.1 Refactor modular.
+8. P2.3 Validacion estructural.
+9. P3.1 Telemetria.
+10. P3.2 Migracion v1/v2.
+
+## Entregable para la siguiente sesion
+
+Si seguimos con la optimizacion, el siguiente entregable recomendado es:
+
+1. especificacion minima v2 de trama (campos, tipos y ejemplos)
+2. tabla final de tipos de mensaje
+3. matriz de compatibilidad v1/v2

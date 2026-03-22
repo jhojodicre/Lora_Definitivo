@@ -60,10 +60,12 @@
       char        incomingFuntion;
 //4. Intancias.
   //-4.1 Clases propias.
+    const int  CHISMOSO_TOTAL_NODOS = 5;
+    const char CHISMOSO_NODE_ADDRESS = '1';
     Functions Correr(true);                 // Funciones a Ejecutar
     General   General(false);               // Configuraciones Generales del Nodo.
-    Lora      Node(false,5,'1');
-    Master    Chismoso(false, 5, '3');      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
+    Lora      Node(false);
+    Master    Chismoso(false, CHISMOSO_TOTAL_NODOS, CHISMOSO_NODE_ADDRESS);      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
   //-4.2 Clases de Protocolos.
     LoRaWebServer webServer(80);            // AGREGAR ESTA LÍNEA
 //5. Funciones ISR.

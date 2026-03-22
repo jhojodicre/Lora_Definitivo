@@ -33,7 +33,7 @@
 class Lora {
 public:
     // Master      Protocol;
-    Lora(bool isMaster,int  nodeNumber, char localAddress);
+    Lora(bool io_simulated);
     void   Setup();
     void   Lora_Setup();
     void   Lora_TX(String mensaje);
@@ -122,10 +122,6 @@ public:
 
     bool    F_Responder=false;
     bool    F_Recibido=false;
-    bool    F_Nodo_Excecute=false;
-    bool    F_Master_Excecute=false;
-    bool    F_Master_Update=false;
-    bool    F_function_Special=false;
 
     bool    F_IO_Simulated=false;
     bool    F_IO_Event_Enable=false;
@@ -144,34 +140,18 @@ public:
 
     // **_________******************************Ya fueron migradas a Master.h**************________________________________________-
 
-    bool    F_No_Responder=false;
-    bool    F_Node_Atiende=false;
-    bool    F_MasterMode=false;
-    bool    F_NodeMode=false;
     bool    F_MasterCalibration=false;
-    bool    F_ServerUpdate=false;
-    bool    F_NodeStatusUpdate=false;
-    // byte    Master_Address=0xFF; // Direccion del maestro.
-        String  Master_Address="X"; // Direccion del maestro.
+
         char    ascii_representation[9];
         String  rxdata;
         String  txdata;
         String  mensaje;
-        byte    nodo_local;
-        char    nodo_status;            // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-        char    local_Address='1';      // Direccion del nodo local.
-        char    nodo_consultado;        // Direccion del nodo consultado.
-        char    nodo_Number;
-        String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
-        String  nodo_DB=" ";
-        int     Num_Nodos=1;            // Numero de nodos en el sistema.
+       
         String  Node_to_Calibrate=" ";  // Nodo que se esta calibrando.
-        String  Device_King = "0";      // Tipo de dispositivo: N=Nodo normal, M=Master especial (si aplica)
-        String  Device_Number = "0";    // Numero de dispositivo para identificar diferentes tipos de nodos.
-
+        
         //_________________________**************************************************______________________________________
 
-        String  rx_mensaje_DB;          // Mensaje recibido.
+
         String  rx_ST_ZA_DB;            // Estado de la Zona A.
         String  rx_ST_ZB_DB;            // Estado de la Zona B.
         String  rx_ST_FT_DB;            // Estado de la Fuente.
@@ -210,8 +190,8 @@ public:
 
 
     // Protocolo
-        bool        msg_enviar=false;
-        int         msg_enviado=0;
+        bool        F_MasterMode=false; // Modo Master o Nodo
+        bool        F_NodeMode=false;
         uint16_t    Node_Counter = 0;
         uint16_t    Master_Counter = 0;
         String      counterStr = "0";
@@ -227,8 +207,6 @@ private:
 
         int     Rele_1_out=5;            // 16;
         int     Rele_2_out=6;            // 17;
-
-        int     Fuente_in=43;           // 3.3V
 
 
     // Estadon del Nodo

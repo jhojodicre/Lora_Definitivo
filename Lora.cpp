@@ -36,19 +36,15 @@ Ticker      Timer_ZoneB_Extended;   // Timer para 6 segundos (tiempo alcanzado)
 Ticker      Timer_ZoneB_Error;      // Timer para 9 segundos (error)
 Lora*       nodeInstance = nullptr; // Puntero global al objeto Master
 
-Lora::Lora(bool IO_Simulated, int NumNodes, char nodeNumber){
+Lora::Lora(bool IO_Simulated){
     // Inicializa el atributo Master correctamente
   
   F_IO_Simulated = IO_Simulated;
-  local_Address = nodeNumber; // Direccion del nodo local.
-  Num_Nodos     = NumNodes;
 
   // Constructor de la clase Node
     //1. Configuracion de Hardware
       pinMode(Zona_A_in, INPUT);
       pinMode(Zona_B_in, INPUT);
-
-      pinMode(Fuente_in, INPUT);
 
       pinMode(PB_ZA_in, INPUT);
       pinMode(PB_ZB_in, INPUT);
@@ -67,7 +63,6 @@ Lora::Lora(bool IO_Simulated, int NumNodes, char nodeNumber){
       Zone_A_ERR = false;
       Zone_B_ERR = false;
       
-      F_Nodo_Excecute=false;
       nodeInstance = this; // Asignar la instancia actual al puntero global
       Serial.println("📡 Clase Lora instanciada.");
  }
@@ -200,9 +195,6 @@ void Lora::Lora_TX(String mensaje){
     radio.setDio1Action(rx);
     RADIOLIB_OR_HALT(radio.startReceive(RADIOLIB_SX126X_RX_TIMEOUT_INF));
     F_Responder = false;      // Bandera activada en Lora_Nodo_Decodificar.
-    nodo_consultado=nodo_a_Consultar.charAt(0);
-    F_Node_Atiende=false;    // Flag desactivado en Lora_Nodo_Decodificar.
-    // Protocol.nodeResponde=F_Node_Atiende;
 }
 void Lora::Lora_RX(){
     // If a packet was received, display it and the RSSI and SNR
@@ -246,7 +238,6 @@ void Lora::Lora_Status_RadioConfig(){
   
   // === 🔧 INFORMACIÓN DEL DISPOSITIVO ===
   statusDoc["device"]["type"] = F_MasterMode ? "MASTER" : "NODE";
-  statusDoc["device"]["address"] = String(local_Address);
   statusDoc["device"]["uptime"] = millis() / 1000; // Segundos de funcionamiento
   statusDoc["device"]["free_heap"] = ESP.getFreeHeap();
   
@@ -258,11 +249,9 @@ void Lora::Lora_Status_RadioConfig(){
   
   // === 🎯 ESTADO ESPECÍFICO DEL MASTER ===
   if (F_MasterMode) {
-    statusDoc["master"]["total_nodes"] = Num_Nodos;
     // statusDoc["master"]["current_node"] = String(Protocol.Nodo_Consultado);
     // statusDoc["master"]["next_node"] = String(Protocol.Nodo_Proximo);
     statusDoc["master"]["calibration_active"] = F_MasterCalibration;
-    statusDoc["master"]["master_address"] = Master_Address;
   }
   
   // === 📍 ESTADO ESPECÍFICO DEL NODO ===
@@ -344,17 +333,7 @@ void Lora::Lora_Status_MasterSpecific(){
   if (!F_MasterMode) return;
   
   StaticJsonDocument<512> masterDoc;
-  
-  // === 🎯 CONFIGURACIÓN MASTER ===
-  masterDoc["config"]["total_nodes"] = Num_Nodos;
-  masterDoc["config"]["master_address"] = Master_Address;
-  masterDoc["config"]["local_address"] = String(local_Address);
-  
-  // === 📡 ESTADO DE CONSULTA ===
-  // masterDoc["polling"]["current_node"] = String(Protocol.Nodo_Consultado);
-  // masterDoc["polling"]["next_node"] = String(Protocol.Nodo_Proximo);
-  masterDoc["polling"]["node_to_query"] = nodo_a_Consultar;
-  // masterDoc["polling"]["query_active"] = Protocol.Next;
+\
   
   // === 🔬 CALIBRACIÓN ===
   masterDoc["calibration"]["active"] = F_MasterCalibration;
@@ -365,13 +344,6 @@ void Lora::Lora_Status_MasterSpecific(){
   
   // === 📊 ESTADÍSTICAS ===
   masterDoc["stats"]["master_counter"] = Master_Counter;
-  // masterDoc["stats"]["node_responds"] = Protocol.nodeResponde;
-  // masterDoc["stats"]["node_no_response"] = Protocol.nodeNoResponde;
-  // masterDoc["stats"]["node_alert"] = Protocol.nodeAlerta;
-  
-  // === 🌐 SERVIDOR ===
-  masterDoc["server"]["update_pending"] = F_ServerUpdate;
-  masterDoc["server"]["execute_pending"] = F_Master_Excecute;
   
   serializeJson(masterDoc, systemStatusJSON); // Usar systemStatusJSON para Master
 }
@@ -387,10 +359,8 @@ void Lora::Lora_Status_CommunicationStats(){
   // === 📊 CONTADORES ===
   if (F_MasterMode) {
     commDoc["counters"]["master_counter"] = Master_Counter;
-    commDoc["counters"]["total_nodes"] = Num_Nodos;
   } else {
     commDoc["counters"]["node_counter"] = Node_Counter;
-    commDoc["counters"]["local_address"] = String(local_Address);
   }
   
   // === 🔄 ESTADO DE COMUNICACIÓN ===

@@ -65,19 +65,6 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
     F_NodeRxSincronizado = false;
     F_ForzarTxEmergencia = false;
 }
-Master::Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_in_status) {
-    /**
-     * @brief Constructor para almacenar estado de un nodo
-     */
-    // Almacenamiento de estados del nodo
-    nodo_Number = nodoNumero.charAt(0);
-    Zone_A = ZonaA_status;
-    Zone_B = ZonaB_status;
-    Fuente = Fuente_in_status;
-    
-    // Prepara el string concatenado para la base de datos
-    Node_DB = nodo_Number + Zone_A + Zone_B + Fuente;
-}
 
 void Master::Iniciar(Lora* Node, Functions* Correr) {
     /**
