@@ -384,6 +384,26 @@ Este documento describe el protocolo CHISMOSO actual, no el protocolo ideal. La 
 4. una politica de retransmision y acuses
 5. un plan de migracion sin romper el hardware actual
 
+## Avance implementado (P1.1 compatible)
+
+Se implemento una capa de armado/parseo explicito de trama en modo compatible con el formato actual de 8 bytes:
+
+- `BuildFrame8(...)` para armado.
+- `ParseFrame8(...)` para parseo.
+
+Puntos integrados:
+
+1. `Node_Message()` ahora arma la trama por helper.
+2. `MasterMessage()` ahora arma la trama por helper.
+3. `Node_Decodificar()` ahora valida longitud minima y parsea por helper.
+4. `MasterDecodificar()` ahora valida longitud minima y parsea por helper.
+
+Compatibilidad:
+
+- Se mantiene el frame de 8 bytes.
+- No cambia semantica funcional de `Node_Protocol()` ni `Master_Protocol()`.
+- Se agrega rechazo explicito de tramas invalidas con log de longitud.
+
 ## Backlog priorizado para mejorar CHISMOSO
 
 Esta lista esta ordenada por impacto en confiabilidad y por riesgo operativo.

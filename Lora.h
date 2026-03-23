@@ -161,7 +161,7 @@ public:
         String    systemStatusJSON;         // JSON con estado general del sistema
         String    nodeStatusJSON;           // JSON con estado específico del nodo
 
-
+        String     nodo_a_Consultar="1"; // Nodo que el Master está consultando o calibrando
 
     // Forzados
         bool    Zone_A_Force;

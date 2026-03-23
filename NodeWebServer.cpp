@@ -253,8 +253,8 @@ void LoRaWebServer::handleRoot() {
         <div class="section">
             <h3>🔢 Número de Nodo Asignado</h3>
             <div class="status">
-                <b>Nodo:</b> <span id="nodeChar">)rawliteral" + (nodeRef ? String(nodeRef->local_Address) : String("-")) + R"rawliteral(</span><br>
-                <b>ASCII decimal:</b> <span id="nodeAscii">)rawliteral" + (nodeRef ? String((int)nodeRef->local_Address) : String("-")) + R"rawliteral(</span><br>
+                <b>Nodo:</b> <span id="nodeChar">)rawliteral" + (masterRef ? String(masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
+                <b>ASCII decimal:</b> <span id="nodeAscii">)rawliteral" + (masterRef ? String((int)masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
             </div>
             <input type="text" id="newAddress" placeholder="Nueva dirección (A-Z, 1-9)" maxlength="1">
             <button onclick="changeAddress()" class="btn btn-primary">Cambiar Dirección</button>
@@ -505,9 +505,9 @@ void LoRaWebServer::handleAPI() {
     doc["wifi"]["ip"] = WiFi.localIP().toString();
     doc["wifi"]["rssi"] = WiFi.RSSI();
     
-    if (nodeRef) {
-        doc["node"]["address"] = String(nodeRef->local_Address);
-        doc["node"]["mode"] = nodeRef->F_MasterMode ? "MASTER" : "SLAVE";
+    if (masterRef) {
+        doc["node"]["address"] = String(masterRef->NodeAddress);
+        doc["node"]["mode"] = masterRef->MasterMode ? "MASTER" : "SLAVE";
     }
     
     String response;
@@ -670,7 +670,7 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
         
         // Validar nodo
         if (nodeId != String(masterRef->NodeAddress)) {
-            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), nodeRef->local_Address);
+            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), masterRef->NodeAddress);
             // No retornar false, procesar de todas formas
         }
     
@@ -793,9 +793,9 @@ void LoRaWebServer::manejarPruebaSistema() {
     response["components"]["node"] = (nodeRef != nullptr);
     response["components"]["functions"] = (functionsRef != nullptr);
     
-    if (nodeRef) {
-        response["node_info"]["address"] = String(nodeRef->local_Address);
-        response["node_info"]["mode"] = nodeRef->F_MasterMode ? "MASTER" : "SLAVE";
+    if (masterRef) {
+        response["node_info"]["address"] = String(masterRef->NodeAddress);
+        response["node_info"]["mode"] = masterRef->MasterMode ? "MASTER" : "SLAVE";
     }
     
     String jsonResponse;
@@ -820,8 +820,8 @@ void LoRaWebServer::manejarHolaMundo() {
     response["sistema"] = "LoRa Security System";
     response["timestamp"] = millis();
     response["uptime_segundos"] = millis() / 1000;
-    response["nodo_actual"] = nodeRef ? String(nodeRef->local_Address) : "N/A";
-    response["modo"] = nodeRef ? (nodeRef->F_MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    response["nodo_actual"] = masterRef ? String(masterRef->NodeAddress) : "N/A";
+    response["modo"] = masterRef ? (masterRef->MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
     response["status"] = "🚀 Sistema funcionando correctamente";
     
     String jsonResponse;
@@ -1078,8 +1078,8 @@ void LoRaWebServer::handleSetAddress() {
     }
     
     // Cambiar la dirección
-    if (nodeRef) {
-        nodeRef->local_Address = newChar;
+    if (masterRef) {
+        masterRef->NodeAddress = newChar;
         Serial.printf("Nueva dirección del nodo: %c (%d)\n", newChar, (int)newChar);
         
         String response = "{\"success\":true,\"new_address\":\"" + String(newChar) + 
@@ -1104,10 +1104,10 @@ void LoRaWebServer::handleGetStatus() {
     doc["wifi"]["rssi"] = WiFi.RSSI();
     doc["wifi"]["status"] = (WiFi.status() == WL_CONNECTED) ? "connected" : "disconnected";
     
-    if (nodeRef) {
-        doc["node"]["address_char"] = String(nodeRef->local_Address);
-        doc["node"]["address_ascii"] = (int)nodeRef->local_Address;
-        doc["node"]["mode"] = nodeRef ? (nodeRef->F_MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
+    if (masterRef) {
+        doc["node"]["address_char"] = String(masterRef->NodeAddress);
+        doc["node"]["address_ascii"] = (int)masterRef->NodeAddress;
+        doc["node"]["mode"] = masterRef ? (masterRef->MasterMode ? "MASTER" : "SLAVE") : "UNKNOWN";
         
         // ✅ AÑADIR: Estado de forzado de zonas
         doc["node"]["zone_a_force"] = nodeRef->Zone_A_Force;
@@ -1119,7 +1119,7 @@ void LoRaWebServer::handleGetStatus() {
     }
 
     if (nodeRef && nodeRef) {
-    doc["master"]["node_count"] = String(nodeRef->nodo_Number); // Corregido: char a String
+    doc["master"]["node_count"] = String(masterRef->NodeAddress); // Corregido: char a String
         doc["master"]["next_node"] = nodeRef->nodo_a_Consultar;
     }
     

@@ -18,6 +18,17 @@ class Lora;
  */
 class Master {
 public:
+    // ----- TIPOS DE MENSAJE DEL PROTOCOLO -----
+    static constexpr char MSG_INFO = 'i';
+    static constexpr char MSG_EMERGENCY = 'E';
+    static constexpr char MSG_MASTER_SPECIAL = 'M';
+    static constexpr char MSG_NODE_REPLY = 'P';
+    static constexpr char MSG_ACK = 'O';
+    static constexpr char MSG_ALERT = 'A';
+    static constexpr char MSG_FUNCTION_SPECIAL = 'F';
+    static constexpr char MSG_RESET = 'R';
+    static constexpr char MSG_POLL = '.';
+
     // ----- FLAGS Y ESTADOS DEL PROTOCOLO -----
     bool MasterMode=false;                          // true = Modo Master, false = Modo Nodo
     bool NodeMode=false;                            // true = Modo Nodo, false = Modo Master
@@ -34,7 +45,7 @@ public:
     bool F_Calibration=false;
     int  timeout_NoResponse = 3000; // Tiempo de espera para considerar que un nodo no responde (ms)
     int  timeout_master = 4000; // Tiempo entre consultas a nodos (ms)
-    String message_type="i"; // Tipo de mensaje recibido. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo.
+    String message_type=String(MSG_INFO); // Tipo de mensaje recibido. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo.
     // Se enviara un mensaje al iniciar el nodo, o cuando el master lo solicite, despues de un reset o cuando el nodo detecte un evento en las zonas. El mensaje se procesara para actualizar la base de datos del Master y se enviara al servidor/DB.
 
     // ----- CONSTRUCTORES -----
@@ -126,6 +137,8 @@ public:
     void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
     void Master_DB();
     void Node_Decodificar();
+        static constexpr uint16_t NODE_ALERT_SYNC_DELAY_MS = 2000;
+        static constexpr uint8_t MAX_NODE_RETRIES = 2;
     void Node_Counter();
     void Node_Print_RX();
     void Node_Alerta();
@@ -137,6 +150,7 @@ public:
     bool F_NodeAlertaActiva=false;
     bool F_NodeAlertaPendienteTx=false;
     bool F_NodeRxSincronizado=false;
+    bool F_NodeAlertSyncScheduled=false;
     bool F_ForzarTxEmergencia=false;
     void Node_Message();
     
@@ -182,6 +196,9 @@ public:
     int  Nodo_Proximo;          // Número del próximo nodo a consultar
     int  Nodo_Ultimo=3;         // ID del último nodo de la red
     int  Nodo_Consultado;       // ID del nodo actualmente consultado
+        void ResetNodeAlertState();
+        void ScheduleNodeAlertSync(uint16_t delayMs = NODE_ALERT_SYNC_DELAY_MS);
+        void HandleNodeNoResponse();
     int  Nodo_Anterior;         // ID del nodo previamente consultado
     int  Nodo_Actual;           // ID del nodo actual en proceso
     int  Nodo_Siguiente;        // ID del siguiente nodo a consultar

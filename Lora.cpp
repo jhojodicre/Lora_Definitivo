@@ -321,7 +321,6 @@ void Lora::Lora_Status_NodeSpecific(){
   // === 📡 EVENTOS ===
   nodeDoc["events"]["event_enabled"] = F_IO_Event_Enable;
   nodeDoc["events"]["responder_flag"] = F_Responder;
-  nodeDoc["events"]["execute_flag"] = F_Nodo_Excecute;
   
   // === 📈 CONTADORES ===
   nodeDoc["counters"]["node_counter"] = Node_Counter;
@@ -479,7 +478,7 @@ void Lora::Lora_IO_Battery(){
       batteryVoltage = bestRaw / 238.7f;
 
     int batteryPercent = heltec_battery_percent(batteryVoltage);
-    // >4.18V = batería al 100% / cargando activamente | <4.18V = batería descargando
+    // >3.95V = batería al 100% / cargando activamente | <3.95V = batería descargando
     // Nota: con divisor resistivo no se puede distinguir USB vs batería llena con certeza
     Fuente_in_ST = (batteryVoltage < 3.95f);
 
@@ -567,11 +566,6 @@ void Lora::Lora_IO_Zones(){
         timer_ZB_En=true;
         Serial.println("ZB_Timers_EN");
       }
-    }
-  // 11. Evento en Zonas.
-    if(F_IO_Event_Enable){
-      msg_enviar = true;
-      msg_enviado=0;
     }
   // 12 ZONAS para mostrar en Pantalla  OLED
     //ZONES INPUTS
