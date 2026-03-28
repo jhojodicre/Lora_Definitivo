@@ -670,7 +670,6 @@ void Lora::Lora_time_ZoneB_reach(){
     // Zona confirmada después de 3 segundos
     nodeInstance->Zone_B_ST=true;
     nodeInstance->F_IO_Event_Enable=true;
-    nodeInstance->timer_ZB_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
     nodeInstance->Zone_B_str=String(nodeInstance->Zone_B_ST, BIN);
     Serial.println("Zone_B_ST true");
   }

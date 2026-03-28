@@ -19,8 +19,8 @@ private:
     const int timeoutHTTP = 5000;  // Timeout de 5 segundos
 
     // WiFi Replace the next variables with your SSID/Password combination
-    const char* ssid        = "ANTEL_AE52";
-    const char* password    = "NCsj7gjX";
+    const char* ssid        =  "ANTEL_AE52"; //"Jhonny_Red";
+    const char* password    =  "NCsj7gjX";   //"17942258";
     int         conection_try=0;
 
     // Referencias a objetos externos

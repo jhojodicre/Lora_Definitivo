@@ -27,15 +27,11 @@ Functions::Functions(bool ready)
     digitalWrite(LED_ROJO, HIGH);
 }
 void Functions::Function_begin(Lora* node, Master* master){
-    nodeRef = node;
-    masterRef = master;
+    nodeRef     = node;
+    masterRef   = master;
 }
 void Functions::Functions_Request(String rxString)
 {
-    // Implementación del método Functions_Request
-    // Deshabilitamos Banderas
-    // falg_ISR_stringComplete=false;
-    // flag_F_codified_funtion=true;
     function_Mode       = char(rxString.charAt(0));
     function_Number     = char(rxString.charAt(1));
     function_Parameter1 = rxString.substring(2, 3);

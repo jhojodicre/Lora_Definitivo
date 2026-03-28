@@ -7,70 +7,34 @@
     #include "NodeWebServer.h"
     #include "Master.h"
 
-//3. Variables Globales.                                               
-  //-3.1 Variables Interrupciones
-    volatile bool flag_ISR_prueba=false;             // Flag: prueba para interrupcion serial.
+//2. Variables Globales.                                               
+  //-2.1 Variables Interrupciones
+    
     volatile bool flag_ISR_stringComplete=false;    // Flag: mensaje Serial Recibido completo.
     String        inputString;           // Buffer recepcion Serial.
-    String        function_Remote;
-    String        function_Enable;
-    bool          flag_ISR_temporizador_0=false;
-    bool          flag_ISR_temporizador_1=false;
-    bool          flag_ISR_temporizador_2=false;
-    bool          flag_ISR_temporizador_3=false;
-  //-3.2 Variables Banderas. 
+
+  //-2.2 Variables Banderas. 
     bool          flag_F_codified_funtion=false;    // Notifica que la funcion ha sido codificada.
     bool          F_iniciado=false;                 // Habilitar mensaje de F_iniciado por unica vez
-    bool          flag_F_depurar=false;
-    bool          flag_F_T2_run=false;
-    bool          flag_F_T1_run=false;
-    bool          flag_F_Nodo_Iniciado=false;
-    bool          flag_F_token=false;               // Se habilita caundo el nodo responde por token
-    bool          F_updateServer=false;
-    
-    // Variables para debug y monitoreo
-    unsigned long last_status_time = 0;
-    unsigned long status_interval = 30000; // Mostrar estado cada 30 segundos
-  //-3.4 Variables Para Conection WiFi and MQTT.
-      const char* mqtt_server = "192.168.1.27";
-    // JSON Variables.
-      String  jsonString; // Cadena JSON para enviar a MongoDB
-      int     nombre;
-      int     valueJson;
-      String  nodoJson="";
-
-      // const char* serverName = "http://192.168.1.27:3000/api/data"; // URL de tu API de MongoDB
-
-    long lastMsg = 0;
-    char msg[50];
-    int value = 0;
-
-    String MQTT_Frame_TX="";
-    String Lora_RX=""; // Mensaje recibido por Lora.
-    StaticJsonDocument<200> doc;
-
-    char Nodo_a_Pedir     = ' '; // Nodo a consultar por el Maestro.
-    char function_Mode    = ' '; // Modo de Funcion a ejecutar.
-    char function_Number  = ' ';
-    char parameter_1      = ' ';
-    char parameter_2      = ' ';
-    // Otras.
-      String      codigo="";
-      String      info_1="";
-      char        incomingFuntion;
-//4. Intancias.
-  //-4.1 Clases propias.
+  
+  //-2.3 JSON Variables.
+    String  jsonString; 
+  //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
-    const char CHISMOSO_NODE_ADDRESS = '1';
-    const bool MASTER                = true; // Cambiar a false para modo Nodo
+    const char CHISMOSO_NODE_ADDRESS = '5';
+    const bool MASTER                = false; // Cambiar a false para modo Nodo.
+    const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
+
+//3. Intancias.
+  //-3.1 Clases propias.
     Functions Correr(true);                 // Funciones a Ejecutar
     General   General(false);               // Configuraciones Generales del Nodo.
-    Lora      Node(false);
+    Lora      Node(IO_DISABLE);               // Clase de Comunicacion Lora.
     Master    Chismoso(MASTER, CHISMOSO_TOTAL_NODOS, CHISMOSO_NODE_ADDRESS);      // Master: true, Numero de Nodos: 5, Direccion del Nodo: '1'
-  //-4.2 Clases de Protocolos.
+  //-3.2 Clases de Protocolos.
     LoRaWebServer webServer(80);            // AGREGAR ESTA LÍNEA
-//5. Funciones ISR.
-  //-5.1 Serial Function.
+//4. Funciones ISR.
+  //-4.1 Serial Function.
     void serialEvent (){
       while (Serial.available()) {
         // get the new byte:
@@ -90,7 +54,6 @@ void setup(){
     Serial.begin(115200);
     delay(1000);  // Esperar que termine el boot del ROM
     Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
-    Serial.println("✅ Puerto serie iniciado a 115200 baudios");
     Serial.printf("📍 Nodo: %c\n", Chismoso.NodeAddress);
     
   //S2. Class Setup.
@@ -98,7 +61,7 @@ void setup(){
     Node.Lora_Setup();
     Serial.println("⚙️ Iniciando funciones del sistema...");
     Correr.Function_begin(&Node, &Chismoso);
-    if(Chismoso.MasterMode){
+    if(true){
       webServer.begin(&Node, &Correr, &Chismoso);
       Serial.println("🌐 Iniciando servidor web...");
     }
@@ -111,10 +74,6 @@ void loop(){
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
       Serial.println("💡 Sistema en funcionamiento - esperando comandos...");
-      Serial.println("📝 Comandos disponibles por serie:");
-      Serial.println("   - CFG0-4: Cambiar configuración radio");
-      Serial.println("   - CFGSTATUS: Ver estado configuración");
-      Serial.println("   - Otros comandos según protocolo\n");
     }
     //-L1.1Manejo del Web Server
       webServer.handle();
@@ -135,18 +94,18 @@ void loop(){
         inputString="";
         flag_F_codified_funtion=false;
       }
-  //L4. Funciones del Protocolo.
+  //L3. Funciones del Protocolo.
     Chismoso.Preguntar();
 
-  //L5. Funciones del Master.
+  //L4. Funciones del Master.
     if(Chismoso.F_ServerUpdate){
       updateServer();
       Chismoso.F_ServerUpdate = false;
     }
 }
-//A 📎 Funciones Ausiliares
+//A 📎 Funciones Auxiliares
 
-  //-1.1  Update Server.
+  //-A1  Update Server.
     void updateServer() {
       // Obtener los datos del objeto Node (clase Lora)
       jsonString = Chismoso.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos

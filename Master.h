@@ -48,40 +48,42 @@ public:
     String message_type=String(MSG_INFO); // Tipo de mensaje recibido. "i"=información, "E"=Emergencia, "M"=Mensaje especial del Master al Nodo.
     // Se enviara un mensaje al iniciar el nodo, o cuando el master lo solicite, despues de un reset o cuando el nodo detecte un evento en las zonas. El mensaje se procesara para actualizar la base de datos del Master y se enviara al servidor/DB.
 
-    // ----- CONSTRUCTORES -----
-    /**
-     * @brief Constructor para modo Master
-     * @param mode_master true=Modo Master, false=Modo Nodo
-     * @param nodo_number Cantidad total de nodos en la red si es Master, número de nodo si es Nodo
-     */
     Master(bool mode_master, int nodo_number, char NodeAddress);
     
-    /**
-     * @brief Constructor para almacenar estado de un nodo
-     * @param nodoNumero Número de nodo
-     * @param ZonaA_status Estado de la Zona A
-     * @param ZonaB_status Estado de la Zona B
-     * @param Fuente_status Estado de la Fuente
-     */
-    Master(String nodoNumero, String ZonaA_status, String ZonaB_status, String Fuente_status);
-    
-    // ----- MÉTODOS DE INICIALIZACIÓN Y CONFIGURACIÓN -----
-    /**
-     * @brief Inicializa los temporizadores y configuraciones del protocolo
-     */
+
     void Iniciar(class Lora* Node, class Functions* Correr);
+    
+    void ResetNodeAlertState();
+    void ScheduleNodeAlertSync(uint16_t delayMs = NODE_ALERT_SYNC_DELAY_MS);
+    void HandleNodeNoResponse(); 
 
     void Preguntar();
     void Node_Protocol();
     void Calibration_Protocol();
     
-    /**
-     * @brief Configura parámetros del protocolo
-     */
-
+    
+    static void timer_master_ISR();   /* *@brief ISR para el temporizador de consulta periódica   */
+    void MasterDecodificar(String mensaje_rx_lora);
+    void Master_Request();    /*** @brief Procesa una petición del Master a un Nodo*/
+    void Master_Print_RX(); /*** @brief Imprime el mensaje recibido por el Master*/
+    void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
+    void Master_DB();
+    void Nodo_REQUEST();
     void Master_Protocol();
     void Master_Counter();
-
+    void Master_Nodo();  /*** @brief Prepara el mensaje para el nodo consultado*/
+    void MasterMessage();
+    void Master_Status_Address();
+    void SerializeObjectToJson();
+    void Master_Calibration_Init();
+    void Master_Calibration_End();
+    void Master_ExecuteFromServer(String mensajeServer);
+    bool EncolarMensajeServidor(const String& mensajeLora);
+    bool ObtenerSiguienteMensajeServidor(String& mensajeLora);
+    void ProcesarColaServidor();
+    bool EnviarTramaCentral(const String& mensajeTx, char nodoEsperado, bool esServidor);
+    void LiberarCanalTx(const String& motivo);
+    void RevisarTimeoutTx();
     int  msg_enviado=0;
     int   MasterCounter=0;
     String counterStr="" ;
@@ -93,58 +95,24 @@ public:
     // Ejemplo:
     class Functions* correrRef; // Puntero a la clase Functions para ejecutar funciones
     class Lora* nodeRef; // Puntero a la clase Lora para interacción con radio
-    /**
-     * @brief Gestiona el ciclo principal del protocolo
-     */
-    void Gestion();
-    void SerializeObjectToJson();
-    /**
-     * @brief Inicializa el protocolo de calibración Master
-     */
-    void Master_Calibration_Init();
-    void Master_Calibration_End();
 
-    // ----- MÉTODOS DE GESTIÓN DE SECUENCIA DE NODOS -----
-    /**
-     * @brief Determina el siguiente nodo a consultar
-     */
-    void Nodo_REQUEST();
-    
-    /**
-     * @brief Prepara la consulta al siguiente nodo
-     */
-    void Master_Nodo();  /*** @brief Prepara el mensaje para el nodo consultado*/
-    void MasterMessage();
-    void Master_Status_Address();
+    static constexpr uint16_t NODE_ALERT_SYNC_DELAY_MS = 2000;
+    static constexpr uint8_t MAX_NODE_RETRIES = 2;
 
-    void Master_ExecuteFromServer(String mensajeServer);
-    bool EncolarMensajeServidor(const String& mensajeLora);
-    bool ObtenerSiguienteMensajeServidor(String& mensajeLora);
-    void ProcesarColaServidor();
-    bool EnviarTramaCentral(const String& mensajeTx, char nodoEsperado, bool esServidor);
-    void LiberarCanalTx(const String& motivo);
-    void RevisarTimeoutTx();
     
-    void Secuencia();/*** @brief Maneja la secuencia de consulta a nodos*/
-    
-    // ----- MÉTODOS DE TEMPORIZADOR Y PETICIONES -----
- 
-    static void timer_master_ISR();   /* *@brief ISR para el temporizador de consulta periódica   */
     
 
-    void Master_Request();    /*** @brief Procesa una petición del Master a un Nodo*/
-    void Master_Print_RX(); /*** @brief Imprime el mensaje recibido por el Master*/
-    void Nodo_Status(String nodeNumber, String zonaA, String zonaB, String fuente);/*** @brief Actualiza la base de datos del Master con información de nodos*/
-    void Master_DB();
+
     void Node_Decodificar();
-        static constexpr uint16_t NODE_ALERT_SYNC_DELAY_MS = 2000;
-        static constexpr uint8_t MAX_NODE_RETRIES = 2;
     void Node_Counter();
     void Node_Print_RX();
     void Node_Alerta();
-    /**
-     * @brief Imprime el estado actual de todos los nodos
-     */
+    void Node_Message();
+    void Node_Recibir();
+    bool NodoEnAlerta(int nodoID);
+    void NodeStatusUpdate();
+    void Node_Flag_Print();
+
     bool F_Node_Excecute=false;
     bool F_Responder=true; // se activara para que el nodo envie un mensjae al iniciar el el protocolo.
     bool F_NodeAlertaActiva=false;
@@ -152,35 +120,13 @@ public:
     bool F_NodeRxSincronizado=false;
     bool F_NodeAlertSyncScheduled=false;
     bool F_ForzarTxEmergencia=false;
-    void Node_Message();
+    int  nodeCounter=0;
     
-    int nodeCounter=0;
-    /**
-     * @brief Procesa un mensaje recibido y determina acciones
-     * @param origen ID del nodo origen
-     * @param mensaje Contenido del mensaje
-     * @return true si el mensaje requiere acción especial
-     */
-    void MasterDecodificar(String mensaje_rx_lora);
-    /**
-     * @brief Verifica si un nodo está en estado de alerta
-     * @param nodoID ID del nodo a verificar
-     * @return true si el nodo está en alerta
-     */
-    bool NodoEnAlerta(int nodoID);
-    void NodeStatusUpdate();
-    /**
-     * @brief Genera mensaje para petición especial a un nodo
-     * @param nodoID ID del nodo destinatario
-     * @param comando Comando a enviar
-     * @return Mensaje codificado para envío
-     */
+
+
+
     String GenerarPeticionEspecial(int nodoID, String comando);
 
-    
-    /**
-     * @brief Método de debug para mostrar el estado de las banderas
-     */
     void DebugEstadoBanderas();
     // ----- VARIABLES PARA LA BASE DE DATOS DE NODOS -----
     String Zone_A="";           // Estado de la Zona A (0=Normal, 1=Alerta)
@@ -196,13 +142,11 @@ public:
     int  Nodo_Proximo;          // Número del próximo nodo a consultar
     int  Nodo_Ultimo=3;         // ID del último nodo de la red
     int  Nodo_Consultado;       // ID del nodo actualmente consultado
-        void ResetNodeAlertState();
-        void ScheduleNodeAlertSync(uint16_t delayMs = NODE_ALERT_SYNC_DELAY_MS);
-        void HandleNodeNoResponse();
+
     int  Nodo_Anterior;         // ID del nodo previamente consultado
     int  Nodo_Actual;           // ID del nodo actual en proceso
     int  Nodo_Siguiente;        // ID del siguiente nodo a consultar
-    
+    bool F_NodeAcknoledged=true; // Flag para indicar que se ha recibido un ACK del maestro después de una alerta
 
     String rx_remitente        = " ";
     String rx_destinatario     = " ";
@@ -281,6 +225,7 @@ private:
     int serverBurstCount = 0;
     bool retryNoResponsePending = false;
     int nodoRetryPendiente = 0;
+    String Nodo_Esperado = " ";
 
     // ----- ESTRUCTURAS PARA GESTIÓN DE NODOS -----
     struct EstadoNodo {

@@ -10,16 +10,11 @@ General::General(bool ready)
   pinMode(LED_1, OUTPUT);
   pinMode(LED_2, OUTPUT);
   pinMode(LED_3, OUTPUT);
+
   // 2. Condicion Inicial.
-  // digitalWrite(_LED_Azul, LOW); // Led Azul OFF.
   digitalWrite(LED_1, HIGH);     // Led 1 OFF.
   digitalWrite(LED_2, HIGH);     // Led 2 OFF.
   digitalWrite(LED_3, HIGH);     // Led 3 OFF.
-  // 3. Configuracion de Perifericos:
-  //-3.1 Comunicacion Serial: (Movido a setup() principal)
-  // Serial.begin(115200);  // Comentado - se hace en setup()
-  // delay(10);
-
   //-3.2 Interrupciones Habilitadas.
   //****************************
   // attachInterrupt (digitalPinToInterrupt (PB_zonas_in), ISR_0, FALLING);  // attach interrupt handler for D2

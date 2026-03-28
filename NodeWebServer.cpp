@@ -11,9 +11,9 @@ LoRaWebServer::LoRaWebServer(uint16_t serverPort) : port(serverPort), isRunning(
 
 //2. Inicializar servidor
 void LoRaWebServer::begin(Lora* node, Functions* functions, Master* master) {
-    nodeRef = node;
-    functionsRef = functions;
-    masterRef = master;
+    nodeRef         = node;
+    functionsRef    = functions;
+    masterRef       = master;
 
     NodeData nodos[5];          // Array de hasta 5 nodos
     //Configurar WiFi
@@ -41,16 +41,6 @@ void LoRaWebServer::configurarServidor() {
       http.begin(serverName);
       http.addHeader("Content-Type", "application/json");
 
-
-    // server->on("/", [this]() { handleRoot(); });
-    // server->on("/status", [this]() { handleStatus(); });
-    // server->on("/config", [this]() { handleConfig(); });
-    // server->on("/update", [this]() { handleUpdate(); });
-    // server->on("/restart", [this]() { handleRestart(); });
-    // server->on("/logs", [this]() { handleLogs(); });
-    // server->on("/control", [this]() { handleControl(); });
-    // server->on("/info", [this]() { handleInfo(); });
-    // server->on("/api", [this]() { handleApi(); });
 }
 
 //2.2 Configurar WiFi
