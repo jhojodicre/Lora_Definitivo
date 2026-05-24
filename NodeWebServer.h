@@ -19,9 +19,27 @@ private:
     const int timeoutHTTP = 5000;  // Timeout de 5 segundos
 
     // WiFi Replace the next variables with your SSID/Password combination
-    const char* ssid        =  "ANTEL_AE52"; //"Jhonny_Red";
-    const char* password    =  "NCsj7gjX";   //"17942258";
+    const char* ssid_master        =  "ANTEL_AE52"; //"Telecentro-3a30"; //"ANTEL_AE52";
+    const char* password_master    =  "NCsj7gjX";   //"GHU54P2DYG9Q";   //"NCsj7gjX";
+    const char* ssid_nodo        =  "secure";
+    const char* password_nodo    =  "12345678";
+
+
     int         conection_try=0;
+    
+    // IP Estática para Master
+    IPAddress ip_master        = IPAddress(192, 168, 1, 100);
+    IPAddress gateway_master   = IPAddress(192, 168, 1, 1);
+    IPAddress subnet_master    = IPAddress(255, 255, 255, 0);
+    IPAddress dns1_master      = IPAddress(8, 8, 8, 8);
+    IPAddress dns2_master      = IPAddress(8, 8, 4, 4);
+    
+    // IP Estática para Nodo
+    IPAddress ip_nodo         = IPAddress(192, 168, 1, 101);
+    IPAddress gateway_nodo    = IPAddress(192, 168, 1, 1);
+    IPAddress subnet_nodo     = IPAddress(255, 255, 255, 0);
+    IPAddress dns1_nodo       = IPAddress(8, 8, 8, 8);
+    IPAddress dns2_nodo       = IPAddress(8, 8, 4, 4);
 
     // Referencias a objetos externos
     class Lora* nodeRef;
@@ -78,7 +96,7 @@ public:
 
     //Configuration
     void configurarServidor();
-    void configurarWiFi();
+    void configurarWiFi(const char* ssid, const char* password);
 
     // Error json
     void enviarErrorJSON(String mensaje);

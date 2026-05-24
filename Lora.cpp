@@ -512,6 +512,9 @@ void Lora::Lora_IO_Zones(){
   // 4. Lectura de la Fuente de Alimentación.
     Lora_IO_Battery();
 
+  // 5. Verifcar si hay entradas o salidas forzadas desde la interfaz de usuario.
+    Lora_IO_Zones_Force();
+
   // 4  ZONES AB RESET con el pulsador C.
     if(!Zone_AB_ACK){
       delay(20); // Antirebote simple
@@ -614,7 +617,7 @@ void Lora::Lora_IO_Dummy_Simulate(){
 void Lora::Lora_IO_Zones_Force(){
   // 1. Fuerza de Zonas A y B.
   if(Zone_A_Forzar) Zone_A_ST = Zone_A_Force;
-  if(Zone_B_Forzar) Zone_A_ST = Zone_B_Force;
+  if(Zone_B_Forzar) Zone_B_ST = Zone_B_Force;
   if(Fuente_in_Forzar) Fuente_in_ST = Fuente_in_Force;
  }
 void Lora::Lora_IO_Zone_A_ACK(){

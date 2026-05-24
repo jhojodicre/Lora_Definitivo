@@ -21,7 +21,7 @@
     String  jsonString; 
   //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
-    const char CHISMOSO_NODE_ADDRESS = '5';
+    const char CHISMOSO_NODE_ADDRESS = '1';
     const bool MASTER                = false; // Cambiar a false para modo Nodo.
     const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
 
@@ -61,10 +61,8 @@ void setup(){
     Node.Lora_Setup();
     Serial.println("⚙️ Iniciando funciones del sistema...");
     Correr.Function_begin(&Node, &Chismoso);
-    if(true){
-      webServer.begin(&Node, &Correr, &Chismoso);
-      Serial.println("🌐 Iniciando servidor web...");
-    }
+    webServer.begin(&Node, &Correr, &Chismoso);
+    Serial.println("🌐 Iniciando servidor web...");
     Serial.println("✅ Sistema iniciado correctamente!");
     Serial.println("=====================================\n");
     Chismoso.Iniciar(&Node, &Correr);
@@ -74,6 +72,7 @@ void loop(){
     if (!F_iniciado){
       F_iniciado=General.Iniciar();
       Serial.println("💡 Sistema en funcionamiento - esperando comandos...");
+      // bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
     }
     //-L1.1Manejo del Web Server
       webServer.handle();

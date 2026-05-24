@@ -17,7 +17,12 @@ void LoRaWebServer::begin(Lora* node, Functions* functions, Master* master) {
 
     NodeData nodos[5];          // Array de hasta 5 nodos
     //Configurar WiFi
-    configurarWiFi();
+    if(masterRef->MasterMode){
+        Serial.println("🌐 Modo Master - Configurando WiFi...");
+        configurarWiFi(ssid_master, password_master);
+    } else {
+        configurarWiFi(ssid_nodo, password_nodo);
+    }
 
     // Configurar servidor
     configurarServidor();
@@ -44,8 +49,22 @@ void LoRaWebServer::configurarServidor() {
 }
 
 //2.2 Configurar WiFi
-void LoRaWebServer::configurarWiFi() {
+void LoRaWebServer::configurarWiFi(const char* ssid, const char* password) {
     WiFi.mode(WIFI_STA);
+    
+    // Configurar IP estática según el modo (Master o Nodo)
+    // if(masterRef->MasterMode) {
+    //     // Configurar IP estática para Master
+    //     WiFi.config(ip_master, gateway_master, subnet_master, dns1_master, dns2_master);
+    //     Serial.println("📡 Configurando IP estática para Master...");
+    //     Serial.printf("   IP: %s\n", ip_master.toString().c_str());
+    // } else {
+    //     // Configurar IP estática para Nodo
+    //     WiFi.config(ip_nodo, gateway_nodo, subnet_nodo, dns1_nodo, dns2_nodo);
+    //     Serial.println("📡 Configurando IP estática para Nodo...");
+    //     Serial.printf("   IP: %s\n", ip_nodo.toString().c_str());
+    // }
+    
     WiFi.begin(ssid, password);
     
     do{
@@ -55,7 +74,7 @@ void LoRaWebServer::configurarWiFi() {
     }while(WiFi.status() != WL_CONNECTED && conection_try != 20);
     
     Serial.println();
-    Serial.println("Conectado a la red WiFi");
+    Serial.println("✅ Conectado a la red WiFi con IP estática");
     Serial.printf("IP: %s\n", WiFi.localIP().toString().c_str());
 }
 
@@ -129,361 +148,6 @@ void LoRaWebServer::handle() {
     }
 }
 
-// Página principal
-void LoRaWebServer::handleRoot() {
-    String html = R"rawliteral(
-<!DOCTYPE html>
-<html lang='es'>
-<head>
-    <meta charset="UTF-8">
-    <title>Barrio San Diego</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            background: linear-gradient(135deg, #4f8cff 0%, #6a11cb 100%);
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 700px;
-            margin: 40px auto;
-            background: rgba(255,255,255,0.95);
-            padding: 32px 24px;
-            border-radius: 18px;
-            box-shadow: 0 8px 32px rgba(76, 110, 245, 0.15);
-        }
-        h1 {
-            color: #2d3a4a;
-            text-align: center;
-            font-weight: 700;
-            margin-bottom: 24px;
-        }
-        .section {
-            border: 1px solid #e0e7ef;
-            padding: 20px;
-            margin: 18px 0;
-            border-radius: 10px;
-            background: #f7faff;
-        }
-        .status {
-            background: #e3f2fd;
-            padding: 14px;
-            border-radius: 7px;
-            margin-bottom: 10px;
-            color: #1a237e;
-            font-size: 1.05em;
-        }
-        input[type="text"] {
-            padding: 10px;
-            border: 1px solid #bdbdbd;
-            border-radius: 5px;
-            width: 220px;
-            font-size: 1em;
-            margin-right: 8px;
-        }
-        .btn {
-            padding: 10px 22px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1em;
-            margin: 4px 2px;
-            transition: background 0.2s, box-shadow 0.2s;
-        }
-        .btn-primary {
-            background: linear-gradient(90deg, #4f8cff 0%, #6a11cb 100%);
-            color: #fff;
-            box-shadow: 0 2px 8px rgba(76, 110, 245, 0.12);
-        }
-        .btn-primary:hover {
-            background: linear-gradient(90deg, #6a11cb 0%, #4f8cff 100%);
-        }
-        .btn-config {
-            background: #fff;
-            color: #4f8cff;
-            border: 1px solid #4f8cff;
-        }
-        .btn-config:hover {
-            background: #4f8cff;
-            color: #fff;
-        }
-        .config-btns {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .config-label {
-            font-weight: 500;
-            color: #2d3a4a;
-            margin-bottom: 8px;
-        }
-        #result {
-            margin-top: 12px;
-            font-size: 1.05em;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 Sistema de Seguridad Perimetral</h1>
-        <div class="section">
-            <h3>📊 Estado del Sistema</h3>
-            <div class="status" id="status">
-                <b>Sistema:</b> Master LoRa v1.0<br>
-                <b>IP:</b> )rawliteral" + WiFi.localIP().toString() + R"rawliteral(<br>
-                <b>WiFi:</b> )rawliteral" + WiFi.SSID() + R"rawliteral(<br>
-                <b>RSSI:</b> )rawliteral" + String(WiFi.RSSI()) + R"rawliteral( dBm
-            </div>
-            <button onclick="location.reload()" class="btn btn-primary">Actualizar</button>
-        </div>
-        <div class="section">
-            <h3>🔢 Número de Nodo Asignado</h3>
-            <div class="status">
-                <b>Nodo:</b> <span id="nodeChar">)rawliteral" + (masterRef ? String(masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
-                <b>ASCII decimal:</b> <span id="nodeAscii">)rawliteral" + (masterRef ? String((int)masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
-            </div>
-            <input type="text" id="newAddress" placeholder="Nueva dirección (A-Z, 1-9)" maxlength="1">
-            <button onclick="changeAddress()" class="btn btn-primary">Cambiar Dirección</button>
-            <button onclick="refreshStatus()" class="btn btn-config">Actualizar Estado</button>
-            <div id="addressResult"></div>
-        </div>
-        <div class="section">
-            <h3>🎮 Control de Comandos</h3>
-            <input type="text" id="command" placeholder="Comando (ej: z1AB)" maxlength="6">
-            <button onclick="sendCommand()" class="btn btn-primary">Enviar Comando</button>
-            <div id="result"></div>
-        </div>
-        <div class="section">
-            <h3>⚙️ Configuración Rápida</h3>
-            <div class="config-label">Comandos predeterminados:</div>
-            <div class="config-btns">
-                <button class="btn btn-config" onclick="sendPreset('C11')">led 1 ON</button>
-                <button class="btn btn-config" onclick="sendPreset('C10')">led 1 OFF</button>
-                <button class="btn btn-config" onclick="sendPreset('C21')">led 2 ON</button>
-                <button class="btn btn-config" onclick="sendPreset('C20')">led 2 OFF</button>
-                <button class="btn btn-config" onclick="sendPreset('C31')">led 3 ON</button>
-                <button class="btn btn-config" onclick="sendPreset('C30')">led 3 OFF</button>
-            </div>
-        </div>
-        <div class="section">
-            <h3>🔧 Control de Forzado de Zonas</h3>
-            <div class="config-label">Forzar valores de sensores:</div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona A:</label>
-                <input type="checkbox" id="forceZoneA" style="margin-right: 5px;">
-                <select id="zoneAValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
-                    <option value="false">Desactivada (0)</option>
-                    <option value="true">Activada (1)</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona B:</label>
-                <input type="checkbox" id="forceZoneB" style="margin-right: 5px;">
-                <select id="zoneBValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
-                    <option value="false">Desactivada (0)</option>
-                    <option value="true">Activada (1)</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: inline-block; width: 120px; font-weight: 500;">Fuente:</label>
-                <input type="checkbox" id="forceFuente" style="margin-right: 5px;">
-                <select id="fuenteValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
-                    <option value="false">Desactivada (0)</option>
-                    <option value="true">Activada (1)</option>
-                </select>
-            </div>
-            <div class="config-btns">
-                <button onclick="applyForceZones()" class="btn btn-primary">Aplicar Forzado</button>
-                <button onclick="disableAllForcing()" class="btn btn-config">Deshabilitar Todo</button>
-                <button onclick="getForceStatus()" class="btn btn-config">Ver Estado</button>
-            </div>
-            <div id="forceResult"></div>
-        </div>
-    </div>
-    <script>
-        function sendCommand() {
-            var cmd = document.getElementById('command').value;
-            if(cmd.length < 2) {
-                alert('Comando debe tener al menos 2 caracteres');
-                return;
-            }
-            fetch('/control', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'command=' + cmd
-            })
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('result').innerHTML = '<p>Respuesta: ' + data + '</p>';
-            })
-            .catch(error => {
-                document.getElementById('result').innerHTML = '<p>Error: ' + error + '</p>';
-            });
-        }
-        function sendPreset(cmd) {
-            document.getElementById('command').value = cmd;
-            sendCommand();
-        }
-        
-        // ✅ NUEVA FUNCIÓN: Cambiar dirección del nodo
-        function changeAddress() {
-            var newAddr = document.getElementById('newAddress').value;
-            if(newAddr.length !== 1) {
-                alert('La dirección debe ser un solo carácter (A-Z o 1-9)');
-                return;
-            }
-            
-            fetch('/set-address', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'address=' + newAddr
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.success) {
-                    document.getElementById('nodeChar').textContent = data.new_address;
-                    document.getElementById('nodeAscii').textContent = data.ascii_value;
-                    document.getElementById('addressResult').innerHTML = 
-                        '<p style="color: green;">✅ Dirección cambiada a: ' + data.new_address + ' (ASCII: ' + data.ascii_value + ')</p>';
-                } else {
-                    document.getElementById('addressResult').innerHTML = 
-                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
-                }
-            })
-            .catch(error => {
-                document.getElementById('addressResult').innerHTML = 
-                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
-            });
-        }
-        
-        // ✅ NUEVA FUNCIÓN: Actualizar estado desde el servidor
-        function refreshStatus() {
-            fetch('/get-status')
-            .then(response => response.json())
-            .then(data => {
-                if(data.node) {
-                    document.getElementById('nodeChar').textContent = data.node.address_char;
-                    document.getElementById('nodeAscii').textContent = data.node.address_ascii;
-                }
-                document.getElementById('addressResult').innerHTML = 
-                    '<p style="color: blue;">🔄 Estado actualizado - Uptime: ' + Math.floor(data.system.uptime_ms / 1000) + 's</p>';
-            })
-            .catch(error => {
-                document.getElementById('addressResult').innerHTML = 
-                    '<p style="color: red;">❌ Error al actualizar: ' + error + '</p>';
-            });
-        }
-        
-        // ✅ NUEVAS FUNCIONES: Control de forzado de zonas
-        function applyForceZones() {
-            var payload = {};
-            var hasChanges = false;
-            
-            // Verificar Zone A
-            if (document.getElementById('forceZoneA').checked) {
-                payload.zone_a_force = document.getElementById('zoneAValue').value === 'true';
-                hasChanges = true;
-            }
-            
-            // Verificar Zone B
-            if (document.getElementById('forceZoneB').checked) {
-                payload.zone_b_force = document.getElementById('zoneBValue').value === 'true';
-                hasChanges = true;
-            }
-            
-            // Verificar Fuente
-            if (document.getElementById('forceFuente').checked) {
-                payload.fuente_force = document.getElementById('fuenteValue').value === 'true';
-                hasChanges = true;
-            }
-            
-            if (!hasChanges) {
-                alert('Selecciona al menos una zona para forzar');
-                return;
-            }
-            
-            fetch('/api/force-zones', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('forceResult').innerHTML = 
-                        '<p style="color: green;">✅ ' + data.message + '</p>';
-                    console.log('Estado actual:', data.current_state);
-                } else {
-                    document.getElementById('forceResult').innerHTML = 
-                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
-                }
-            })
-            .catch(error => {
-                document.getElementById('forceResult').innerHTML = 
-                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
-            });
-        }
-        
-        function disableAllForcing() {
-            var payload = {
-                disable_force: true
-            };
-            
-            fetch('/api/force-zones', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('forceResult').innerHTML = 
-                        '<p style="color: blue;">🔓 ' + data.message + '</p>';
-                    // Desmarcar todos los checkboxes
-                    document.getElementById('forceZoneA').checked = false;
-                    document.getElementById('forceZoneB').checked = false;
-                    document.getElementById('forceFuente').checked = false;
-                } else {
-                    document.getElementById('forceResult').innerHTML = 
-                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
-                }
-            })
-            .catch(error => {
-                document.getElementById('forceResult').innerHTML = 
-                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
-            });
-        }
-        
-        function getForceStatus() {
-            fetch('/api/status')
-            .then(response => response.json())
-            .then(data => {
-                var statusText = '📊 Estado de forzado:<br>';
-                if (data.node) {
-                    statusText += '• Zona A: ' + (data.node.zone_a_forzar ? 'FORZADA (' + data.node.zone_a_force + ')' : 'NORMAL') + '<br>';
-                    statusText += '• Zona B: ' + (data.node.zone_b_forzar ? 'FORZADA (' + data.node.zone_b_force + ')' : 'NORMAL') + '<br>';
-                    statusText += '• Fuente: ' + (data.node.fuente_forzar ? 'FORZADA (' + data.node.fuente_force + ')' : 'NORMAL');
-                } else {
-                    statusText += 'No se pudo obtener el estado';
-                }
-                document.getElementById('forceResult').innerHTML = 
-                    '<p style="color: blue;">' + statusText + '</p>';
-            })
-            .catch(error => {
-                document.getElementById('forceResult').innerHTML = 
-                    '<p style="color: red;">❌ Error al obtener estado: ' + error + '</p>';
-            });
-        }
-    </script>
-</body>
-</html>
-)rawliteral";
-    server->send(200, "text/html", html);
-}
 
 // API info
 void LoRaWebServer::handleAPI() {
@@ -659,10 +323,10 @@ bool LoRaWebServer::procesarMensaje(String nodeId, String mensaje) {
         }
         
         // Validar nodo
-        if (nodeId != String(masterRef->NodeAddress)) {
-            Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), masterRef->NodeAddress);
-            // No retornar false, procesar de todas formas
-        }
+        // if (nodeId != String(masterRef->NodeAddress)) {
+        //     Serial.printf("⚠️ Advertencia: Nodo ID no coincide: %s != %c\n", nodeId.c_str(), masterRef->NodeAddress);
+        //     // No retornar false, procesar de todas formas
+        // }
     
     // Procesar mensaje de forma segura
     try {
@@ -1166,6 +830,363 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
     http.end();
     return false;
   }
+}
+
+
+// Página principal
+void LoRaWebServer::handleRoot() {
+    String html = R"rawliteral(
+<!DOCTYPE html>
+<html lang='es'>
+<head>
+    <meta charset="UTF-8">
+    <title>Barrio San Diego</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #4f8cff 0%, #6a11cb 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.95);
+            padding: 32px 24px;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(76, 110, 245, 0.15);
+        }
+        h1 {
+            color: #2d3a4a;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        .section {
+            border: 1px solid #e0e7ef;
+            padding: 20px;
+            margin: 18px 0;
+            border-radius: 10px;
+            background: #f7faff;
+        }
+        .status {
+            background: #e3f2fd;
+            padding: 14px;
+            border-radius: 7px;
+            margin-bottom: 10px;
+            color: #1a237e;
+            font-size: 1.05em;
+        }
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #bdbdbd;
+            border-radius: 5px;
+            width: 220px;
+            font-size: 1em;
+            margin-right: 8px;
+        }
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            margin: 4px 2px;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #4f8cff 0%, #6a11cb 100%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(76, 110, 245, 0.12);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #6a11cb 0%, #4f8cff 100%);
+        }
+        .btn-config {
+            background: #fff;
+            color: #4f8cff;
+            border: 1px solid #4f8cff;
+        }
+        .btn-config:hover {
+            background: #4f8cff;
+            color: #fff;
+        }
+        .config-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .config-label {
+            font-weight: 500;
+            color: #2d3a4a;
+            margin-bottom: 8px;
+        }
+        #result {
+            margin-top: 12px;
+            font-size: 1.05em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Sistema de Seguridad Perimetral</h1>
+        <div class="section">
+            <h3>📊 Estado del Sistema</h3>
+            <div class="status" id="status">
+                <b>Sistema:</b> Master LoRa v1.0<br>
+                <b>IP:</b> )rawliteral" + WiFi.localIP().toString() + R"rawliteral(<br>
+                <b>WiFi:</b> )rawliteral" + WiFi.SSID() + R"rawliteral(<br>
+                <b>RSSI:</b> )rawliteral" + String(WiFi.RSSI()) + R"rawliteral( dBm
+            </div>
+            <button onclick="location.reload()" class="btn btn-primary">Actualizar</button>
+        </div>
+        <div class="section">
+            <h3>🔢 Número de Nodo Asignado</h3>
+            <div class="status">
+                <b>Nodo:</b> <span id="nodeChar">)rawliteral" + (masterRef ? String(masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
+                <b>ASCII decimal:</b> <span id="nodeAscii">)rawliteral" + (masterRef ? String((int)masterRef->NodeAddress) : String("-")) + R"rawliteral(</span><br>
+            </div>
+            <input type="text" id="newAddress" placeholder="Nueva dirección (A-Z, 1-9)" maxlength="1">
+            <button onclick="changeAddress()" class="btn btn-primary">Cambiar Dirección</button>
+            <button onclick="refreshStatus()" class="btn btn-config">Actualizar Estado</button>
+            <div id="addressResult"></div>
+        </div>
+        <div class="section">
+            <h3>🎮 Control de Comandos</h3>
+            <input type="text" id="command" placeholder="Comando (ej: z1AB)" maxlength="6">
+            <button onclick="sendCommand()" class="btn btn-primary">Enviar Comando</button>
+            <div id="result"></div>
+        </div>
+        <div class="section">
+            <h3>⚙️ Configuración Rápida</h3>
+            <div class="config-label">Comandos predeterminados:</div>
+            <div class="config-btns">
+                <button class="btn btn-config" onclick="sendPreset('C11')">led 1 ON</button>
+                <button class="btn btn-config" onclick="sendPreset('C10')">led 1 OFF</button>
+                <button class="btn btn-config" onclick="sendPreset('C21')">led 2 ON</button>
+                <button class="btn btn-config" onclick="sendPreset('C20')">led 2 OFF</button>
+                <button class="btn btn-config" onclick="sendPreset('C31')">led 3 ON</button>
+                <button class="btn btn-config" onclick="sendPreset('C30')">led 3 OFF</button>
+            </div>
+        </div>
+        <div class="section">
+            <h3>🔧 Control de Forzado de Zonas</h3>
+            <div class="config-label">Forzar valores de sensores:</div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona A:</label>
+                <input type="checkbox" id="forceZoneA" style="margin-right: 5px;">
+                <select id="zoneAValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Zona B:</label>
+                <input type="checkbox" id="forceZoneB" style="margin-right: 5px;">
+                <select id="zoneBValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: inline-block; width: 120px; font-weight: 500;">Fuente:</label>
+                <input type="checkbox" id="forceFuente" style="margin-right: 5px;">
+                <select id="fuenteValue" style="padding: 5px; border-radius: 4px; border: 1px solid #bdbdbd;">
+                    <option value="false">Desactivada (0)</option>
+                    <option value="true">Activada (1)</option>
+                </select>
+            </div>
+            <div class="config-btns">
+                <button onclick="applyForceZones()" class="btn btn-primary">Aplicar Forzado</button>
+                <button onclick="disableAllForcing()" class="btn btn-config">Deshabilitar Todo</button>
+                <button onclick="getForceStatus()" class="btn btn-config">Ver Estado</button>
+            </div>
+            <div id="forceResult"></div>
+        </div>
+    </div>
+    <script>
+        function sendCommand() {
+            var cmd = document.getElementById('command').value;
+            if(cmd.length < 2) {
+                alert('Comando debe tener al menos 2 caracteres');
+                return;
+            }
+            fetch('/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'command=' + cmd
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('result').innerHTML = '<p>Respuesta: ' + data + '</p>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = '<p>Error: ' + error + '</p>';
+            });
+        }
+        function sendPreset(cmd) {
+            document.getElementById('command').value = cmd;
+            sendCommand();
+        }
+        
+        // ✅ NUEVA FUNCIÓN: Cambiar dirección del nodo
+        function changeAddress() {
+            var newAddr = document.getElementById('newAddress').value;
+            if(newAddr.length !== 1) {
+                alert('La dirección debe ser un solo carácter (A-Z o 1-9)');
+                return;
+            }
+            
+            fetch('/set-address', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'address=' + newAddr
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('nodeChar').textContent = data.new_address;
+                    document.getElementById('nodeAscii').textContent = data.ascii_value;
+                    document.getElementById('addressResult').innerHTML = 
+                        '<p style="color: green;">✅ Dirección cambiada a: ' + data.new_address + ' (ASCII: ' + data.ascii_value + ')</p>';
+                } else {
+                    document.getElementById('addressResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        // ✅ NUEVA FUNCIÓN: Actualizar estado desde el servidor
+        function refreshStatus() {
+            fetch('/get-status')
+            .then(response => response.json())
+            .then(data => {
+                if(data.node) {
+                    document.getElementById('nodeChar').textContent = data.node.address_char;
+                    document.getElementById('nodeAscii').textContent = data.node.address_ascii;
+                }
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: blue;">🔄 Estado actualizado - Uptime: ' + Math.floor(data.system.uptime_ms / 1000) + 's</p>';
+            })
+            .catch(error => {
+                document.getElementById('addressResult').innerHTML = 
+                    '<p style="color: red;">❌ Error al actualizar: ' + error + '</p>';
+            });
+        }
+        
+        // ✅ NUEVAS FUNCIONES: Control de forzado de zonas
+        function applyForceZones() {
+            var payload = {};
+            var hasChanges = false;
+            
+            // Verificar Zone A
+            if (document.getElementById('forceZoneA').checked) {
+                payload.zone_a_force = document.getElementById('zoneAValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            // Verificar Zone B
+            if (document.getElementById('forceZoneB').checked) {
+                payload.zone_b_force = document.getElementById('zoneBValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            // Verificar Fuente
+            if (document.getElementById('forceFuente').checked) {
+                payload.fuente_force = document.getElementById('fuenteValue').value === 'true';
+                hasChanges = true;
+            }
+            
+            if (!hasChanges) {
+                alert('Selecciona al menos una zona para forzar');
+                return;
+            }
+            
+            fetch('/api/force-zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: green;">✅ ' + data.message + '</p>';
+                    console.log('Estado actual:', data.current_state);
+                } else {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        function disableAllForcing() {
+            var payload = {
+                disable_force: true
+            };
+            
+            fetch('/api/force-zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: blue;">🔓 ' + data.message + '</p>';
+                    // Desmarcar todos los checkboxes
+                    document.getElementById('forceZoneA').checked = false;
+                    document.getElementById('forceZoneB').checked = false;
+                    document.getElementById('forceFuente').checked = false;
+                } else {
+                    document.getElementById('forceResult').innerHTML = 
+                        '<p style="color: red;">❌ Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error de conexión: ' + error + '</p>';
+            });
+        }
+        
+        function getForceStatus() {
+            fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                var statusText = '📊 Estado de forzado:<br>';
+                if (data.node) {
+                    statusText += '• Zona A: ' + (data.node.zone_a_forzar ? 'FORZADA (' + data.node.zone_a_force + ')' : 'NORMAL') + '<br>';
+                    statusText += '• Zona B: ' + (data.node.zone_b_forzar ? 'FORZADA (' + data.node.zone_b_force + ')' : 'NORMAL') + '<br>';
+                    statusText += '• Fuente: ' + (data.node.fuente_forzar ? 'FORZADA (' + data.node.fuente_force + ')' : 'NORMAL');
+                } else {
+                    statusText += 'No se pudo obtener el estado';
+                }
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: blue;">' + statusText + '</p>';
+            })
+            .catch(error => {
+                document.getElementById('forceResult').innerHTML = 
+                    '<p style="color: red;">❌ Error al obtener estado: ' + error + '</p>';
+            });
+        }
+    </script>
+</body>
+</html>
+)rawliteral";
+    server->send(200, "text/html", html);
 }
 
 //6. HTTP Send
