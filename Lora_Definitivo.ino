@@ -19,10 +19,12 @@
   
   //-2.3 JSON Variables.
     String  jsonString; 
+    const unsigned long SERVER_UPDATE_INTERVAL_MS = 2000;
+    unsigned long lastServerUpdateMs = 0;
   //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
     const char CHISMOSO_NODE_ADDRESS = '1';
-    const bool MASTER                = false; // Cambiar a false para modo Nodo.
+    const bool MASTER                = true; // Cambiar a false para modo Nodo.
     const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
 
 //3. Intancias.
@@ -70,9 +72,10 @@ void setup(){
 void loop(){
   //L1. Function Start
     if (!F_iniciado){
-      F_iniciado=General.Iniciar();
+      // F_iniciado=General.Iniciar();
       Serial.println("💡 Sistema en funcionamiento - esperando comandos...");
       // bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+      updateServer();
     }
     //-L1.1Manejo del Web Server
       webServer.handle();
@@ -99,15 +102,21 @@ void loop(){
   //L4. Funciones del Master.
     if(Chismoso.F_ServerUpdate){
       updateServer();
+      
       Chismoso.F_ServerUpdate = false;
+    }
+
+  //L5. Envio periodico al servidor cada 2000 ms.
+    if (millis() - lastServerUpdateMs >= SERVER_UPDATE_INTERVAL_MS) {
+      updateServer();
     }
 }
 //A 📎 Funciones Auxiliares
 
   //-A1  Update Server.
     void updateServer() {
-      // Obtener los datos del objeto Node (clase Lora)
-      jsonString = Chismoso.jsonString; // Suponiendo que Node ya tiene el método para serializar sus datos
+      lastServerUpdateMs = millis();
+      jsonString = Chismoso.jsonString;
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
     }
