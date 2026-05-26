@@ -134,6 +134,10 @@ public:
                         String output1, String output2, String fuente);
     void manejarForzarZonas();       // POST /api/force-zones
     bool enviarDatosAlServidorExterno(String JsonString);
+
+    // Persistencia NVS para dirección del nodo
+    bool cargarDireccionDesdeNVS();
+    bool guardarDireccionEnNVS(char address);
     
     // ✅ NUEVOS MÉTODOS PARA SISTEMA DE ESTADO
     void handleGetRadioStatus();           // GET /api/status/radio

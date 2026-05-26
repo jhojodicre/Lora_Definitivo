@@ -3,6 +3,12 @@
 #include "Master.h"
 #include "Functions.h"
 #include "NodeWebServer.h"
+#include <Preferences.h>
+
+namespace {
+const char* NVS_NAMESPACE_NODE = "node_config";
+const char* NVS_KEY_NODE_ADDR = "node_addr";
+}
 
 //1. Constructor
 LoRaWebServer::LoRaWebServer(uint16_t serverPort) : port(serverPort), isRunning(false) {
@@ -14,6 +20,9 @@ void LoRaWebServer::begin(Lora* node, Functions* functions, Master* master) {
     nodeRef         = node;
     functionsRef    = functions;
     masterRef       = master;
+
+    // Cargar dirección persistida antes de arrancar el protocolo.
+    cargarDireccionDesdeNVS();
 
     NodeData nodos[5];          // Array de hasta 5 nodos
     //Configurar WiFi
@@ -38,6 +47,42 @@ void LoRaWebServer::begin(Lora* node, Functions* functions, Master* master) {
     
     Serial.println("=== WEB SERVER INICIADO ===");
     Serial.printf("IP: %s:%d\n", WiFi.localIP().toString().c_str(), port);
+}
+
+bool LoRaWebServer::cargarDireccionDesdeNVS() {
+    if (!masterRef) {
+        return false;
+    }
+
+    Preferences preferences;
+    preferences.begin(NVS_NAMESPACE_NODE, true);
+    bool hasKey = preferences.isKey(NVS_KEY_NODE_ADDR);
+    int storedAddress = preferences.getInt(NVS_KEY_NODE_ADDR, -1);
+    preferences.end();
+
+    if (!hasKey || storedAddress < 0 || storedAddress > 255) {
+        Serial.println("📄 Dirección de nodo no encontrada en NVS, usando valor actual");
+        return false;
+    }
+
+    masterRef->NodeAddress = static_cast<char>(storedAddress);
+    Serial.printf("📄 Dirección de nodo cargada desde NVS: %c (%d)\n", masterRef->NodeAddress, storedAddress);
+    return true;
+}
+
+bool LoRaWebServer::guardarDireccionEnNVS(char address) {
+    Preferences preferences;
+    preferences.begin(NVS_NAMESPACE_NODE, false);
+    size_t bytesWritten = preferences.putInt(NVS_KEY_NODE_ADDR, static_cast<int>(address));
+    preferences.end();
+
+    if (bytesWritten == 0) {
+        Serial.println("❌ Error al guardar dirección de nodo en NVS");
+        return false;
+    }
+
+    Serial.printf("💾 Dirección de nodo guardada en NVS: %c (%d)\n", address, static_cast<int>(address));
+    return true;
 }
 
 //2.1 Configurar servidor
@@ -735,6 +780,11 @@ void LoRaWebServer::handleSetAddress() {
     if (masterRef) {
         masterRef->NodeAddress = newChar;
         Serial.printf("Nueva dirección del nodo: %c (%d)\n", newChar, (int)newChar);
+
+        if (!guardarDireccionEnNVS(newChar)) {
+            server->send(500, "application/json", "{\"error\":\"No se pudo guardar en NVS\"}");
+            return;
+        }
         
         String response = "{\"success\":true,\"new_address\":\"" + String(newChar) + 
                          "\",\"ascii_value\":" + String((int)newChar) + "}";
