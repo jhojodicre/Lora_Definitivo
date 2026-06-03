@@ -23,9 +23,9 @@
     unsigned long lastServerUpdateMs = 0;
   //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
-    const char CHISMOSO_NODE_ADDRESS = '3';
-    const bool MASTER                = true; // Cambiar a false para modo Nodo.
-    const bool IO_DISABLE            = true; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
+    const char CHISMOSO_NODE_ADDRESS = '4';
+    const bool MASTER                = false; // Cambiar a false para modo Nodo.
+    const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
 
 //3. Intancias.
   //-3.1 Clases propias.
