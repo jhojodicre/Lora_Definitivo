@@ -549,7 +549,15 @@ void LoRaWebServer::manejarPingTest() {
     Serial.println("🔍 Ping Test ejecutado");
 }
 void LoRaWebServer::handleGetMasterStatus() {
-    server->sendHeader("Access-Control-Allow-Origin", "*");
+
+      // Configurar conexión HTTP
+  http.begin(apiHeartBeat);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("User-Agent", "ESP32-Master/1.0");
+  http.setTimeout(timeoutHTTP);
+// 🐞🐞 Print Debug
+//   Serial.println("📦 JSON enviando " + JsonString);
+
 
     StaticJsonDocument<320> response;
     response["success"] = true;
@@ -558,7 +566,32 @@ void LoRaWebServer::handleGetMasterStatus() {
 
     String jsonResponse;
     serializeJson(response, jsonResponse);
-    server->send(200, "application/json", jsonResponse);
+
+
+    // Realizar petición POST
+    httpResponseCode = http.POST(jsonResponse);
+
+  // Procesar respuesta
+    if (httpResponseCode > 0) {
+        respuesta = http.getString();
+        Serial.print("📥 Código respuesta: " + String(httpResponseCode));
+        // Serial.println("📄 Respuesta servidor: " + respuesta);
+        
+        if (httpResponseCode == 200 || httpResponseCode == 201) {
+            Serial.println("🌐 RX : ✅" );
+            Serial.println();
+            Serial.println();
+            http.end();
+        } else {
+            Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
+            http.end();
+        }
+    } else {
+        Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
+        Serial.println("   Error: " + String(http.errorToString(httpResponseCode)));
+        http.end();
+    }
+
 
     Serial.println("✅ GET /api/status/master ejecutado");
 }

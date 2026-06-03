@@ -59,6 +59,7 @@ public:
     // Server configuration
         // API Replace the next variable with your API endpoint
         const char* apiEndpoint = "http://192.168.1.100:3000/api/nodes";
+        const char* apiHeartBeat = "http://192.168.1.100:3000/api/master/heartbeat";
         const char* serverName  = "http://192.168.1.100:3000/api/nodes"; // URL de tu API de Interfaz WEB
         int         httpResponseCode;
         String respuesta;
