@@ -134,8 +134,8 @@ public:
     bool    Zone_A_Extended = false;
     bool    Zone_B_Extended = false;
 
-    uint16_t   time_Zone_Actived = 3000;  // Tiempo para considerar que la zona está activada (3 segundos)
-    uint16_t   time_Zone_Fall = 6000;     // Tiempo para considerar que la zona ha caído (6 segundos)
+    uint16_t   time_Zone_Actived = 5;  // Tiempo para considerar que la zona está activada (3 segundos)
+    uint16_t   time_Zone_Fall = 3000;     // Tiempo para considerar que la zona ha caído (3 segundos)
 
 
     // **_________******************************Ya fueron migradas a Master.h**************________________________________________-

@@ -19,10 +19,10 @@ private:
     const int timeoutHTTP = 5000;  // Timeout de 5 segundos
 
     // WiFi Replace the next variables with your SSID/Password combination
-    // const char* ssid_master        =  "ANTEL_AE52"; //"Telecentro-3a30"; //"ANTEL_AE52";
-    // const char* password_master    =  "NCsj7gjX";   //"GHU54P2DYG9Q";   //"NCsj7gjX";
-    const char* ssid_master        =  "Telecentro-3a30"; //"ANTEL_AE52";
-    const char* password_master    =  "GHU54P2DYG9Q";   //"NCsj7gjX";
+    const char* ssid_master        =  "ANTEL_AE52"; 
+    const char* password_master    =  "NCsj7gjX";   
+    // const char* ssid_master        =  "Telecentro-3a30"; 
+    // const char* password_master    =  "GHU54P2DYG9Q";   
     const char* ssid_nodo        =  "secure";
     const char* password_nodo    =  "12345678";
 
@@ -58,8 +58,8 @@ public:
     bool actualizado;
     // Server configuration
         // API Replace the next variable with your API endpoint
-        const char* apiEndpoint = "http://192.168.0.100:3000/api/nodes";
-        const char* serverName  = "http://192.168.0.100:3000/api/nodes"; // URL de tu API de Interfaz WEB
+        const char* apiEndpoint = "http://192.168.1.100:3000/api/nodes";
+        const char* serverName  = "http://192.168.1.100:3000/api/nodes"; // URL de tu API de Interfaz WEB
         int         httpResponseCode;
         String respuesta;
 
@@ -134,7 +134,6 @@ public:
                         String output1, String output2, String fuente);
     void manejarForzarZonas();       // POST /api/force-zones
     bool enviarDatosAlServidorExterno(String JsonString);
-
     // Persistencia NVS para dirección del nodo
     bool cargarDireccionDesdeNVS();
     bool guardarDireccionEnNVS(char address);

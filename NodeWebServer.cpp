@@ -241,6 +241,10 @@ void LoRaWebServer::configurarRutasServidor() {
         handleGetStatus(); // se puede usar manejarEstadoNodo() si se desea
         // manejarEstadoNodo();
     });
+    // RUTA 4.1: Estado específico del master (GET /api/status/master)
+    server->on("/api/status/master", HTTP_GET, [this]() {
+        handleGetMasterStatus();
+    });
       // RUTA 4.2: Recibir datos de un nodo individual (POST /api/node)
     server->on("/api/node", HTTP_POST, [this]() {
         manejarDatoNodoIndividual();
@@ -544,7 +548,20 @@ void LoRaWebServer::manejarPingTest() {
     
     Serial.println("🔍 Ping Test ejecutado");
 }
+void LoRaWebServer::handleGetMasterStatus() {
+    server->sendHeader("Access-Control-Allow-Origin", "*");
 
+    StaticJsonDocument<320> response;
+    response["success"] = true;
+    response["source"] = "ESP32-Master";
+    response["timestamp"] = millis()/1000;
+
+    String jsonResponse;
+    serializeJson(response, jsonResponse);
+    server->send(200, "application/json", jsonResponse);
+
+    Serial.println("✅ GET /api/status/master ejecutado");
+}
 // ✅ NUEVO: Manejar forzar zonas
 void LoRaWebServer::manejarForzarZonas() {
     Serial.println("\n🔧 FORZANDO ZONAS - POST /api/force-zones");
@@ -890,7 +907,7 @@ void LoRaWebServer::handleRoot() {
 <html lang='es'>
 <head>
     <meta charset="UTF-8">
-    <title>Barrio San Diego</title>
+    <title>Seguridad Perimetral</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>

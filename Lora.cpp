@@ -660,11 +660,13 @@ void Lora::Lora_time_ZoneA_reach(){
  }
 void Lora::Lora_time_ZoneA_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error
-  nodeInstance->timer_ZA_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
   if(!(nodeInstance->Zone_A_in_ST)){
     nodeInstance->Zone_A_ERR=true;
     nodeInstance->F_IO_Event_Enable=true;
     Serial.println("ZA_ERROR true");
+  }
+  else{
+    nodeInstance->timer_ZA_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
   }
  }
 void Lora::Lora_time_ZoneB_reach(){
@@ -679,11 +681,13 @@ void Lora::Lora_time_ZoneB_reach(){
  }
 void Lora::Lora_time_ZoneB_error(){
   // Si después de 3 segundos más la zona sigue activa, activar bandera de error
-  nodeInstance->timer_ZB_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
   if(!(nodeInstance->Zone_B_in_ST)){
     nodeInstance->Zone_B_ERR=true;
     nodeInstance->F_IO_Event_Enable=true;
     Serial.println("ZB_ERROR true");
+  }
+  else{
+    nodeInstance->timer_ZB_En=false; // Desactivar timer de confirmación para evitar múltiples activaciones
   }
  }
 
