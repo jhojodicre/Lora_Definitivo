@@ -19,13 +19,13 @@
   
   //-2.3 JSON Variables.
     String  jsonString; 
-    const unsigned long SERVER_UPDATE_INTERVAL_MS = 1500;
     unsigned long lastServerUpdateMs = 0;
   //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
     const char CHISMOSO_NODE_ADDRESS = '4';
-    const bool MASTER                = false; // Cambiar a false para modo Nodo.
+    const bool MASTER                = true; // Cambiar a false para modo Nodo.
     const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
+    const unsigned long SERVER_UPDATE_INTERVAL_MS = 2500; // Intervalo de actualización al servidor en modo Master
 
 //3. Intancias.
   //-3.1 Clases propias.
@@ -56,7 +56,11 @@ void setup(){
     Serial.begin(115200);
     delay(1000);  // Esperar que termine el boot del ROM
     Serial.println("\n=== 🚀 INICIANDO SISTEMA LORA ===");
-    Serial.printf("📍 Nodo: %c\n", Chismoso.NodeAddress);
+    if(MASTER){
+        Serial.println("Modo Master");
+    } else {
+        Serial.printf("📡 Modo Nodo:%c\n", Chismoso.NodeAddress);
+    }
     
   //S2. Class Setup.
     Serial.println("📡 Iniciando configuracion LoRa...");
@@ -81,8 +85,7 @@ void loop(){
       }
       F_iniciado = true; // Ejecutar este bloque una sola vez al arranque
     }
-    //-L1.1Manejo del Web Server
-      webServer.handle();
+
   //L2. Functions Serial RX
     //-L2.1 Decode
       if(flag_ISR_stringComplete){
@@ -108,12 +111,13 @@ void loop(){
       updateServer();
       Chismoso.F_ServerUpdate = false;
     }
-
-  //L5. Envio periodico al servidor cada 1500 ms.
+  //L5. Heartbeat: Envio periodico al servidor cada 2500 ms.
     if (millis() - lastServerUpdateMs >= SERVER_UPDATE_INTERVAL_MS && MASTER) {
       webServer.handleGetMasterStatus();
       lastServerUpdateMs = millis();
     }
+  //L6. Manejo del Web Server
+      webServer.handle();
 }
 //A 📎 Funciones Auxiliares
 

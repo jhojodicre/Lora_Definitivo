@@ -682,9 +682,9 @@ void Master::LiberarCanalTx(const String& motivo) {
     if (!txEnCurso) {
         return;
     }
-
-    Serial.print("🔓 TX liberado: ");
-    Serial.print(motivo);
+    // 🐞🐞 Print Debug
+    // Serial.print("🔓 TX liberado: ");
+    // Serial.print(motivo);
 
     txEnCurso = false;
     txEsServidor = false;
@@ -1030,26 +1030,12 @@ void Master::Master_Protocol() {
         F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
         nodeRef->F_Recibido = false; // Resetear la bandera de recepción
     }
-//     if(nodeRef->F_Master_Excecute){
-//         if(message_type=="M"){
-//             correrRef->Functions_Request(tx_funct_mode + tx_funct_num + tx_funct_parameter1 + tx_funct_parameter2);
-//             correrRef->Functions_Run();
-//             nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-//             Serial.println("🚀Server->Master");
-//         }
-//         if(message_type != "M"){
-//                     // Lora_Master_Frame();             // 2. Se prepara el mensaje a enviar.
-//             if (EnviarTramaCentral(mensaje, nodo_consultado, true)) {
-//                 nodeRef->F_Master_Excecute=false;         // 4. Se Desactiva la bandera Master_Excecute.
-//                 Serial.println("🚀Server->Master->Node");
-//             }
-//         }
-//   }
-    if(F_Server_Master){
-        correrRef->Functions_Request(message_From_Server.substring(2));
-        correrRef->Functions_Run();
-        F_Server_Master=false;
-    }
+
+    // if(F_Server_Master){
+    //     correrRef->Functions_Request(message_From_Server.substring(2));
+    //     correrRef->Functions_Run();
+    //     F_Server_Master=false;
+    // }
 }
 
 

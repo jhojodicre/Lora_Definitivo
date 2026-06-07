@@ -214,7 +214,7 @@ void LoRaWebServer::handleAPI() {
     server->send(200, "application/json", response);
 }
 
-// ✅ NUEVA FUNCIÓN: Configurar todas las rutas del servidor
+// Configurar todas las rutas del servidor
 void LoRaWebServer::configurarRutasServidor() {
     Serial.println("🛣️  Configurando rutas del servidor...");
     
@@ -301,7 +301,7 @@ void LoRaWebServer::configurarRutasServidor() {
     Serial.println("✅ Rutas configuradas correctamente");
 }
 
-// ✅ NUEVO: Manejar mensajes recibidos via POST /api/send
+// Manejar mensajes recibidos via POST /api/send
 void LoRaWebServer::manejarMensajeRecibido() {
     // Configurar headers CORS
     configurarHeadersCORS();
@@ -479,7 +479,7 @@ void LoRaWebServer::manejarDatoNodoIndividual() {
     }
 }
 
-// ✅ NUEVO: Endpoint de prueba del sistema
+// Endpoint de prueba del sistema
 void LoRaWebServer::manejarPruebaSistema() {
     server->sendHeader("Access-Control-Allow-Origin", "*");
     
@@ -508,13 +508,13 @@ void LoRaWebServer::manejarPruebaSistema() {
     Serial.println("🧪 Test del sistema ejecutado via API");
 }
 
-// ✅ NUEVO: Manejar preflight CORS
+// Manejar preflight CORS
 void LoRaWebServer::manejarPreflightCORS() {
     configurarHeadersCORS();
     Serial.println("🌐 Preflight CORS manejado");
 }
 
-// ✅ NUEVO: Endpoint Hola Mundo
+// Endpoint Hola Mundo
 void LoRaWebServer::manejarHolaMundo() {
     server->sendHeader("Access-Control-Allow-Origin", "*");
     
@@ -548,9 +548,10 @@ void LoRaWebServer::manejarPingTest() {
     
     Serial.println("🔍 Ping Test ejecutado");
 }
+// Master Heartbeat 
 void LoRaWebServer::handleGetMasterStatus() {
 
-      // Configurar conexión HTTP
+  // Configurar conexión HTTP
   http.begin(apiHeartBeat);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("User-Agent", "ESP32-Master/1.0");
@@ -574,28 +575,23 @@ void LoRaWebServer::handleGetMasterStatus() {
   // Procesar respuesta
     if (httpResponseCode > 0) {
         respuesta = http.getString();
-        Serial.print("📥 Código respuesta: " + String(httpResponseCode));
-        // Serial.println("📄 Respuesta servidor: " + respuesta);
         
         if (httpResponseCode == 200 || httpResponseCode == 201) {
-            Serial.println("🌐 RX : ✅" );
+            Serial.println("🌐  M-RX  ✅ :"+ String(httpResponseCode));
             Serial.println();
             Serial.println();
             http.end();
         } else {
-            Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
+            Serial.println("🌐  M-RX  ⚠️ :"+ String(httpResponseCode));
             http.end();
         }
     } else {
-        Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
-        Serial.println("   Error: " + String(http.errorToString(httpResponseCode)));
+        Serial.println("🌐  M-RX  ❌ :"+ String(httpResponseCode));
         http.end();
     }
-
-
-    Serial.println("✅ GET /api/status/master ejecutado");
 }
-// ✅ NUEVO: Manejar forzar zonas
+
+// Manejar forzar zonas
 void LoRaWebServer::manejarForzarZonas() {
     Serial.println("\n🔧 FORZANDO ZONAS - POST /api/force-zones");
     configurarHeadersCORS();
@@ -908,30 +904,23 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
   httpResponseCode = http.POST(JsonString);
 
   // Procesar respuesta
-  if (httpResponseCode > 0) {
-    respuesta = http.getString();
-    Serial.print("📥 Código respuesta: " + String(httpResponseCode));
-    // Serial.println("📄 Respuesta servidor: " + respuesta);
-    
-    if (httpResponseCode == 200 || httpResponseCode == 201) {
-    Serial.println("🌐 RX : ✅" );
-    Serial.println();
-    Serial.println();
-      http.end();
-      return true;
+    if (httpResponseCode > 0) {
+        respuesta = http.getString();
+        
+        if (httpResponseCode == 200 || httpResponseCode == 201) {
+            Serial.println("🌐  N-RX  ✅ :"+ String(httpResponseCode));
+            Serial.println();
+            Serial.println();
+            http.end();
+        } else {
+            Serial.println("🌐  N-RX  ⚠️ :   " + String(httpResponseCode));
+            http.end();
+        }
     } else {
-      Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
-      http.end();
-      return false;
+        Serial.println("🌐  N-RX  ❌ :" + String(httpResponseCode));
+        http.end();
     }
-  } else {
-    Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
-    Serial.println("   Error: " + String(http.errorToString(httpResponseCode)));
-    http.end();
-    return false;
-  }
 }
-
 
 // Página principal
 void LoRaWebServer::handleRoot() {
@@ -1288,74 +1277,3 @@ void LoRaWebServer::handleRoot() {
 )rawliteral";
     server->send(200, "text/html", html);
 }
-
-//6. HTTP Send
-    //   void sendJsonToMongoDB() {
-    //     if (WiFi.status() == WL_CONNECTED) {
-    //       jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-    //       httpResponseCode = http.POST(jsonString);
-    //       if (httpResponseCode > 0) {
-    //         String response = http.getString();
-    //         Serial.println(httpResponseCode);
-    //         Serial.println(response);
-    //       } else {
-    //         Serial.println("Error en la solicitud HTTP");
-    //       }
-    //       Serial.println(jsonString);
-    //       http.end(); // Finaliza la conexión HTTP
-    //     }
-    //     else {
-    //       Serial.println("WiFi not connected");
-    //     }
-    //   }
-    //   void http_Post() {
-    //     jsonString = Node.jsonString; // Obtener la cadena JSON del objeto
-    //     httpResponseCode = http.POST(jsonString); // Realizar petición POST
-    //     Serial.println("📦 JSON enviando: " + jsonString);
-    //     // Procesar respuesta
-    //     if (httpResponseCode > 0) {
-    //       String respuesta = http.getString();
-    //       Serial.println("📥 Código respuesta: " + String(httpResponseCode));
-    //       Serial.println("📄 Respuesta servidor: " + respuesta);
-    //       if (httpResponseCode == 200 || httpResponseCode == 201) {
-    //         Serial.println("✅ Datos enviados exitosamente al servidor externo");
-    //         http.end();
-    //         // return true;
-    //       } else {
-    //         Serial.println("⚠️  Servidor respondió con código: " + String(httpResponseCode));
-    //         http.end();
-    //         // return false;
-    //       }
-    //     } else {
-    //       Serial.println("❌ Error en petición HTTP: " + String(httpResponseCode));
-    //       Serial.println("   Error: " + http.errorToString(httpResponseCode));
-    //       http.end();
-    //       // return false;
-    //     }
-    //       http.end();
-    //   }
-    //   void DeserializeJson(){
-    //     // jsonString = "{\"comm\":1,\"node\":3,\"zoneA\":100,\"zoneB\":100,\"output1\":0,\"output2\":1}"; // Ejemplo de cadena JSON
-    //     DeserializationError error = deserializeJson(doc, jsonString);
-    //     if (error) {
-    //       Serial.print(F("deserializeJson() failed: "));
-    //       Serial.println(error.f_str());
-    //       return;
-    //     }
-    //     // nombre = doc["nombre"].as<String>();
-    //     nombre = doc["temperature"];
-    //     valueJson = doc["humidity"];   //.as<int>();
-    //     Serial.print("MCU: ");
-    //     Serial.println(nombre);
-    //     Serial.print("Valor: ");
-    //     Serial.println(valueJson);
-    //   }
-    //   void registerNode() {
-    //     String payload = "{\"nodeId\":\"ESP32_001\",\"location\":\"Entrada Principal\",\"type\":\"motion_sensor\"}";
-    //     int httpResponseCode = http.POST(payload);
-    //     if (httpResponseCode > 0) {
-    //       String response = http.getString();
-    //       Serial.println("Node registered: " + response);
-    //     }
-    //     http.end();
-    //   }
