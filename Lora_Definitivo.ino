@@ -22,10 +22,10 @@
     unsigned long lastServerUpdateMs = 0;
   //-2.4 Variables del Protocolo.
     const int  CHISMOSO_TOTAL_NODOS  = 5;
-    const char CHISMOSO_NODE_ADDRESS = '4';
+    const char CHISMOSO_NODE_ADDRESS = '1';
     const bool MASTER                = true; // Cambiar a false para modo Nodo.
     const bool IO_DISABLE            = false; // Cambiar a true para deshabilitar funciones de IO (útil para pruebas sin hardware conectado)
-    const unsigned long SERVER_UPDATE_INTERVAL_MS = 2500; // Intervalo de actualización al servidor en modo Master
+    const unsigned long SERVER_UPDATE_INTERVAL_MS = 2000; // Intervalo de actualización al servidor en modo Master
 
 //3. Intancias.
   //-3.1 Clases propias.
@@ -85,7 +85,8 @@ void loop(){
       }
       F_iniciado = true; // Ejecutar este bloque una sola vez al arranque
     }
-
+  //L6. Manejo del Web Server
+      webServer.handle();
   //L2. Functions Serial RX
     //-L2.1 Decode
       if(flag_ISR_stringComplete){
@@ -116,8 +117,6 @@ void loop(){
       webServer.handleGetMasterStatus();
       lastServerUpdateMs = millis();
     }
-  //L6. Manejo del Web Server
-      webServer.handle();
 }
 //A 📎 Funciones Auxiliares
 
@@ -126,4 +125,5 @@ void loop(){
       jsonString = Chismoso.jsonString;
       // Llamar a la función de la clase LoRaWebServer para enviar los datos al servidor externo
       bool dale = webServer.enviarDatosAlServidorExterno(jsonString);
+      Chismoso.F_ServerUpdate = false;
     }

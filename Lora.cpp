@@ -71,7 +71,7 @@ void Lora::Lora_Setup()
 
     // 🛠⚙ USAR CONFIGURACIÓN GUARDADA O POR DEFECTO
     // -1 = Usar configuración guardada si existe, si no usar por defecto (0)
-    Lora_Configure(-1);
+    Lora_Configure(3);
  }
 void Lora::Lora_Configure(int numero_de_configuracion){
   // ✅ VERIFICAR CONFIGURACIÓN GUARDADA EN MEMORIA NO VOLÁTIL

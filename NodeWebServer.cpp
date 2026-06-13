@@ -193,7 +193,6 @@ void LoRaWebServer::handle() {
     }
 }
 
-
 // API info
 void LoRaWebServer::handleAPI() {
     StaticJsonDocument<300> doc;
@@ -222,20 +221,18 @@ void LoRaWebServer::configurarRutasServidor() {
     server->on("/", HTTP_GET, [this]() {
         handleRoot();
     });
-    
     // RUTA 2: Endpoint principal para recibir mensajes (POST /api/send)
     server->on("/api/send", HTTP_POST, [this]() {
         manejarMensajeRecibido();
     });
-    // CORS preflight para /api/send
+    // RUTA 8: Manejo de preflight CORS (OPTIONS)
     server->on("/api/send", HTTP_OPTIONS, [this]() {
         manejarPreflightCORS();
-    });    
+    });
     // RUTA 3: Endpoint de prueba (GET /api/test)
     server->on("/api/test", HTTP_GET, [this]() {
         manejarPruebaSistema();
     });
-    
     // RUTA 4: Estado del nodo (GET /api/status)
     server->on("/api/status", HTTP_GET, [this]() {
         handleGetStatus(); // se puede usar manejarEstadoNodo() si se desea
@@ -249,7 +246,6 @@ void LoRaWebServer::configurarRutasServidor() {
     server->on("/api/node", HTTP_POST, [this]() {
         manejarDatoNodoIndividual();
     });
-
     // RUTA 5: Control de comandos (POST /control)
     server->on("/control", HTTP_POST, [this]() {
         handleNodeControl();
@@ -261,44 +257,27 @@ void LoRaWebServer::configurarRutasServidor() {
     // CORS preflight para /api/ping
     server->on("/api/ping", HTTP_OPTIONS, [this]() {
         manejarPreflightCORS();
-    });
+    });    
     // RUTA 5.2: Forzar zonas (POST /api/force-zones)
     server->on("/api/force-zones", HTTP_POST, [this]() {
         manejarForzarZonas();
     });
-
-
     // RUTA 6: Cambiar dirección (POST /set-address)
     server->on("/set-address", HTTP_POST, [this]() {
         handleSetAddress();
     });
-    
     // RUTA 7: API información básica (GET /api)
     server->on("/api", HTTP_GET, [this]() {
         handleAPI();
-    });
-    
-    // RUTA 8: Manejo de preflight CORS (OPTIONS)
-    server->on("/api/send", HTTP_OPTIONS, [this]() {
-        manejarPreflightCORS();
-    });
-    // RUTA 8.1: CORS para endpoint /api/node
-    server->on("/api/node", HTTP_OPTIONS, [this]() {
-        manejarPreflightCORS();
     });
     // RUTA 8.2: CORS para endpoint /api/force-zones
     server->on("/api/force-zones", HTTP_OPTIONS, [this]() {
         manejarPreflightCORS();
     });
-    
     // RUTA 9: Hola Mundo (GET /hola-mundo)
     server->on("/hola-mundo", HTTP_GET, [this]() {
         manejarHolaMundo();
     });
-    
-    
-
-    Serial.println("✅ Rutas configuradas correctamente");
 }
 
 // Manejar mensajes recibidos via POST /api/send
@@ -533,6 +512,7 @@ void LoRaWebServer::manejarHolaMundo() {
     
     Serial.println("👋 Endpoint Hola Mundo ejecutado");
 }
+
 // Manjear Ping Test
 void LoRaWebServer::manejarPingTest() {
     server->sendHeader("Access-Control-Allow-Origin", "*");
@@ -548,6 +528,7 @@ void LoRaWebServer::manejarPingTest() {
     
     Serial.println("🔍 Ping Test ejecutado");
 }
+
 // Master Heartbeat 
 void LoRaWebServer::handleGetMasterStatus() {
 
@@ -912,13 +893,16 @@ bool LoRaWebServer::enviarDatosAlServidorExterno(String JsonString) {
             Serial.println();
             Serial.println();
             http.end();
+            return true;
         } else {
             Serial.println("🌐  N-RX  ⚠️ :   " + String(httpResponseCode));
             http.end();
+            return false;
         }
     } else {
         Serial.println("🌐  N-RX  ❌ :" + String(httpResponseCode));
         http.end();
+        return false;
     }
 }
 

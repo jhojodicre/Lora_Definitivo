@@ -340,6 +340,50 @@ void Master::Calibration_Protocol() {
     // - Enviar paquetes de prueba
     // - Medir calidad de señal
     // - Ajustar parámetros de radio
+        // Verificar si es momento de consultar al siguiente nodo
+    nodeRef->Lora_RX();
+    RevisarTimeoutTx();
+
+    // Árbitro de envío: prioridad server, luego automático
+    if (!txEnCurso) {
+        bool permitirServidor = F_ServerQueuePending;
+
+        if (F_ServerQueuePending && Next && serverBurstCount >= SERVER_BURST_MAX) {
+            permitirServidor = false;
+        }
+
+        if (permitirServidor) {
+            ProcesarColaServidor();
+        } else if(Next) {
+            // Primero determinamos cuál es el siguiente nodo a consultar
+            Nodo_REQUEST();
+            Master_Nodo(); // Verifica si hay un nodo en alerta
+            
+            MasterMessage();// Preparamos el mensaje para el nodo seleccionado
+            if (EnviarTramaCentral(mensaje, nodo_consultado, false)) {
+                serverBurstCount = 0;
+            }
+            Next = false;    // Resetear la bandera
+        } else {
+            serverBurstCount = 0;
+        }
+    }
+    if(nodeNoResponde){ // Si el nodo no respondió a la consulta
+        NodeStatusUpdate(); // Actualizar el estado del nodo y serializar a JSON
+    }
+    if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
+        MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
+        NodeStatusUpdate();
+        SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
+        F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
+        nodeRef->F_Recibido = false; // Resetear la bandera de recepción
+    }
+
+    if(F_Server_Master){
+        correrRef->Functions_Request(message_From_Server.substring(2));
+        correrRef->Functions_Run();
+        F_Server_Master=false;
+    }
 }
 
 
@@ -1021,7 +1065,6 @@ void Master::Master_Protocol() {
     }
     if(nodeNoResponde){ // Si el nodo no respondió a la consulta
         NodeStatusUpdate(); // Actualizar el estado del nodo y serializar a JSON
-        F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
     }
     if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
         MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
@@ -1031,11 +1074,11 @@ void Master::Master_Protocol() {
         nodeRef->F_Recibido = false; // Resetear la bandera de recepción
     }
 
-    // if(F_Server_Master){
-    //     correrRef->Functions_Request(message_From_Server.substring(2));
-    //     correrRef->Functions_Run();
-    //     F_Server_Master=false;
-    // }
+    if(F_Server_Master){
+        correrRef->Functions_Request(message_From_Server.substring(2));
+        correrRef->Functions_Run();
+        F_Server_Master=false;
+    }
 }
 
 
