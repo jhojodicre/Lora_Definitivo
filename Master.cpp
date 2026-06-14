@@ -159,6 +159,7 @@ void Master::Iniciar(Lora* Node, Functions* Correr) {
 
     nodeRef = Node;
     correrRef = Correr;
+    F_Calibration_EN = false;
     if (MasterMode) {
         Serial.println("Iniciando protocolo Master");
         // IMPORTANTE: attach usa segundos; para 5 segundos, usar attach(5.0) o attach_ms(5000)
@@ -276,14 +277,16 @@ bool Master::NodoEnAlerta(int nodoID) {
     }
     return false;
 }
-void Master::Master_Calibration_Init() {
-    F_Calibration_EN = true;
+void Master::Master_Calibration_Init(String Node_Target){
+    F_Calibration = true;
     F_Calibration_Complete = false;
-
+    Node_to_Calibrate = Node_Target;
     
     timer_master.detach();              // Detener el temporizador principal del Master
     timer_No_Response.detach();         // Detener el temporizador de no respuesta
     Serial.println("Iniciando protocolo de calibración Master");
+    Serial.print("Nodo objetivo para calibración: ");
+    Serial.println(Node_to_Calibrate);
     // Configurar temporizador para encuesta de nodos cada 5 segundos
     timer_Survey.attach_ms(5000, [this]() {
         this->NextSurvey = true; // Activar bandera para consultar siguiente nodo
@@ -328,61 +331,51 @@ void Master::Master_Status_Address() {
 
 //**💢💢 Programa Principal 💢💢******************/
 void Master::Calibration_Protocol() {
-    /**
-     * @brief Protocolo para modo de calibración
-     */
-    // Aquí implementa la lógica del protocolo de calibración
-    // Por ejemplo: ajustar potencia de transmisión, medir RSSI, etc.
-    
-    Serial.println("🔧 Ejecutando protocolo de calibración");
-    
-    // Ejemplo de implementación básica:
-    // - Enviar paquetes de prueba
-    // - Medir calidad de señal
-    // - Ajustar parámetros de radio
-        // Verificar si es momento de consultar al siguiente nodo
+    if (!MasterMode || nodeRef == nullptr) {
+        return;
+    }
+
+    int calibrationNodeId = Node_to_Calibrate.toInt();
+
+    if (calibrationNodeId <= 0 || calibrationNodeId > Nodo_Ultimo) {
+        Serial.print("⚠ Nodo de calibración fuera de rango: ");
+        Serial.println(calibrationNodeId);
+        return;
+    }
+
+    // Mantener el flujo de recepción/timeout activo durante calibración.
     nodeRef->Lora_RX();
     RevisarTimeoutTx();
 
-    // Árbitro de envío: prioridad server, luego automático
-    if (!txEnCurso) {
-        bool permitirServidor = F_ServerQueuePending;
+    // Modo calibración exclusivo: solo consultar el nodo objetivo.
+    Nodo_a_Consultar = calibrationNodeId;
 
-        if (F_ServerQueuePending && Next && serverBurstCount >= SERVER_BURST_MAX) {
-            permitirServidor = false;
+    if (!txEnCurso && NextSurvey) {
+        estadosNodos[Nodo_a_Consultar].intentos++;
+        estadosNodos[Nodo_a_Consultar].responde = false;
+
+        timer_No_Response.once_ms(timeout_NoResponse, [this]() {
+            HandleNodeNoResponse();
+        });
+
+        MasterMessage();
+        if (EnviarTramaCentral(mensaje, Nodo_a_Esperar, false)) {
+            Serial.print("🎯 Survey calibración -> Nodo ");
+            Serial.println(Nodo_Consultado);
         }
 
-        if (permitirServidor) {
-            ProcesarColaServidor();
-        } else if(Next) {
-            // Primero determinamos cuál es el siguiente nodo a consultar
-            Nodo_REQUEST();
-            Master_Nodo(); // Verifica si hay un nodo en alerta
-            
-            MasterMessage();// Preparamos el mensaje para el nodo seleccionado
-            if (EnviarTramaCentral(mensaje, nodo_consultado, false)) {
-                serverBurstCount = 0;
-            }
-            Next = false;    // Resetear la bandera
-        } else {
-            serverBurstCount = 0;
-        }
+        NextSurvey = false;
     }
-    if(nodeNoResponde){ // Si el nodo no respondió a la consulta
-        NodeStatusUpdate(); // Actualizar el estado del nodo y serializar a JSON
-    }
-    if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
-        MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
+
+    if (nodeNoResponde) {
         NodeStatusUpdate();
-        SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
-        F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
-        nodeRef->F_Recibido = false; // Resetear la bandera de recepción
     }
 
-    if(F_Server_Master){
-        correrRef->Functions_Request(message_From_Server.substring(2));
-        correrRef->Functions_Run();
-        F_Server_Master=false;
+    if (nodeRef->F_Recibido) {
+        MasterDecodificar(nodeRef->rxdata);
+        NodeStatusUpdate();
+        F_ServerUpdate = true;
+        nodeRef->F_Recibido = false;
     }
 }
 
@@ -715,6 +708,7 @@ bool Master::EnviarTramaCentral(const String& mensajeTx, char nodoEsperado, bool
     mensaje = mensajeTx;
     nodeRef->Lora_TX(mensaje);
 
+    Nodo_Consultado = Nodo_a_Consultar;
     txEnCurso = true;
     txEsServidor = esServidor;
     txNodoEsperado = nodoEsperado;
@@ -771,22 +765,22 @@ void Master::Nodo_REQUEST() {
         Serial.println(Nodo_Consultado);
     } else {
         // Si llegamos al último nodo, volvemos al primero
-        if (Nodo_Proximo == Nodo_Ultimo) {
+        if (Nodo_Consultado == Nodo_Ultimo) {
             Nodo_Proximo = Nodo_Primero - 1;
         }
         
         // Avanzamos al siguiente nodo
         if (Nodo_Proximo <= Nodo_Ultimo) {
             ++Nodo_Proximo;
-            Nodo_Consultado = Nodo_Proximo;
+            Nodo_a_Consultar = Nodo_Proximo;
         }
     }
 
-    if (Nodo_Consultado > 0 && Nodo_Consultado <= Nodo_Ultimo) {
+    if (Nodo_a_Consultar > 0 && Nodo_a_Consultar <= Nodo_Ultimo) {
         
         // Registrar que estamos consultando este nodo
-        estadosNodos[Nodo_Consultado].intentos++;
-        estadosNodos[Nodo_Consultado].responde = false; // Resetear bandera de respuesta
+        estadosNodos[Nodo_a_Consultar].intentos++;
+        estadosNodos[Nodo_a_Consultar].responde = false; // Resetear bandera de respuesta
     }
         // Configurar temporizador de timeout DESPUÉS de resetear las banderas
     timer_No_Response.once_ms(timeout_NoResponse, [this]() {
@@ -803,45 +797,43 @@ void Master::Master_Nodo() {
     for (int i = 1; i <= Nodo_Ultimo; i++) {
         if (NodoEnAlerta(i)) {
             // Si hay un nodo en alerta, lo consultamos con prioridad
-            Nodo_Consultado = i;
+            Nodo_a_Consultar = i;
             Serial.print("Prioridad: Nodo en alerta ");
             Serial.println(i);
             break;
         }
     }
-    
-    
 
-    
-    // Registramos el intento de comunicación
-    // Serial.print("Master consulta a nodo: ");
-    // Serial.println(Nodo_Consultado);
 }
 void Master::MasterMessage() {
     /**
      * @brief Prepara el mensaje para el nodo consultado
      */
-  //1. Preparamos paquete para enviar
+     //1. Preparamos paquete para enviar
     tx_remitente        = Master_Address;                  // Direccion del maestro.
-    tx_destinatario     = String(Nodo_Proximo);                // Direccion del nodo local.
-    tx_mensaje          = String(MSG_POLL);               // Mensaje de consulta de estado.
-
+    tx_destinatario     = String(Nodo_a_Consultar);            // Direccion del nodo local.
+    
+    if(F_Calibration){
+        Master_Counter();
+    }else{
+        tx_mensaje      = String(MSG_POLL);               // Mensaje de consulta de estado.
+    }
 
 
     //2. Armamos el mensaje para enviar con formato explícito de 8 bytes.
         ChismosoFrame frame = {
-                tx_remitente,
-                tx_destinatario,
-                tx_mensaje,
-                tx_funct_mode,
-                tx_funct_num,
-                tx_funct_parameter1,
-                tx_funct_parameter2,
-                tx_funct_parameter3
+            tx_remitente,
+            tx_destinatario,
+            tx_mensaje,
+            tx_funct_mode,
+            tx_funct_num,
+            tx_funct_parameter1,
+            tx_funct_parameter2,
+            tx_funct_parameter3
         };
         mensaje = BuildFrame8(frame);
-  //3. Borramos Variables de envio.
-    nodo_consultado = tx_destinatario.charAt(0);
+    //3. Borramos Variables de envio.
+    Nodo_a_Esperar = tx_destinatario.charAt(0);
     tx_remitente=' ';
     tx_destinatario=' ';
     tx_mensaje=' ';
@@ -892,9 +884,8 @@ void Master::NodeStatusUpdate(){
     rx_master_lora_5 = "0"; // Estado de la salida 1
     rx_master_lora_6 = "0"; // Estado de la salida 2
     rx_master_lora_7 = "0"; // Estado de la fuente
+
     
-    // Serializar para enviar al servidor/DB
-    SerializeObjectToJson();
     if (txEnCurso && !txEsServidor) {
         LiberarCanalTx("nodeNoResponde");
     }
@@ -905,8 +896,8 @@ void Master::NodeStatusUpdate(){
     Node_Status_str = "1";                  // Comunicacion ok
     Node_Num_str    = String(Nodo_Actual); // Numero de Nodo consultado
   }
-  F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor
-  F_NodeStatusUpdate = false; 
+  SerializeObjectToJson();
+  F_ServerUpdate = true;            // Resetear la bandera de actualización del servidor 
 }
 void Master::Master_Print_RX() {
     // Imprimir los componentes del mensaje decodificado
@@ -1017,7 +1008,7 @@ void Master::MasterDecodificar(String mensaje_loraRX) {
 void Master::Master_Counter(){
     ++MasterCounter;
     counterStr = String(MasterCounter, DEC);
-    tx_mensaje = counterStr; // Contador de mensajes enviados.
+    tx_mensaje = String(MSG_CALIBRATION) + counterStr; // Contador de mensajes enviados.
  }
 // 👑👑MASTR PROTOCOL👑👑
 void Master::Master_Protocol() {
@@ -1053,9 +1044,8 @@ void Master::Master_Protocol() {
             // Primero determinamos cuál es el siguiente nodo a consultar
             Nodo_REQUEST();
             Master_Nodo(); // Verifica si hay un nodo en alerta
-            
             MasterMessage();// Preparamos el mensaje para el nodo seleccionado
-            if (EnviarTramaCentral(mensaje, nodo_consultado, false)) {
+            if (EnviarTramaCentral(mensaje, Nodo_a_Esperar, false)) {
                 serverBurstCount = 0;
             }
             Next = false;    // Resetear la bandera
@@ -1068,12 +1058,10 @@ void Master::Master_Protocol() {
     }
     if(nodeRef->F_Recibido){ // Si se recibió un mensaje por Lora
         MasterDecodificar(nodeRef->rxdata); // Procesar el mensaje recibido
-        NodeStatusUpdate();
-        SerializeObjectToJson();                            // Serializar para enviar al servidor/DB
+        NodeStatusUpdate();                          // Serializar para enviar al servidor/DB
         F_ServerUpdate = true; // Indicar que se debe actualizar el servidor
         nodeRef->F_Recibido = false; // Resetear la bandera de recepción
     }
-
     if(F_Server_Master){
         correrRef->Functions_Request(message_From_Server.substring(2));
         correrRef->Functions_Run();

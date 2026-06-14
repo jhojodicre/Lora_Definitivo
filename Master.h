@@ -19,15 +19,16 @@ class Lora;
 class Master {
 public:
     // ----- TIPOS DE MENSAJE DEL PROTOCOLO -----
-    static constexpr char MSG_INFO = 'i';
-    static constexpr char MSG_EMERGENCY = 'E';
-    static constexpr char MSG_MASTER_SPECIAL = 'M';
-    static constexpr char MSG_NODE_REPLY = 'P';
-    static constexpr char MSG_ACK = 'O';
-    static constexpr char MSG_ALERT = 'A';
-    static constexpr char MSG_FUNCTION_SPECIAL = 'F';
-    static constexpr char MSG_RESET = 'R';
-    static constexpr char MSG_POLL = '.';
+    static constexpr char MSG_INFO              = 'i';
+    static constexpr char MSG_EMERGENCY         = 'E';
+    static constexpr char MSG_MASTER_SPECIAL    = 'M';
+    static constexpr char MSG_NODE_REPLY        = 'P';
+    static constexpr char MSG_ACK               = 'O';
+    static constexpr char MSG_ALERT             = 'A';
+    static constexpr char MSG_FUNCTION_SPECIAL  = 'F';
+    static constexpr char MSG_RESET             = 'R';
+    static constexpr char MSG_POLL              = '.';
+    static constexpr char MSG_CALIBRATION       = 'C';
 
     // ----- FLAGS Y ESTADOS DEL PROTOCOLO -----
     bool MasterMode=false;                          // true = Modo Master, false = Modo Nodo
@@ -75,7 +76,7 @@ public:
     void MasterMessage();
     void Master_Status_Address();
     void SerializeObjectToJson();
-    void Master_Calibration_Init();
+    void Master_Calibration_Init(String Node_Target);
     void Master_Calibration_End();
     void Master_ExecuteFromServer(String mensajeServer);
     bool EncolarMensajeServidor(const String& mensajeLora);
@@ -142,7 +143,8 @@ public:
     int  Nodo_Proximo;          // Número del próximo nodo a consultar
     int  Nodo_Ultimo=3;         // ID del último nodo de la red
     int  Nodo_Consultado;       // ID del nodo actualmente consultado
-
+    int  Nodo_a_Consultar;      // ID del nodo que se desea consultar (usado para peticiones especiales)
+    char Nodo_a_Esperar;        // Direccion del nodo consultado.
     int  Nodo_Anterior;         // ID del nodo previamente consultado
     int  Nodo_Actual;           // ID del nodo actual en proceso
     int  Nodo_Siguiente;        // ID del siguiente nodo a consultar
@@ -183,7 +185,6 @@ public:
     bool    F_NodeMode=false;
     bool    F_MasterCalibration=false;
     bool    F_ServerUpdate=false;
-    bool    F_NodeStatusUpdate=false;
     bool    F_ServerQueuePending=false;
     bool    F_Server_Master=false;
 
@@ -201,7 +202,6 @@ public:
         String  mensaje;
         byte    nodo_local;
         char    nodo_status;            // Estado del nodo en este byte esta el estado de las entradas si esta en error o falla
-        char    nodo_consultado;        // Direccion del nodo consultado.
         String  nodo_Number;
         String  nodo_a_Consultar=" ";   // Direccion del nodo a consultar.
         String  nodo_DB=" ";

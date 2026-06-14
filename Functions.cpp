@@ -550,9 +550,10 @@ void Functions::m2()
     // Implementación del método m2
     nodeRef->Lora_Configure(x1);
 }
+// Master Calibration - Envia una solicitud de calibración a un nodo específico o a todos los nodos
 void Functions::m3()
 {
-    // Implementación del método m3
+    masterRef->Master_Calibration_Init(function_Parameter1);
 }
 void Functions::m4()
 {
