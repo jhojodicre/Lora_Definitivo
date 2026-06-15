@@ -555,9 +555,10 @@ void Functions::m3()
 {
     masterRef->Master_Calibration_Init(function_Parameter1);
 }
+// Master Modo Loop.
 void Functions::m4()
 {
-    // Implementación del método m4
+    masterRef->Master_Calibration_End();
 }
 void Functions::m5()
 {

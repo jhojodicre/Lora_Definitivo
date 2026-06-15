@@ -137,6 +137,7 @@ Master::Master(bool mode_master, int nodo_number, char localAddress) {
 
     timeout_NoResponse=3000;
     timeout_master = 4000; // Tiempo entre consultas a nodos (ms)
+    timeout_calibration = 3000; // Tiempo entre ciclos de calibración (ms)
 
     txEnCurso = false;
     txEsServidor = false;
@@ -287,18 +288,19 @@ void Master::Master_Calibration_Init(String Node_Target){
     Serial.println("Iniciando protocolo de calibración Master");
     Serial.print("Nodo objetivo para calibración: ");
     Serial.println(Node_to_Calibrate);
-    // Configurar temporizador para encuesta de nodos cada 5 segundos
-    timer_Survey.attach_ms(5000, [this]() {
+    // Configurar temporizador para encuesta de nodos cada 3 segundos
+    timer_Survey.attach_ms(timeout_calibration, [this]() {
         this->NextSurvey = true; // Activar bandera para consultar siguiente nodo
     });
 }
 void Master::Master_Calibration_End() {
-    F_Calibration_EN = false;
+    F_Calibration = false;
     F_Calibration_Complete = true;
     timer_Survey.detach(); // Detener el temporizador de encuesta
     Serial.println("Finalizando protocolo de calibración Master");
     // Reiniciar el temporizador principal del Master
-    timer_master.attach_ms(1000, timer_master_ISR);
+    timer_master.attach_ms(timeout_master, timer_master_ISR); // Llama a la función de temporizador cada 5 segundos
+    Serial.println("Reiniciando temporizador principal del Master en Master_Loop");
 }
 String Master::GenerarPeticionEspecial(int nodoID, String comando) {
     /**
@@ -376,6 +378,11 @@ void Master::Calibration_Protocol() {
         NodeStatusUpdate();
         F_ServerUpdate = true;
         nodeRef->F_Recibido = false;
+    }
+    if(F_Server_Master){
+        correrRef->Functions_Request(message_From_Server.substring(2));
+        correrRef->Functions_Run();
+        F_Server_Master=false;
     }
 }
 
